@@ -3,6 +3,8 @@ local class = require "lib.middleclass"
 local BuildingComponent = require "src.game.buildingcomponent"
 local ResourceComponent = require "src.game.resourcecomponent"
 
+local table = require "lib.table"
+
 local UnderConstructionComponent = class("UnderConstructionComponent")
 
 UnderConstructionComponent.static.MATERIALS = {
@@ -30,7 +32,7 @@ UnderConstructionComponent.static.MATERIALS = {
 
 function UnderConstructionComponent:initialize(type)
 	self.buildingType = type
-	self.resourcesLeft = UnderConstructionComponent.MATERIALS[self.buildingType]
+	self.resourcesLeft = table.clone(UnderConstructionComponent.MATERIALS[self.buildingType])
 	assert(self.resourcesLeft, "Missing resource information for building type "..tostring(self.buildingType))
 
 	self.numCommittedResources = 0
@@ -39,6 +41,7 @@ function UnderConstructionComponent:initialize(type)
 	for _,num in pairs(self.resourcesLeft) do
 		self.numTotalResources = self.numTotalResources + num
 	end
+	assert(self.numTotalResources > 0, "No resources :(")
 end
 
 function UnderConstructionComponent:getPercentDone()

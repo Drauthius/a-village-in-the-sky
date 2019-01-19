@@ -10,7 +10,6 @@
 --      reserve() for resources, occupy() for villagers?
 --    * Villagers always reserve two grids when walking. Problem?
 --  - Next:
---    * A/B test for headers (one where they are zoomed in with the world, one without)
 --    * Create a straw-man sound manager, printing out that an effect should be played.
 --      Acknowledgement (order being done)
 --      Negative acknowledgement (order cannot be done)
@@ -275,37 +274,6 @@ function Game:draw()
 		end
 	end)
 
-	--love.graphics.setPointSize(4)
-	--love.graphics.points(self.camera:cameraCoords(0, 0, drawArea.x, drawArea.y, drawArea.width, drawArea.height))
-
-	if mode == 2 then
-		local spriteSheet = require "src.game.spritesheet"
-		for _,entity in pairs(self.engine:getEntitiesWithComponent("UnderConstructionComponent")) do
-			local header = spriteSheet:getSprite("headers", "4-spot-building-header")
-			local w, h = header:getDimensions()
-			local sprite = entity:get("SpriteComponent")
-			local x, y = sprite:getDrawPosition()
-			local tw = sprite:getSprite():getWidth()
-
-			local scale = 2
-			w, h = w * scale, h * scale
-
-			x = x + tw / 2
-			--x = x + (tw - w) / 2
-			x, y = self.camera:cameraCoords(x, y, drawArea.x, drawArea.y, drawArea.width, drawArea.height)
-			x = x - w / 2
-			y = y - h / 2
-			--spriteSheet:draw(header, x, y)
-			love.graphics.draw(spriteSheet:getImage(), header:getQuad(), x, y, 0, scale)
-
-			local icon = spriteSheet:getSprite("headers", "occupied-icon")
-			for i=1,#entity:get("UnderConstructionComponent"):getAssignedVillagers() do
-				-- TODO: Value
-				love.graphics.draw(spriteSheet:getImage(), icon:getQuad(), x + scale * (9 + ((i - 1) * (icon:getWidth() + 1))), y + scale, 0, scale)
-			end
-		end
-	end
-
 	self.gui:draw()
 end
 
@@ -314,12 +282,6 @@ function Game:keyreleased(key)
 		self.debug = not self.debug
 	elseif key == "escape" then
 		self.gui:back()
-	end
-
-	if key == "1" then
-		mode = 1
-	elseif key == "2" then
-		mode = 2
 	end
 end
 
@@ -415,7 +377,7 @@ function Game:mousereleased(x, y)
 							soundManager:playEffect("failedAssignment")
 						end
 					else
-						soundManager:playEffect("selecting")
+						soundManager:playEffect("selecting") -- TODO: Different sounds depending on what is selected.
 						state:setSelection(clicked)
 					end
 				else
@@ -423,6 +385,8 @@ function Game:mousereleased(x, y)
 					state:clearSelection()
 				end
 			elseif state:getPlacing():has("TileComponent") then
+				soundManager:playEffect("tilePlaced") -- TODO: Type?
+
 				local placing = state:getPlacing()
 				placing:remove("PlacingComponent")
 				local ti, tj = placing:get("TileComponent"):getPosition()
@@ -508,6 +472,8 @@ function Game:mousereleased(x, y)
 				-- Notify GUI to update its state.
 				self.gui:placed()
 			elseif state:getPlacing():has("BuildingComponent") then
+				soundManager:playEffect("buildingPlaced") -- TODO: Type?
+
 				local placing = state:getPlacing()
 				placing:remove("PlacingComponent")
 

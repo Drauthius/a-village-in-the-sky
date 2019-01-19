@@ -187,18 +187,13 @@ function VillagerSystem:update(dt)
 						-- Create a path to the target, to ensure it can be reached.
 						local start = entity:get("PositionComponent"):getPosition()
 						local target = path[1]
+						assert(target, "Next grid is the target :(") -- TODO: Do something smart.
 						local nodes = astar.search(self.map, start, target)
 						local newPath = astar.reconstructReversedPath(start, target, nodes)
 
-						for _,grid in ipairs(newPath) do
-							assert(nextGrid ~= grid, "NO WAY!")
-						end
-
 						nextGrid.collision = oldCollision
 
-						if #newPath < 1 then
-							error("Could not access target :(")
-						end
+						assert(#newPath > 0, "Could not access target :(") -- TODO
 
 						-- Get rid of the starting (current) grid.
 						table.remove(newPath)

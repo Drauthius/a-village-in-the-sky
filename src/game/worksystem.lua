@@ -1,8 +1,11 @@
 local Timer = require "lib.hump.timer"
 local lovetoys = require "lib.lovetoys.lovetoys"
 
+local ResourceComponent = require "src.game.resourcecomponent"
 local VillagerComponent = require "src.game.villagercomponent"
 local WorkComponent = require "src.game.workcomponent"
+
+local soundManager = require "src.soundmanager"
 
 local WorkSystem = lovetoys.System:subclass("WorkSystem")
 
@@ -75,38 +78,47 @@ function WorkSystem:workEvent(event)
 
 			if uuc:isComplete() then
 				workPlace:remove("UnderConstructionComponent")
-				-- TODO: More?
+				soundManager:playEffect("buildingComplete")
+			else
+				soundManager:playEffect("building")
 			end
 		end
 	else
 		local work = workPlace:get("WorkComponent")
-		work:get("WorkComponent"):increaseCompletion(10.0) -- TODO: Value!
+		work:increaseCompletion(10.0) -- TODO: Value!
 
 		local workers = work:getAssignedVillagers()
 		local numWorkers = #workers
 
-		if work:getType() == WorkComponent.WOODCUTTER or
-		   work:getType() == WorkComponent.MINER then
-			for _,worker in ipairs(workers) do
-				villager = worker:get("VillagerComponent")
-				villager:setWorkPlace(nil)
-				villager:setState(VillagerComponent.states.IDLE) -- TODO: Should be WORKING
-			end
+		if work:isComplete() then
+			if work:getType() == WorkComponent.WOODCUTTER or
+			   work:getType() == WorkComponent.MINER then
+				for _,worker in ipairs(workers) do
+					villager = worker:get("VillagerComponent")
+					villager:setWorkPlace(nil)
+					villager:setState(VillagerComponent.states.IDLE) -- TODO: Should be WORKING
+				end
 
-			if numWorkers == 0 then
-				-- TODO: Place on ground!
-				print("Unimplemented drop")
-			elseif numWorkers == 1 then
-				workers[1]:get("VillagerComponent"):carry(
-					workPlace:get("ResourceComponent"):getResourceAmount(),
-					workPlace:get("ResourceComponent"):getResource())
+				local resource = workPlace:get("ResourceComponent")
+				if numWorkers == 0 then
+					-- TODO: Place on ground!
+					print("Unimplemented drop")
+				elseif numWorkers == 1 then
+					workers[1]:get("VillagerComponent"):carry(
+						resource:getResourceAmount(),
+						resource:getResource())
+				else
+					error("Too many workers for resource type")
+				end
+
+				soundManager:playEffect(ResourceComponent.RESOURCE_NAME[resource:getResource()].."Gathered")
+
+				self.engine:removeEntity(workPlace, true)
 			else
-				error("Too many workers for resource type")
+				error("TODO: Non-gathering work complete.")
 			end
-
-			self.engine:removeEntity(workPlace, true)
 		else
-			error("TODO: Non-gathering work complete.")
+			soundManager:playEffect(WorkComponent.WORK_NAME[work:getType()].."Working")
 		end
 	end
 end

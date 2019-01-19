@@ -114,6 +114,8 @@ function RenderSystem:draw()
 		end
 	end
 
+	love.graphics.setColor(1, 1, 1, 1)
+
 	for _,entity in ipairs(objects) do
 		local sprite = entity:get("SpriteComponent")
 
@@ -135,7 +137,7 @@ function RenderSystem:draw()
 			love.graphics.setFont(font)
 			spriteSheet:draw(header, x, y)
 			love.graphics.print("Lars Larsson", x, y)
-		elseif entity:has("UnderConstructionComponent") and mode == 1 then
+		elseif entity:has("UnderConstructionComponent") then
 			local header = spriteSheet:getSprite("headers", "4-spot-building-header")
 			local x, y = sprite:getDrawPosition()
 			local w, h = header:getDimensions()
@@ -152,8 +154,6 @@ function RenderSystem:draw()
 			end
 		end
 	end
-
-	love.graphics.setColor(1, 1, 1, 1)
 end
 
 return RenderSystem
