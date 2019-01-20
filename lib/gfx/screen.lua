@@ -73,8 +73,8 @@ end
 --- Prepare to draw to the screen. This function should be called before
 -- drawing anything. It is automatically invoked if `overrideDraw` was enabled.
 function Screen:prepare()
-	love.graphics.setCanvas(self.canvas)
-	love.graphics.clear(0, 0, 0, 0)
+	love.graphics.setCanvas({self.canvas, stencil = true})
+	love.graphics.clear(0, 0, 0, 0, true)
 end
 
 --- Present the contents to the screen. This function should be called after

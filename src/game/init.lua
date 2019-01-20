@@ -11,7 +11,7 @@
 --    * Villagers always reserve two grids when walking. Problem?
 --  - Next:
 --    * Don't move building header with the sprite.
---    * Draw outline for villagers when they are behind something.
+--    * Don't include shadow in "behind" outline.
 --    * Don't increase opacity for overlapping shadows.
 --    * Add indicator for homelessness.
 --    * Don't allow homeless to work on non-building things.
@@ -143,15 +143,15 @@ function Game:enter()
 
 	local spriteSheet = require "src.game.spritesheet"
 
-	-- Initial tile.
-	local tile = lovetoys.Entity()
-	tile:add(TileComponent(TileComponent.GRASS, 0, 0))
-	tile:add(SpriteComponent(spriteSheet:getSprite("grass-tile"), -self.map.halfTileWidth))
-	self.engine:addEntity(tile)
-	self.map:addTile(0, 0)
+	do -- Initial tile.
+		local tile = lovetoys.Entity()
+		tile:add(TileComponent(TileComponent.GRASS, 0, 0))
+		tile:add(SpriteComponent(spriteSheet:getSprite("grass-tile"), -self.map.halfTileWidth))
+		self.engine:addEntity(tile)
+		self.map:addTile(0, 0)
+	end
 
-	-- Initial runestone.
-	if false then --do
+	do -- Initial runestone.
 		local runestone = blueprint:createRunestone()
 		local x, y, grid = self.map:addObject(runestone, 0, 0)
 		runestone:get("SpriteComponent"):setDrawPosition(x, y)
