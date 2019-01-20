@@ -5,10 +5,54 @@ local state = require "src.game.state"
 
 local RenderSystem = lovetoys.System:subclass("RenderSystem")
 
+RenderSystem.static.OLD_OUTLINE_COLOR = { 0.0, 0.0, 0.0, 1.0 }
+RenderSystem.static.NEW_OUTLINE_COLOR = { 0.15, 0.15, 0.15, 1.0 }
+RenderSystem.static.SELECTED_OUTLINE_COLOR = { 0.15, 0.70, 0.15, 1.0 }
+
+RenderSystem.static.COLOR_OUTLINE_SHADER = love.graphics.newShader([[
+extern bool noShadow;
+extern vec4 oldOutlineColor;
+extern vec4 newOutlineColor;
+
+vec4 effect(vec4 color, Image texture, vec2 texture_coords, vec2 screen_coords)
+{
+	vec4 texturecolor = Texel(texture, texture_coords);
+	if(noShadow && texturecolor.a < 1.0)
+		return vec4(0.0, 0.0, 0.0, 0.0);
+	if(texturecolor == oldOutlineColor)
+		return newOutlineColor; // * color;
+	return texturecolor * color;
+}
+]])
+
+--[[
+RenderSystem.static.CREATE_OUTLINE_SHADER = love.graphics.newShader([-[
+extern vec2 stepSize;
+extern vec4 outlineColor;
+
+vec4 effect(vec4 color, Image texture, vec2 texture_coords, vec2 screen_coords)
+{
+	number alpha = 4 * Texel(texture, texture_coords).a;
+	alpha -= Texel(texture, texture_coords + vec2( stepSize.x, 0.0f)).a;
+	alpha -= Texel(texture, texture_coords + vec2(-stepSize.x, 0.0f)).a;
+	alpha -= Texel(texture, texture_coords + vec2(0.0f,  stepSize.y)).a;
+	alpha -= Texel(texture, texture_coords + vec2(0.0f, -stepSize.y)).a;
+	return vec4(outlineColor.r, outlineColor.g, outlineColor.b, outlineColor.a * alpha);
+}
+]-])
+--]]
+
 function RenderSystem:initialize()
 	lovetoys.System.initialize(self)
 
 	self.font = love.graphics.newFont("asset/font/Norse-Bold.otf", 16)
+
+	RenderSystem.COLOR_OUTLINE_SHADER:send("noShadow", false)
+	RenderSystem.COLOR_OUTLINE_SHADER:send("oldOutlineColor", RenderSystem.OLD_OUTLINE_COLOR)
+	RenderSystem.COLOR_OUTLINE_SHADER:send("newOutlineColor", RenderSystem.NEW_OUTLINE_COLOR)
+
+	-- NOTE: Global
+	love.graphics.setShader(RenderSystem.COLOR_OUTLINE_SHADER)
 end
 
 function RenderSystem.requires()
@@ -73,13 +117,21 @@ function RenderSystem:draw()
 	for _,entity in ipairs(objects) do
 		local sprite = entity:get("SpriteComponent")
 
+		if state:getSelection() == entity then
+			RenderSystem.COLOR_OUTLINE_SHADER:send("newOutlineColor", RenderSystem.SELECTED_OUTLINE_COLOR)
+		elseif entity:has("BlinkComponent") and entity:get("BlinkComponent"):isActive() then
+			RenderSystem.COLOR_OUTLINE_SHADER:send("newOutlineColor", entity:get("BlinkComponent"):getColor())
+		end
+
 		if entity:has("UnderConstructionComponent") then
 			local percent = entity:get("UnderConstructionComponent"):getPercentDone()
 			local dx, dy = sprite:getDrawPosition()
 
 			-- Shadowed background
+			RenderSystem.COLOR_OUTLINE_SHADER:send("noShadow", true)
 			love.graphics.setColor(1, 1, 1, 0.5)
 			spriteSheet:draw(sprite:getSprite(), dx, dy)
+			RenderSystem.COLOR_OUTLINE_SHADER:send("noShadow", false)
 
 			local quad = sprite:getSprite():getQuad()
 			local x, y, w, h = quad:getViewport()
@@ -112,6 +164,8 @@ function RenderSystem:draw()
 			love.graphics.setColor(sprite:getColor())
 			spriteSheet:draw(sprite:getSprite(), sprite:getDrawPosition())
 		end
+
+		RenderSystem.COLOR_OUTLINE_SHADER:send("newOutlineColor", RenderSystem.NEW_OUTLINE_COLOR)
 	end
 
 	love.graphics.setColor(1, 1, 1, 1)

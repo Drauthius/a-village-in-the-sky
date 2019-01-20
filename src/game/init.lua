@@ -10,12 +10,9 @@
 --      reserve() for resources, occupy() for villagers?
 --    * Villagers always reserve two grids when walking. Problem?
 --  - Next:
---    * Create a straw-man sound manager, printing out that an effect should be played.
---      Acknowledgement (order being done)
---      Negative acknowledgement (order cannot be done)
---      Work sounds
 --    * Don't move building header with the sprite.
---    * Don't allow more than 4 builders on a building.
+--    * Draw outline for villagers when they are behind something.
+--    * Don't increase opacity for overlapping shadows.
 --    * Add indicator for homelessness.
 --    * Don't allow homeless to work on non-building things.
 --    * Make it possible to assign villagers a home.
@@ -32,9 +29,6 @@
 --    * There is little reason to have the VillagerComponent be called "VillagerComponent", other than symmetry.
 --  - Draw order:
 --    * Update sprites to be square.
---  - Clarity:
---    * Make outline other colour when selected/clicking.
---      Blinking green when OK, red when NOK.
 --  - Particles:
 --    * "Button is next" for the tutorial.
 --    * When villager hits tree/stone/building
@@ -78,6 +72,7 @@ local GUI = require "src.game.gui"
 local Map = require "src.game.map"
 -- Components
 local AnimationComponent = require "src.game.animationcomponent"
+local BlinkComponent = require "src.game.blinkcomponent"
 local GroundComponent = require "src.game.groundcomponent"
 local InteractiveComponent = require "src.game.interactivecomponent"
 local PositionComponent = require "src.game.positioncomponent"
@@ -373,8 +368,10 @@ function Game:mousereleased(x, y)
 							-- TODO: Should probably be an event or similar.
 							selected:get("VillagerComponent"):setWorkPlace(clicked)
 							soundManager:playEffect("successfulAssignment") -- TODO: Different sounds per assigned occupation?
+							BlinkComponent:makeBlinking(clicked, { 0.15, 0.70, 0.15, 1.0 }) -- TODO: Colour value
 						else
 							soundManager:playEffect("failedAssignment")
+							BlinkComponent:makeBlinking(clicked, { 0.70, 0.15, 0.15, 1.0 }) -- TODO: Colour value
 						end
 					else
 						soundManager:playEffect("selecting") -- TODO: Different sounds depending on what is selected.

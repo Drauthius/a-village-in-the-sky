@@ -118,16 +118,16 @@ end
 function GUI:back()
 	if not self:_clearPlacing() then
 		if self.infoPanel:isShown() or self.detailsPanel:isShown() then
-			soundManager:play("drawerClosed")
+			soundManager:playEffect("drawerClosed")
 			self.infoPanel:hide()
 			self.infoPanelShowing = nil
 			self.detailsPanel:hide()
 		else
 			print("toggle main menu")
-			soundManager:play("toggleMainMenu")
+			soundManager:playEffect("toggleMainMenu")
 		end
 	else
-		soundManager:play("placingCleared")
+		soundManager:playEffect("placingCleared")
 	end
 end
 
@@ -273,11 +273,11 @@ function GUI:handlePress(x, y, dryrun)
 		if widget:isWithin(x, y) then
 			if not dryrun then
 				if self.infoPanel:isShown() and self.infoPanelShowing == type then
-					soundManager:play("drawerClosed")
+					soundManager:playEffect("drawerClosed")
 					self.infoPanel:hide()
 					self.infoPanelShowing = nil
 				else
-					soundManager:play("drawerOpened")
+					soundManager:playEffect("drawerOpened")
 					self.infoPanelShowing = type
 					self.infoPanel:show()
 					self:updateInfoPanel()
@@ -290,7 +290,7 @@ function GUI:handlePress(x, y, dryrun)
 
 	if self.infoPanel:isShown() and self.infoPanel:isWithin(x, y) then
 		if not dryrun then
-			soundManager:play("drawerSelected")
+			soundManager:playEffect("drawerSelected")
 			-- Maybe add "self:_clearPlacing()" here?
 			self.infoPanel:handlePress(x, y)
 		end
