@@ -13,6 +13,7 @@ RenderSystem.static.SELECTED_BEHIND_OUTLINE_COLOR = { 0.60, 0.95, 0.60, 1.0 }
 
 RenderSystem.static.COLOR_OUTLINE_SHADER = love.graphics.newShader([[
 extern bool noShadow;
+extern bool shadowOnly;
 extern bool outlineOnly;
 extern vec4 oldOutlineColor;
 extern vec4 newOutlineColor;
@@ -21,12 +22,14 @@ vec4 effect(vec4 color, Image texture, vec2 texture_coords, vec2 screen_coords)
 {
 	vec4 texturecolor = Texel(texture, texture_coords);
 
-	if(texturecolor == oldOutlineColor)
-		return newOutlineColor; // * color;
-	if(outlineOnly || (noShadow && texturecolor.a < 1.0))
-		return vec4(0.0, 0.0, 0.0, 0.0);
 	if(texturecolor.a == 0.0)
 		discard; // Don't count for stencil tests.
+	if(shadowOnly && texturecolor.a > 0.5)
+		discard;
+	if(texturecolor == oldOutlineColor)
+		return newOutlineColor; // * color;
+	if(outlineOnly || (noShadow && texturecolor.a < 0.5))
+		discard;
 
 	return texturecolor * color;
 }
@@ -55,6 +58,7 @@ function RenderSystem:initialize()
 	self.font = love.graphics.newFont("asset/font/Norse-Bold.otf", 16)
 
 	RenderSystem.COLOR_OUTLINE_SHADER:send("noShadow", false)
+	RenderSystem.COLOR_OUTLINE_SHADER:send("shadowOnly", false)
 	RenderSystem.COLOR_OUTLINE_SHADER:send("outlineOnly", false)
 	RenderSystem.COLOR_OUTLINE_SHADER:send("oldOutlineColor", RenderSystem.OLD_OUTLINE_COLOR)
 	RenderSystem.COLOR_OUTLINE_SHADER:send("newOutlineColor", RenderSystem.NEW_OUTLINE_COLOR)
@@ -170,6 +174,7 @@ function RenderSystem:draw()
 			love.graphics.print(percent .. "%", Fx, Fy)
 		else
 			love.graphics.setColor(sprite:getColor())
+			RenderSystem.COLOR_OUTLINE_SHADER:send("noShadow", true)
 
 			if entity:has("VillagerComponent") then
 				-- Get rid of any previous stencil values on that position.
@@ -177,16 +182,25 @@ function RenderSystem:draw()
 					love.graphics.setColorMask()
 					spriteSheet:draw(sprite:getSprite(), sprite:getDrawPosition())
 				end, "replace", 0, true)
-			elseif entity:has("ResourceComponent") then
+			elseif entity:has("ResourceComponent") and entity:get("ResourceComponent"):isUsable() then
 				spriteSheet:draw(sprite:getSprite(), sprite:getDrawPosition())
 			else
 				-- Increase the stencil value for non-villager, non-resource things.
-				-- TODO: Shadow is included in stencil test.
 				love.graphics.stencil(function()
 					love.graphics.setColorMask()
 					spriteSheet:draw(sprite:getSprite(), sprite:getDrawPosition())
 				end, "replace", 1, true)
 			end
+
+			-- Draw the shadow separately
+			RenderSystem.COLOR_OUTLINE_SHADER:send("noShadow", false)
+			RenderSystem.COLOR_OUTLINE_SHADER:send("shadowOnly", true)
+			-- The colour mask makes it so that the shadow doesn't "stick out" from the tiles.
+			love.graphics.setColorMask(true, true, true, false)
+			spriteSheet:draw(sprite:getSprite(), sprite:getDrawPosition())
+			-- Reset
+			love.graphics.setColorMask()
+			RenderSystem.COLOR_OUTLINE_SHADER:send("shadowOnly", false)
 		end
 
 		RenderSystem.COLOR_OUTLINE_SHADER:send("newOutlineColor", RenderSystem.NEW_OUTLINE_COLOR)

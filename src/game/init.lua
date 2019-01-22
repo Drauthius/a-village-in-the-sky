@@ -11,8 +11,6 @@
 --    * Villagers always reserve two grids when walking. Problem?
 --  - Next:
 --    * Don't move building header with the sprite.
---    * Don't include shadow in "behind" outline.
---    * Don't increase opacity for overlapping shadows.
 --    * Add indicator for homelessness.
 --    * Don't allow homeless to work on non-building things.
 --    * Make it possible to assign villagers a home.
@@ -63,6 +61,8 @@
 --  - Localization:
 --    * Refrain from using hardcoded strings, and consult a library instead.
 --      https://github.com/martin-damien/babel
+--  - Nice to have:
+--    * Don't increase opacity for overlapping shadows.
 
 local Camera = require "lib.hump.camera"
 local Timer = require "lib.hump.timer"
