@@ -31,6 +31,7 @@ function VillagerComponent:initialize(stats)
 	self.speedModifier = 1
 	self.state = VillagerComponent.states.IDLE
 	self.action = VillagerComponent.actions.NONE
+	self.home = nil
 	self.workPlace = nil
 	self.occupation = 0
 	self.path = nil
@@ -120,6 +121,14 @@ end
 
 function VillagerComponent:setAction(action)
 	self.action = action
+end
+
+function VillagerComponent:getHome()
+	return self.home
+end
+
+function VillagerComponent:setHome(home)
+	self.home = home
 end
 
 function VillagerComponent:getWorkPlace()

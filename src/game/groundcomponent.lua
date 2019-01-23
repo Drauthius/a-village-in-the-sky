@@ -10,6 +10,10 @@ function GroundComponent:getPosition()
 	return self.gx, self.gy
 end
 
+function GroundComponent:getIsometricPosition()
+	return (self.gx - self.gy) / 2, (self.gx + self.gy) / 4
+end
+
 function GroundComponent:setPosition(gx, gy)
 	self.gx, self.gy = gx, gy
 end

@@ -233,9 +233,20 @@ function RenderSystem:draw()
 	for _,entity in ipairs(objects) do
 		local sprite = entity:get("SpriteComponent")
 
-		if false and entity:has("VillagerComponent") then
+		if entity:has("VillagerComponent") then
 			local villager = entity:get("VillagerComponent")
 
+			if not villager:getHome() then
+				local header = spriteSheet:getSprite("headers", "no-home-icon")
+				local w, _ = header:getDimensions()
+
+				local x, y = entity:get("GroundComponent"):getIsometricPosition()
+				x = x - w / 2
+				y = y - 28 -- TODO: Guesswork, not true for children.
+				spriteSheet:draw(header, x, y)
+			end
+
+			--[[
 			local header = spriteSheet:getSprite("headers", "person-header")
 			local x, y = sprite:getDrawPosition()
 			x = x - 5
@@ -251,9 +262,10 @@ function RenderSystem:draw()
 			love.graphics.setFont(font)
 			spriteSheet:draw(header, x, y)
 			love.graphics.print("Lars Larsson", x, y)
+			--]]
 		elseif entity:has("UnderConstructionComponent") then
 			local header = spriteSheet:getSprite("headers", "4-spot-building-header")
-			local x, y = sprite:getDrawPosition()
+			local x, y = sprite:getOriginalDrawPosition()
 			local w, h = header:getDimensions()
 			local tw = sprite:getSprite():getWidth()
 

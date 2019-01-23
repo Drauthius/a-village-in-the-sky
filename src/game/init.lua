@@ -10,8 +10,6 @@
 --      reserve() for resources, occupy() for villagers?
 --    * Villagers always reserve two grids when walking. Problem?
 --  - Next:
---    * Don't move building header with the sprite.
---    * Add indicator for homelessness.
 --    * Don't allow homeless to work on non-building things.
 --    * Make it possible to assign villagers a home.
 --    * Show house header.

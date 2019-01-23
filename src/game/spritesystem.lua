@@ -182,8 +182,7 @@ function SpriteSystem:updateVillager(dt, entity)
 
 	local data = spriteSheet:getData(slice, sliceFrame)
 
-	local gx, gy = entity:get("GroundComponent"):getPosition()
-	local x, y = (gx - gy) / 2, (gx + gy) / 4
+	local x, y = entity:get("GroundComponent"):getIsometricPosition()
 	local dx, dy = x - data.pivot.x - 1, y - data.pivot.y - 1
 	sprite:setDrawPosition(dx, dy)
 

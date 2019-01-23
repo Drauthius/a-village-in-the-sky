@@ -19,12 +19,18 @@ function SpriteComponent:setSprite(sprite)
 	self.sprite = sprite
 end
 
+-- Can be tweened/shooked.
 function SpriteComponent:getDrawPosition()
 	return self.x, self.y
 end
 
+function SpriteComponent:getOriginalDrawPosition()
+	return self.origx, self.origy
+end
+
 function SpriteComponent:setDrawPosition(x, y)
 	self.x, self.y = x, y
+	self.origx, self.origy = x, y
 end
 
 function SpriteComponent:getColor()
