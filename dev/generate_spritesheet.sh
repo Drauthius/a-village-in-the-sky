@@ -23,6 +23,7 @@ button.aseprite
 details-panel.aseprite
 dust-effect.aseprite
 field-single.aseprite
+forest-tile.aseprite
 grass-tile.aseprite
 headers.aseprite
 info-panel-1.aseprite
@@ -41,7 +42,6 @@ tool-resource.aseprite
 wheat-resource.aseprite
 windmill-blades.aseprite
 wood-resource.aseprite
-wood-tile.aseprite
 year-panel.aseprite
 )
 

@@ -6,6 +6,12 @@ TileComponent.static.GRASS = 0
 TileComponent.static.FOREST = 1
 TileComponent.static.MOUNTAIN = 2
 
+TileComponent.static.TILE_NAME = {
+	[TileComponent.static.GRASS] = "grass",
+	[TileComponent.static.FOREST] = "forest",
+	[TileComponent.static.MOUNTAIN] = "mountain"
+}
+
 function TileComponent:initialize(type, ti, tj)
 	self:setType(type)
 	self:setPosition(ti, tj)

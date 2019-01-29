@@ -10,9 +10,7 @@
 --      reserve() for resources, occupy() for villagers?
 --    * Villagers always reserve two grids when walking. Problem?
 --  - Next:
---    * Don't allow homeless to work on non-building things.
 --    * Make it possible to assign villagers a home.
---    * Show house header.
 --    * Don't allow more than 1 worker on a resource.
 --    * Bring resource back to home and place it on the ground (increasing resource counter).
 --    * Allow changing profession without locking up resources, work grids, etc.
@@ -71,14 +69,15 @@ local Map = require "src.game.map"
 -- Components
 local AnimationComponent = require "src.game.animationcomponent"
 local BlinkComponent = require "src.game.blinkcomponent"
+local ConstructionComponent = require "src.game.constructioncomponent"
 local GroundComponent = require "src.game.groundcomponent"
 local InteractiveComponent = require "src.game.interactivecomponent"
 local PositionComponent = require "src.game.positioncomponent"
 local ResourceComponent = require "src.game.resourcecomponent"
 local SpriteComponent = require "src.game.spritecomponent"
 local TileComponent = require "src.game.tilecomponent"
-local UnderConstructionComponent = require "src.game.underconstructioncomponent"
 local VillagerComponent = require "src.game.villagercomponent"
+local WorkComponent = require "src.game.workcomponent"
 -- Systems
 local DebugSystem
 local PlacingSystem
@@ -337,24 +336,25 @@ function Game:mousereleased(x, y)
 					--print(clicked)
 					local selected = state:getSelection()
 					if selected and selected:has("VillagerComponent") and selected:get("VillagerComponent"):isAdult() and
-					   clicked:has("WorkComponent") then
+					   (clicked:has("WorkComponent") or clicked:has("ConstructionComponent")) then
 
 					   -- Whether that there is room to work there.
 					   -- FIXME: Reassignment not handled!
 						local valid
 
-						if clicked:has("UnderConstructionComponent") then
-							if #clicked:get("UnderConstructionComponent"):getAssignedVillagers() >= 4 then
+						if clicked:has("ConstructionComponent") then
+							if #clicked:get("ConstructionComponent"):getAssignedVillagers() >= 4 then
 								valid = false
 							else
 								-- For things being built, update the places where builders can stand, so that rubbish can
 								-- be cleared around the build site after placing the building.
 								local adjacent = self.map:getAdjacentGrids(clicked)
-								clicked:get("UnderConstructionComponent"):updateWorkGrids(adjacent)
+								clicked:get("ConstructionComponent"):updateWorkGrids(adjacent)
 								valid = true
 							end
 						else
-							if #clicked:get("WorkComponent"):getAssignedVillagers() >= 1 then
+							if #clicked:get("WorkComponent"):getAssignedVillagers() >= 1 or
+							   not selected:get("VillagerComponent"):getHome() then
 								valid = false
 							else
 								clicked:get("WorkComponent"):assign(selected)
@@ -365,6 +365,7 @@ function Game:mousereleased(x, y)
 						if valid then
 							-- TODO: Should probably be an event or similar.
 							selected:get("VillagerComponent"):setWorkPlace(clicked)
+							selected:get("VillagerComponent"):setOccupation(clicked:has("WorkComponent") and clicked:get("WorkComponent"):getType() or WorkComponent.BUILDER)
 							soundManager:playEffect("successfulAssignment") -- TODO: Different sounds per assigned occupation?
 							BlinkComponent:makeBlinking(clicked, { 0.15, 0.70, 0.15, 1.0 }) -- TODO: Colour value
 						else
@@ -470,20 +471,23 @@ function Game:mousereleased(x, y)
 				soundManager:playEffect("buildingPlaced") -- TODO: Type?
 
 				local placing = state:getPlacing()
-				placing:remove("PlacingComponent")
 
 				local ax, ay, grid = self.map:addObject(placing, placing:get("BuildingComponent"):getPosition())
 				assert(ax and ay and grid, "Could not add building with building component.")
 				placing:get("SpriteComponent"):setDrawPosition(ax, ay)
 				placing:get("SpriteComponent"):resetColor()
 				placing:set(PositionComponent(grid))
-				placing:add(UnderConstructionComponent(placing:get("BuildingComponent"):getType()))
+				placing:add(ConstructionComponent(placing:get("PlacingComponent"):getType()))
 				InteractiveComponent:makeInteractive(placing, ax, ay)
 
-				--[[local adj = self.map:getAdjacentGrids(placing)
-				for _,grid in ipairs(adj) do
-					grid.collision = Map.COLL_DYNAMIC
-				end]]
+				placing:remove("PlacingComponent")
+
+				-- DROP
+				local sprite = placing:get("SpriteComponent")
+				sprite:resetColor()
+				local dest = sprite.y
+				sprite.y = sprite.y - 4
+				Timer.tween(0.11, sprite, { y = dest }, "in-back")
 
 				-- Notify GUI to update its state.
 				self.gui:placed()

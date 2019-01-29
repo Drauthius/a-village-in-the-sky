@@ -53,7 +53,7 @@ function VillagerSystem:update(dt)
 				} }
 
 				if villager:getOccupation() == WorkComponent.BUILDER then
-					local construction = workPlace:get("UnderConstructionComponent")
+					local construction = workPlace:get("ConstructionComponent")
 					local blacklist = {}
 
 					local resource, count
@@ -172,7 +172,7 @@ function VillagerSystem:update(dt)
 							local amount, resource = villager:getCarrying()
 							state:removeReservedResource(resource, amount)
 							state:decreaseResource(resource, amount)
-							villager:getWorkPlace():get("UnderConstructionComponent"):addResources(resource, amount)
+							villager:getWorkPlace():get("ConstructionComponent"):addResources(resource, amount)
 							villager:carry(nil)
 						end
 

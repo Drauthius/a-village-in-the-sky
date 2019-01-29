@@ -128,6 +128,7 @@ function RenderSystem:draw()
 
 	for _,entity in ipairs(objects) do
 		local sprite = entity:get("SpriteComponent")
+		local dx, dy = sprite:getDrawPosition()
 
 		if state:getSelection() == entity then
 			RenderSystem.COLOR_OUTLINE_SHADER:send("newOutlineColor", RenderSystem.SELECTED_OUTLINE_COLOR)
@@ -135,29 +136,63 @@ function RenderSystem:draw()
 			RenderSystem.COLOR_OUTLINE_SHADER:send("newOutlineColor", entity:get("BlinkComponent"):getColor())
 		end
 
-		if entity:has("UnderConstructionComponent") then
-			local percent = entity:get("UnderConstructionComponent"):getPercentDone()
-			local dx, dy = sprite:getDrawPosition()
+		RenderSystem.COLOR_OUTLINE_SHADER:send("noShadow", true)
 
-			-- Shadowed background
-			RenderSystem.COLOR_OUTLINE_SHADER:send("noShadow", true)
+		-- Transparent background for buildings under construction, and setup for the non-transparent part.
+		if entity:has("ConstructionComponent") then
 			love.graphics.setColor(1, 1, 1, 0.5)
 			spriteSheet:draw(sprite:getSprite(), dx, dy)
-			RenderSystem.COLOR_OUTLINE_SHADER:send("noShadow", false)
 
+			local percent = entity:get("ConstructionComponent"):getPercentDone()
 			local quad = sprite:getSprite():getQuad()
 			local x, y, w, h = quad:getViewport()
+			sprite.oldViewport = { x, y, w, h }
 			local _, ty, _, th = sprite:getSprite():getTrimmedDimensions()
 
-			-- Completed overlay
 			local deficit = th - th * percent / 100
 			quad:setViewport(x, y + ty + deficit, w, th - deficit)
-			love.graphics.setColor(1, 1, 1, 1)
-			spriteSheet:draw(sprite:getSprite(), dx, dy + ty + deficit)
-			-- Reset
-			quad:setViewport(x, y, w, h)
+			dy = dy + ty + deficit
+		end
+
+		love.graphics.setColor(sprite:getColor())
+
+		if entity:has("VillagerComponent") then
+			-- Get rid of any previous stencil values on that position.
+			love.graphics.stencil(function()
+				love.graphics.setColorMask()
+				spriteSheet:draw(sprite:getSprite(), dx, dy)
+			end, "replace", 0, true)
+		elseif entity:has("ResourceComponent") and entity:get("ResourceComponent"):isUsable() then
+			spriteSheet:draw(sprite:getSprite(), dx, dy)
+		else
+			-- Increase the stencil value for non-villager, non-resource things.
+			love.graphics.stencil(function()
+				love.graphics.setColorMask()
+				spriteSheet:draw(sprite:getSprite(), dx, dy)
+			end, "replace", 1, true)
+		end
+
+		-- Draw the shadow separately
+		RenderSystem.COLOR_OUTLINE_SHADER:send("noShadow", false)
+		RenderSystem.COLOR_OUTLINE_SHADER:send("shadowOnly", true)
+		-- The colour mask makes it so that the shadow doesn't "stick out" from the tiles.
+		love.graphics.setColorMask(true, true, true, false)
+		spriteSheet:draw(sprite:getSprite(), dx, dy)
+
+		-- Reset
+		love.graphics.setColorMask()
+		RenderSystem.COLOR_OUTLINE_SHADER:send("shadowOnly", false)
+		RenderSystem.COLOR_OUTLINE_SHADER:send("newOutlineColor", RenderSystem.NEW_OUTLINE_COLOR)
+
+		-- Text overlay
+		if entity:has("ConstructionComponent") then
+			-- Reset quad
+			local quad = sprite:getSprite():getQuad()
+			quad:setViewport(unpack(sprite.oldViewport))
+			sprite.oldViewport = nil
 
 			-- Prepare text
+			local percent = entity:get("ConstructionComponent"):getPercentDone()
 			love.graphics.setFont(self.font)
 			local grid = entity:get("PositionComponent"):getPosition()
 			local gi, gj = grid.gi, grid.gj
@@ -172,38 +207,7 @@ function RenderSystem:draw()
 			-- Text
 			love.graphics.setColor(1, 1, 1, 1)
 			love.graphics.print(percent .. "%", Fx, Fy)
-		else
-			love.graphics.setColor(sprite:getColor())
-			RenderSystem.COLOR_OUTLINE_SHADER:send("noShadow", true)
-
-			if entity:has("VillagerComponent") then
-				-- Get rid of any previous stencil values on that position.
-				love.graphics.stencil(function()
-					love.graphics.setColorMask()
-					spriteSheet:draw(sprite:getSprite(), sprite:getDrawPosition())
-				end, "replace", 0, true)
-			elseif entity:has("ResourceComponent") and entity:get("ResourceComponent"):isUsable() then
-				spriteSheet:draw(sprite:getSprite(), sprite:getDrawPosition())
-			else
-				-- Increase the stencil value for non-villager, non-resource things.
-				love.graphics.stencil(function()
-					love.graphics.setColorMask()
-					spriteSheet:draw(sprite:getSprite(), sprite:getDrawPosition())
-				end, "replace", 1, true)
-			end
-
-			-- Draw the shadow separately
-			RenderSystem.COLOR_OUTLINE_SHADER:send("noShadow", false)
-			RenderSystem.COLOR_OUTLINE_SHADER:send("shadowOnly", true)
-			-- The colour mask makes it so that the shadow doesn't "stick out" from the tiles.
-			love.graphics.setColorMask(true, true, true, false)
-			spriteSheet:draw(sprite:getSprite(), sprite:getDrawPosition())
-			-- Reset
-			love.graphics.setColorMask()
-			RenderSystem.COLOR_OUTLINE_SHADER:send("shadowOnly", false)
 		end
-
-		RenderSystem.COLOR_OUTLINE_SHADER:send("newOutlineColor", RenderSystem.NEW_OUTLINE_COLOR)
 	end
 
 	do -- Behind outline.
@@ -230,6 +234,7 @@ function RenderSystem:draw()
 
 	love.graphics.setColor(1, 1, 1, 1)
 
+	-- Headers
 	for _,entity in ipairs(objects) do
 		local sprite = entity:get("SpriteComponent")
 
@@ -263,7 +268,7 @@ function RenderSystem:draw()
 			spriteSheet:draw(header, x, y)
 			love.graphics.print("Lars Larsson", x, y)
 			--]]
-		elseif entity:has("UnderConstructionComponent") then
+		elseif entity:has("ConstructionComponent") then
 			local header = spriteSheet:getSprite("headers", "4-spot-building-header")
 			local x, y = sprite:getOriginalDrawPosition()
 			local w, h = header:getDimensions()
@@ -274,10 +279,19 @@ function RenderSystem:draw()
 			spriteSheet:draw(header, x, y)
 
 			local icon = spriteSheet:getSprite("headers", "occupied-icon")
-			for i=1,#entity:get("UnderConstructionComponent"):getAssignedVillagers() do
+			for i=1,#entity:get("ConstructionComponent"):getAssignedVillagers() do
 				-- TODO: Value
 				spriteSheet:draw(icon, 9 + x + ((i - 1) * (icon:getWidth() + 1)), y + 1)
 			end
+		elseif entity:has("DwellingComponent") then
+			local header = spriteSheet:getSprite("headers", "dwelling-header")
+			local x, y = sprite:getOriginalDrawPosition()
+			local w, h = header:getDimensions()
+			local tw = sprite:getSprite():getWidth()
+
+			x = x + (tw - w) / 2
+			y = y - h / 2
+			spriteSheet:draw(header, x, y)
 		end
 	end
 end

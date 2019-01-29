@@ -4,7 +4,9 @@ local DetailsPanel = require "src.game.gui.detailspanel"
 local InfoPanel = require "src.game.gui.infopanel"
 local Widget = require "src.game.gui.widget"
 
+local BuildingComponent = require "src.game.buildingcomponent"
 local ResourceComponent = require "src.game.resourcecomponent"
+local TileComponent = require "src.game.tilecomponent"
 local WorkComponent = require "src.game.workcomponent"
 
 local blueprint = require "src.game.blueprint"
@@ -234,8 +236,8 @@ function GUI:updateInfoPanel()
 			items = {}
 		}
 		if self.infoPanelShowing == "tile" then
-			for i,type in ipairs({"grass", "wood", "mountain"}) do
-				table.insert(content.items, (spriteSheet:getSprite(type .. "-tile")))
+			for i,type in ipairs({ TileComponent.GRASS, TileComponent.FOREST, TileComponent.MOUNTAIN}) do
+				table.insert(content.items, (spriteSheet:getSprite(TileComponent.TILE_NAME[type] .. "-tile")))
 				content.items[i].onPress = function(item)
 					local selected = content.selected
 					self:_clearPlacing()
@@ -249,8 +251,10 @@ function GUI:updateInfoPanel()
 				end
 			end
 		elseif self.infoPanelShowing == "building" then
-			for i,type in ipairs({"dwelling", "blacksmith", "field", "bakery"}) do
-				table.insert(content.items, (spriteSheet:getSprite(type .. (type == "field" and "" or " 0"))))
+			for i,type in ipairs({ BuildingComponent.DWELLING, BuildingComponent.BLACKSMITH,
+			                       BuildingComponent.FIELD, BuildingComponent.BAKERY}) do
+				local name = BuildingComponent.BUILDING_NAME[type]
+				table.insert(content.items, (spriteSheet:getSprite(name .. (type == BuildingComponent.FIELD and "" or " 0"))))
 				content.items[i].onPress = function(item)
 					local selected = content.selected
 					self:_clearPlacing()

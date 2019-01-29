@@ -31,15 +31,6 @@ function PlacingSystem:update(dt)
 		if entity:get("PlacingComponent"):isTile() then
 			if snap then
 				local type = entity:get("PlacingComponent"):getType()
-				if type == "grass" then
-					type = TileComponent.GRASS
-				elseif type == "wood" then
-					type = TileComponent.FOREST
-				elseif type == "mountain" then
-					type = TileComponent.MOUNTAIN
-				else
-					error("Unknown tile type "..tostring(type))
-				end
 				entity:set(TileComponent(type, ti, tj))
 			elseif entity:has("TileComponent") then
 				entity:remove("TileComponent")
@@ -47,17 +38,6 @@ function PlacingSystem:update(dt)
 		else
 			if snap then
 				local type = entity:get("PlacingComponent"):getType()
-				if type == "dwelling" then
-					type = BuildingComponent.DWELLING
-				elseif type == "blacksmith" then
-					type = BuildingComponent.BLACKSMITH
-				elseif type == "field" then
-					type = BuildingComponent.FIELD
-				elseif type == "bakery" then
-					type = BuildingComponent.BAKERY
-				else
-					error("Unknown building type "..tostring(type))
-				end
 				entity:set(BuildingComponent(type, ti, tj))
 			elseif entity:has("BuildingComponent") then
 				entity:remove("BuildingComponent")

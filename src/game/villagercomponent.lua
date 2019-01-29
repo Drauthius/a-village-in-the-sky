@@ -137,10 +137,10 @@ end
 
 function VillagerComponent:setWorkPlace(entity)
 	self.workPlace = entity
-	if entity then
-		local work = entity:get("WorkComponent")
-		self.occupation = work:getType()
-	end
+end
+
+function VillagerComponent:setOccupation(occupation)
+	self.occupation = occupation
 end
 
 function VillagerComponent:getPath()

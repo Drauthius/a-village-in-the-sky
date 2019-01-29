@@ -7,6 +7,13 @@ BuildingComponent.static.BLACKSMITH = 1
 BuildingComponent.static.FIELD = 2
 BuildingComponent.static.BAKERY = 3
 
+BuildingComponent.static.BUILDING_NAME = {
+	[BuildingComponent.static.DWELLING] = "dwelling",
+	[BuildingComponent.static.BLACKSMITH] = "blacksmith",
+	[BuildingComponent.static.FIELD] = "field",
+	[BuildingComponent.static.BAKERY] = "bakery"
+}
+
 function BuildingComponent:initialize(type, ti, tj)
 	self:setType(type)
 	self:setPosition(ti, tj)

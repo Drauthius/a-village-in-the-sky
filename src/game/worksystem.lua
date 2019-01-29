@@ -1,6 +1,8 @@
 local Timer = require "lib.hump.timer"
 local lovetoys = require "lib.lovetoys.lovetoys"
 
+local BuildingComponent = require "src.game.buildingcomponent"
+local DwellingComponent = require "src.game.dwellingcomponent"
 local ResourceComponent = require "src.game.resourcecomponent"
 local VillagerComponent = require "src.game.villagercomponent"
 local WorkComponent = require "src.game.workcomponent"
@@ -20,7 +22,7 @@ WorkSystem.static.DIR_CONV = {
 	NW = { -1, -1 }
 }
 
--- TODO: Currently handles both Work and UnderConstruction
+-- TODO: Currently handles both Work and Construction
 function WorkSystem.requires()
 	return {"WorkComponent"}
 end
@@ -35,7 +37,7 @@ function WorkSystem:update(dt)
 	--[[
 	for _,entity in pairs(self.targets) do
 		local work = entity:get("WorkComponent")
-		if entity:has("UnderConstructionComponent") then
+		if entity:has("ConstructionComponent") then
 		elseif work:isComplete() then
 		end
 	end
@@ -54,10 +56,10 @@ function WorkSystem:workEvent(event)
 	workSprite.y = workSprite.y + WorkSystem.DIR_CONV[cardinalDir][2] * shake
 	Timer.tween(0.12, workSprite, { x = dx, y = dy }, "in-bounce")
 
-	if workPlace:has("UnderConstructionComponent") then
+	if workPlace:has("ConstructionComponent") then
 		local crafts = villager:get("VillagerComponent"):getCraftsmanship()
 
-		local uuc = workPlace:get("UnderConstructionComponent")
+		local uuc = workPlace:get("ConstructionComponent")
 		uuc:commitResources(crafts * 1) -- TODO: Value
 
 		if not uuc:canBuild() then
@@ -77,8 +79,13 @@ function WorkSystem:workEvent(event)
 			end
 
 			if uuc:isComplete() then
-				workPlace:remove("UnderConstructionComponent")
+				workPlace:remove("ConstructionComponent")
 				soundManager:playEffect("buildingComplete")
+
+				-- TODO: Maybe send this off in an event.
+				if uuc:getType() == BuildingComponent.DWELLING then
+					workPlace:add(DwellingComponent())
+				end
 			else
 				soundManager:playEffect("building")
 			end
