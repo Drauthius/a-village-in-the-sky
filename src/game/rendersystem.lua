@@ -284,6 +284,7 @@ function RenderSystem:draw()
 				spriteSheet:draw(icon, 9 + x + ((i - 1) * (icon:getWidth() + 1)), y + 1)
 			end
 		elseif entity:has("DwellingComponent") then
+			local dwelling = entity:get("DwellingComponent")
 			local header = spriteSheet:getSprite("headers", "dwelling-header")
 			local x, y = sprite:getOriginalDrawPosition()
 			local w, h = header:getDimensions()
@@ -292,6 +293,34 @@ function RenderSystem:draw()
 			x = x + (tw - w) / 2
 			y = y - h / 2
 			spriteSheet:draw(header, x, y)
+
+			local headerData = spriteSheet:getData("dwelling-header")
+			for _,type in ipairs({ "boys", "girls", "food" }) do
+				local data = spriteSheet:getData(type .. "-count")
+				local Fx, Fy = x + data.bounds.x - headerData.bounds.x, y + data.bounds.y - headerData.bounds.y
+
+				if type == "food" then
+					love.graphics.setFont(love.graphics.newFont("asset/font/Norse.otf", data.bounds.h))
+				else
+					love.graphics.setFont(love.graphics.newFont(data.bounds.h))
+				end
+
+				-- Drop shadow
+				--love.graphics.setColor(0, 0, 0, 0.5)
+				love.graphics.setColor(RenderSystem.NEW_OUTLINE_COLOR)
+				love.graphics.print("0", Fx + 1, Fy + 1)
+				-- Text
+				love.graphics.setColor(RenderSystem.BEHIND_OUTLINE_COLOR)
+				love.graphics.print("0", Fx, Fy)
+			end
+
+			local maleIcon = spriteSheet:getSprite("headers", "male-icon")
+			local femaleIcon = spriteSheet:getSprite("headers", "female-icon")
+			local villagers = dwelling:getAssignedVillagers()
+			for i=1,#villagers do
+				local icon = villagers[i]:get("VillagerComponent"):getGender() == "male" and maleIcon or femaleIcon
+				spriteSheet:draw(icon, 10 + x + ((i - 1) * (icon:getWidth() + 1)), y + 1)
+			end
 		end
 	end
 end

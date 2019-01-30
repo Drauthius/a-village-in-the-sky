@@ -10,8 +10,6 @@
 --      reserve() for resources, occupy() for villagers?
 --    * Villagers always reserve two grids when walking. Problem?
 --  - Next:
---    * Make it possible to assign villagers a home.
---    * Don't allow more than 1 worker on a resource.
 --    * Bring resource back to home and place it on the ground (increasing resource counter).
 --    * Allow changing profession without locking up resources, work grids, etc.
 --  - Refactoring:
@@ -336,36 +334,76 @@ function Game:mousereleased(x, y)
 					--print(clicked)
 					local selected = state:getSelection()
 					if selected and selected:has("VillagerComponent") and selected:get("VillagerComponent"):isAdult() and
-					   (clicked:has("WorkComponent") or clicked:has("ConstructionComponent")) then
+					   (clicked:has("WorkComponent") or clicked:has("ConstructionComponent") or clicked:has("DwellingComponent")) then
+						-- TODO: Should probably be an event or similar.
 
-					   -- Whether that there is room to work there.
-					   -- FIXME: Reassignment not handled!
+						-- Whether that there is room to work there.
+						-- FIXME: Reassignment not handled!
 						local valid
 
+						-- TODO: lol... fix logic.
 						if clicked:has("ConstructionComponent") then
 							if #clicked:get("ConstructionComponent"):getAssignedVillagers() >= 4 then
 								valid = false
 							else
-								-- For things being built, update the places where builders can stand, so that rubbish can
-								-- be cleared around the build site after placing the building.
-								local adjacent = self.map:getAdjacentGrids(clicked)
-								clicked:get("ConstructionComponent"):updateWorkGrids(adjacent)
+								local alreadyAdded = false
+								for _,villager in ipairs(clicked:get("ConstructionComponent"):getAssignedVillagers()) do
+									if villager == selected then
+										alreadyAdded = true
+										break
+									end
+								end
+								if not alreadyAdded then
+									-- For things being built, update the places where builders can stand, so that rubbish can
+									-- be cleared around the build site after placing the building.
+									local adjacent = self.map:getAdjacentGrids(clicked)
+									clicked:get("ConstructionComponent"):updateWorkGrids(adjacent)
+								end
 								valid = true
 							end
-						else
+						elseif clicked:has("WorkComponent") then
 							if #clicked:get("WorkComponent"):getAssignedVillagers() >= 1 or
 							   not selected:get("VillagerComponent"):getHome() then
 								valid = false
 							else
-								clicked:get("WorkComponent"):assign(selected)
+								local alreadyAdded = false
+								for _,villager in ipairs(clicked:get("WorkComponent"):getAssignedVillagers()) do
+									if villager == selected then
+										alreadyAdded = true
+										break
+									end
+								end
+								if not alreadyAdded then
+									clicked:get("WorkComponent"):assign(selected)
+								end
+								valid = true
+							end
+						elseif clicked:has("DwellingComponent") then
+							if #clicked:get("DwellingComponent"):getAssignedVillagers() >= 2 then
+								valid = false
+							else
+								local alreadyAdded = false
+								for _,villager in ipairs(clicked:get("DwellingComponent"):getAssignedVillagers()) do
+									if villager == selected then
+										alreadyAdded = true
+										break
+									end
+								end
+								if not alreadyAdded then
+									clicked:get("DwellingComponent"):assign(selected)
+								end
 								valid = true
 							end
 						end
 
 						if valid then
-							-- TODO: Should probably be an event or similar.
-							selected:get("VillagerComponent"):setWorkPlace(clicked)
-							selected:get("VillagerComponent"):setOccupation(clicked:has("WorkComponent") and clicked:get("WorkComponent"):getType() or WorkComponent.BUILDER)
+							if clicked:has("DwellingComponent") then
+								selected:get("VillagerComponent"):setHome(clicked)
+							else
+								selected:get("VillagerComponent"):setWorkPlace(clicked)
+								selected:get("VillagerComponent"):setOccupation(
+									clicked:has("WorkComponent") and clicked:get("WorkComponent"):getType() or WorkComponent.BUILDER)
+							end
 							soundManager:playEffect("successfulAssignment") -- TODO: Different sounds per assigned occupation?
 							BlinkComponent:makeBlinking(clicked, { 0.15, 0.70, 0.15, 1.0 }) -- TODO: Colour value
 						else
