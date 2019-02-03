@@ -188,6 +188,11 @@ function Map:gridToGroundCoords(gi, gj)
 	       gj * self.gridWidth
 end
 
+function Map:gridToTileCoords(gi, gj)
+	return math.floor(gi / self.gridsPerTile),
+	       math.floor(gj / self.gridsPerTile)
+end
+
 function Map:isValidPosition(entity, isTile, ti, tj)
 	if isTile then
 		if self.tile[ti] and self.tile[ti][tj] then
@@ -215,8 +220,9 @@ function Map:isValidPosition(entity, isTile, ti, tj)
 end
 
 function Map:getFreeGrid(ti, tj, resource)
-	for gi=0,self.gridsPerTile - 1 do
-		for gj=0,self.gridsPerTile - 1 do
+	local sgi, sgj = ti * self.gridsPerTile, tj * self.gridsPerTile
+	for gi=sgi,sgi + self.gridsPerTile - 1 do
+		for gj=sgj,sgj + self.gridsPerTile - 1 do
 			if self.grid[gi][gj].collision == Map.COLL_NONE then
 				return gi, gj
 			end

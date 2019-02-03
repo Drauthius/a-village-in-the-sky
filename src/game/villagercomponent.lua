@@ -4,16 +4,11 @@ local WorkComponent = require "src.game.workcomponent"
 
 local VillagerComponent = class("VillagerComponent")
 
-VillagerComponent.static.states = {
-	IDLE = 0,
-	WORKING = 1
-}
-
-VillagerComponent.static.actions = {
+VillagerComponent.static.GOALS = {
 	NONE = 0,
-	WALKING = 1,
-	WORKING = 2,
-	PICKUP = 3
+	DROPOFF = 1,
+	WORK_PICKUP = 2,
+	WORK = 3
 }
 
 function VillagerComponent:initialize(stats)
@@ -29,16 +24,10 @@ function VillagerComponent:initialize(stats)
 	self.hairy = love.math.random(0, 1) == 1
 
 	self.speedModifier = 1
-	self.state = VillagerComponent.states.IDLE
-	self.action = VillagerComponent.actions.NONE
+	self.goal = VillagerComponent.GOALS.NONE
 	self.home = nil
 	self.workPlace = nil
 	self.occupation = 0
-	self.path = nil
-
-	self.carrying = nil
-
-	self.timer = 0
 end
 
 function VillagerComponent:getName()
@@ -110,17 +99,12 @@ function VillagerComponent:getState()
 	return self.state
 end
 
-function VillagerComponent:setState(state, action)
-	self.state = state
-	self.action = action or VillagerComponent.actions.NONE
+function VillagerComponent:getGoal()
+	return self.goal
 end
 
-function VillagerComponent:getAction()
-	return self.action
-end
-
-function VillagerComponent:setAction(action)
-	self.action = action
+function VillagerComponent:setGoal(goal)
+	self.goal = goal
 end
 
 function VillagerComponent:getHome()
@@ -143,14 +127,6 @@ function VillagerComponent:setOccupation(occupation)
 	self.occupation = occupation
 end
 
-function VillagerComponent:getPath()
-	return self.path
-end
-
-function VillagerComponent:setPath(path)
-	self.path = path
-end
-
 function VillagerComponent:getOccupation()
 	return self.occupation
 end
@@ -161,37 +137,6 @@ end
 
 function VillagerComponent:getSpeedModifier()
 	return self.speedModifier
-end
-
-function VillagerComponent:carry(num, type)
-	if num == nil then
-		self.carrying = nil
-	else
-		assert(self.carrying == nil, "Already carrying something")
-		self.carrying = {num, type}
-	end
-end
-
-function VillagerComponent:isCarrying()
-	return self.carrying ~= nil
-end
-
-function VillagerComponent:getCarrying()
-	if self.carrying then
-		return unpack(self.carrying)
-	end
-end
-
-function VillagerComponent:increaseTimer(dt)
-	self.timer = self.timer + dt
-end
-
-function VillagerComponent:getTimer()
-	return self.timer
-end
-
-function VillagerComponent:resetTimer()
-	self.timer = 0
 end
 
 return VillagerComponent

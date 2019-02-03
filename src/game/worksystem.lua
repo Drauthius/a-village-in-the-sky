@@ -2,6 +2,7 @@ local Timer = require "lib.hump.timer"
 local lovetoys = require "lib.lovetoys.lovetoys"
 
 local BuildingComponent = require "src.game.buildingcomponent"
+local CarryingComponent = require "src.game.carryingcomponent"
 local DwellingComponent = require "src.game.dwellingcomponent"
 local ResourceComponent = require "src.game.resourcecomponent"
 local VillagerComponent = require "src.game.villagercomponent"
@@ -59,35 +60,38 @@ function WorkSystem:workEvent(event)
 	if workPlace:has("ConstructionComponent") then
 		local crafts = villager:get("VillagerComponent"):getCraftsmanship()
 
-		local uuc = workPlace:get("ConstructionComponent")
-		uuc:commitResources(crafts * 1) -- TODO: Value
+		local construction = workPlace:get("ConstructionComponent")
+		construction:commitResources(crafts * 1) -- TODO: Value
 
-		if not uuc:canBuild() then
-			local workers = uuc:getAssignedVillagers()
+		soundManager:playEffect("building")
+
+		-- TODO: Maybe send this off in an event.
+		if not construction:canBuild() then
+			local workers = construction:getAssignedVillagers()
 
 			for _,worker in ipairs(workers) do
 				villager = worker:get("VillagerComponent")
-				if uuc:isComplete() then
+				if construction:isComplete() then
 					villager:setWorkPlace(nil)
-					villager:setState(VillagerComponent.states.IDLE) -- TODO: Should be WORKING
+					worker:remove("WorkingComponent")
+					villager:setGoal(VillagerComponent.GOALS.NONE)
 				else
-					if villager:getAction() == VillagerComponent.actions.WORKING then
-						uuc:unreserveGrid(worker)
-						villager:setState(VillagerComponent.states.IDLE) -- TODO: Should be WORKING
+					if worker:get("WorkingComponent"):getWorking() then
+						construction:unreserveGrid(worker)
+						worker:remove("WorkingComponent")
+						villager:setGoal(VillagerComponent.GOALS.NONE)
 					end
 				end
 			end
 
-			if uuc:isComplete() then
+			if construction:isComplete() then
 				workPlace:remove("ConstructionComponent")
 				soundManager:playEffect("buildingComplete")
 
 				-- TODO: Maybe send this off in an event.
-				if uuc:getType() == BuildingComponent.DWELLING then
+				if construction:getType() == BuildingComponent.DWELLING then
 					workPlace:add(DwellingComponent())
 				end
-			else
-				soundManager:playEffect("building")
 			end
 		end
 	else
@@ -97,13 +101,15 @@ function WorkSystem:workEvent(event)
 		local workers = work:getAssignedVillagers()
 		local numWorkers = #workers
 
+		-- TODO: Maybe send this off in an event.
 		if work:isComplete() then
 			if work:getType() == WorkComponent.WOODCUTTER or
 			   work:getType() == WorkComponent.MINER then
 				for _,worker in ipairs(workers) do
 					villager = worker:get("VillagerComponent")
+					worker:remove("WorkingComponent")
 					villager:setWorkPlace(nil)
-					villager:setState(VillagerComponent.states.IDLE) -- TODO: Should be WORKING
+					villager:setGoal(VillagerComponent.GOALS.NONE)
 				end
 
 				local resource = workPlace:get("ResourceComponent")
@@ -111,9 +117,7 @@ function WorkSystem:workEvent(event)
 					-- TODO: Place on ground!
 					print("Unimplemented drop")
 				elseif numWorkers == 1 then
-					workers[1]:get("VillagerComponent"):carry(
-						resource:getResourceAmount(),
-						resource:getResource())
+					workers[1]:add(CarryingComponent(resource:getResource(), resource:getResourceAmount()))
 				else
 					error("Too many workers for resource type")
 				end

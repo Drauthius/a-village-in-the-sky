@@ -2,7 +2,6 @@ local lovetoys = require "lib.lovetoys.lovetoys"
 
 local InteractiveComponent = require "src.game.interactivecomponent"
 local ResourceComponent = require "src.game.resourcecomponent"
-local VillagerComponent = require "src.game.villagercomponent"
 local WorkComponent = require "src.game.workcomponent"
 
 local WorkEvent = require "src.game.workevent"
@@ -100,33 +99,28 @@ function SpriteSystem:updateVillager(dt, entity)
 	local cardinalDir = villager:getCardinalDirection()
 
 	-- Figure out the animation.
-	local state = villager:getState()
-	local action = villager:getAction()
 	local targetAnimation
 	local working = false
-	if state == VillagerComponent.states.IDLE then
-		if villager:isCarrying() then
-			local num, type = villager:getCarrying()
-			targetAnimation = SpriteSystem.ANIMATIONS.walking[type][num]
+	if entity:has("CarryingComponent") then
+		local carrying = entity:get("CarryingComponent")
+		targetAnimation = SpriteSystem.ANIMATIONS.walking[carrying:getResource()][carrying:getAmount()]
+		assert(targetAnimation, "Missing carrying animation for villager")
+	elseif entity:has("WorkingComponent") then
+		if entity:has("WalkingComponent") or not entity:get("WorkingComponent"):getWorking() then
+			targetAnimation = SpriteSystem.ANIMATIONS.walking_to_work[villager:getOccupation()]
+			assert(targetAnimation, "Missing walking animation")
 		else
-			targetAnimation = SpriteSystem.ANIMATIONS.idle
-		end
-	elseif state == VillagerComponent.states.WORKING then
-		if action == VillagerComponent.actions.WALKING or action == VillagerComponent.actions.PICKUP then
-			if villager:isCarrying() then
-				local num, type = villager:getCarrying()
-				targetAnimation = SpriteSystem.ANIMATIONS.walking[type][num]
-			else
-				targetAnimation = SpriteSystem.ANIMATIONS.walking_to_work[villager:getOccupation()]
-			end
-		elseif action == VillagerComponent.actions.WORKING then
 			assert(SpriteSystem.ANIMATIONS.working[villager:getOccupation()], "No animation for "..villager:getOccupationName())
 			targetAnimation = SpriteSystem.ANIMATIONS.working[villager:getOccupation()][cardinalDir]
 			working = true
+			assert(targetAnimation, "Missing working animation. " ..
+				"Occupation: "..villager:getOccupationName()..", Direction: "..cardinalDir)
 		end
+	elseif entity:has("WalkingComponent") then
+		targetAnimation = SpriteSystem.ANIMATIONS.walking.nothing
+	else
+		targetAnimation = SpriteSystem.ANIMATIONS.idle
 	end
-	assert(targetAnimation,
-	       "No animation from state "..tostring(state).." and action "..tostring(action).." ("..cardinalDir..")")
 
 	-- Figure out the animation frame.
 	local frame, newFrame

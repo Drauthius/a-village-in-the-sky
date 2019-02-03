@@ -87,4 +87,17 @@ function Blueprint:createIron()
 	return iron
 end
 
+function Blueprint:createResourcePile(type, amount)
+	local resource = lovetoys.Entity()
+
+	local name = ResourceComponent.RESOURCE_NAME[type]
+	local sprite = spriteSheet:getSprite(name.."-resource "..tostring(amount - 1))
+
+	resource:add(PositionComponent())
+	resource:add(ResourceComponent(type, amount, true))
+	resource:add(SpriteComponent(sprite))
+
+	return resource
+end
+
 return Blueprint()

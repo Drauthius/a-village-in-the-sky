@@ -9,8 +9,10 @@
 --      Maybe it would need to check "how" it is reserved, or we simply split it up further...
 --      reserve() for resources, occupy() for villagers?
 --    * Villagers always reserve two grids when walking. Problem?
+--    * Villagers can pick up unextracted trees to fulfil a resource requirement.
+--    * Villagers walk in place on higher speeds.
 --  - Next:
---    * Bring resource back to home and place it on the ground (increasing resource counter).
+--    * Selection order is bogus (should be "last drawn", and not "last placed").
 --    * Allow changing profession without locking up resources, work grids, etc.
 --  - Refactoring:
 --    * Remove some logic in the components, and instead create more components?
@@ -82,7 +84,9 @@ local PlacingSystem
 local PositionSystem
 local RenderSystem
 local SpriteSystem
+local TimerSystem
 local VillagerSystem
+local WalkingSystem
 local WorkSystem
 
 local blueprint = require "src.game.blueprint"
@@ -101,12 +105,16 @@ function Game:init()
 	PositionSystem = require "src.game.positionsystem"
 	RenderSystem = require "src.game.rendersystem"
 	SpriteSystem = require "src.game.spritesystem"
+	TimerSystem = require "src.game.timersystem"
 	VillagerSystem = require "src.game.villagersystem"
+	WalkingSystem = require "src.game.walkingsystem"
 	WorkSystem = require "src.game.worksystem"
 end
 
 function Game:enter()
 	love.graphics.setBackgroundColor(0.1, 0.5, 1)
+
+	self.speed = 1
 
 	self.map = Map()
 
@@ -115,23 +123,28 @@ function Game:enter()
 	self.camera:lookAt(0, 0)
 	self.camera:zoom(6)
 
+	self.engine = lovetoys.Engine()
 	self.eventManager = lovetoys.EventManager()
 
-	self.engine = lovetoys.Engine()
+	local villagerSystem = VillagerSystem(self.engine, self.map)
+	local workSystem = WorkSystem(self.engine)
+
 	self.engine:addSystem(PlacingSystem(self.map), "update")
 	self.engine:addSystem(SpriteSystem(self.eventManager), "update")
-	self.engine:addSystem(VillagerSystem(self.engine, self.map), "update")
-	local workSystem = WorkSystem(self.engine)
+	self.engine:addSystem(villagerSystem, "update")
+	self.engine:addSystem(WalkingSystem(self.engine, self.eventManager, self.map), "update")
 	self.engine:addSystem(workSystem, "update")
+	self.engine:addSystem(TimerSystem(), "update")
 	self.engine:addSystem(PositionSystem(self.map), "update")
 	self.engine:addSystem(RenderSystem(), "draw")
 	self.engine:addSystem(DebugSystem(self.map), "draw")
 
 	self.engine:toggleSystem("DebugSystem")
 
-	-- Only currently listens to events.
+	-- Currently only listens to events.
 	self.engine:stopSystem("PositionSystem")
 
+	self.eventManager:addListener("TargetReachedEvent", villagerSystem, villagerSystem.targetReachedEvent)
 	self.eventManager:addListener("WorkEvent", workSystem, workSystem.workEvent)
 
 	self.gui = GUI(self.engine)
@@ -168,32 +181,26 @@ function Game:enter()
 		maleChild = 1,
 		femaleChild = 1
 	}
-	startingVillagers = { maleVillagers = 2 }
+	startingVillagers = { maleVillagers = 1 }
 
 	for type,num in pairs(startingResources) do
 		while num > 0 do
-			local name = ResourceComponent.RESOURCE_NAME[type]
-			local resource = lovetoys.Entity()
-			local pile = math.min(3, num)
-
-			-- TODO: Sprite stuff could be handled by the SpriteSystem...
-			local sprite = spriteSheet:getSprite(name.."-resource "..tostring(pile - 1))
+			local resource = blueprint:createResourcePile(type, math.min(3, num))
 
 			local gi, gj = self.map:getFreeGrid(0, 0, type)
 			self.map:addResource(resource, self.map:getGrid(gi, gj))
 
 			local ox, oy = self.map:gridToWorldCoords(gi, gj)
 			ox = ox - self.map.halfGridWidth
-			oy = oy - sprite:getHeight() + self.map.gridHeight
+			oy = oy - resource:get("SpriteComponent"):getSprite():getHeight() + self.map.gridHeight
 
-			resource:add(ResourceComponent(type, pile, true))
-			resource:add(PositionComponent(self.map:getGrid(gi, gj)))
-			resource:add(SpriteComponent(sprite, ox, oy))
+			resource:get("SpriteComponent"):setDrawPosition(ox, oy)
+			resource:get("PositionComponent"):setPosition(self.map:getGrid(gi, gj))
 
 			self.engine:addEntity(resource)
-			state:increaseResource(type, pile)
+			state:increaseResource(type, resource:get("ResourceComponent"):getResourceAmount())
 
-			num = num - pile
+			num = num - resource:get("ResourceComponent"):getResourceAmount()
 		end
 	end
 
@@ -227,7 +234,7 @@ function Game:enter()
 end
 
 function Game:update(dt)
-	--dt = dt * 2
+	dt = dt * self.speed
 
 	Timer.update(dt)
 
@@ -272,6 +279,14 @@ function Game:keyreleased(key)
 		self.debug = not self.debug
 	elseif key == "escape" then
 		self.gui:back()
+	elseif key == "½" then
+		self.speed = 0
+	elseif key == "1" then
+		self.speed = 1
+	elseif key == "2" then
+		self.speed = 2
+	elseif key == "3" then
+		self.speed = 3
 	end
 end
 
