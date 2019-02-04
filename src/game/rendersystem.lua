@@ -126,8 +126,9 @@ function RenderSystem:draw()
 		spriteSheet:draw(sprite:getSprite(), sprite:getDrawPosition())
 	end
 
-	for _,entity in ipairs(objects) do
+	for i,entity in ipairs(objects) do
 		local sprite = entity:get("SpriteComponent")
+		sprite:setDrawIndex(i)
 		local dx, dy = sprite:getDrawPosition()
 
 		if state:getSelection() == entity then

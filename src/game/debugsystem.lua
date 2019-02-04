@@ -17,6 +17,9 @@ function DebugSystem:draw()
 	love.graphics.setLineWidth(1)
 	love.graphics.setPointSize(8)
 
+	self.font = self.font or love.graphics.newFont(8)
+	love.graphics.setFont(self.font)
+
 	for _,entity in pairs(self.targets) do
 		if entity:has("InteractiveComponent") then
 			local interactive = entity:get("InteractiveComponent")
@@ -28,14 +31,14 @@ function DebugSystem:draw()
 			love.graphics.rectangle("line",
 					interactive.x, interactive.y,
 					interactive.w, interactive.h)
+			love.graphics.print(entity:get("SpriteComponent"):getDrawIndex(), interactive.x, interactive.y)
 		end
 		if entity:has("VillagerComponent") then
-			local villager = entity:get("VillagerComponent")
-			if villager:getPath() then
-				local path = villager:getPath()
+			if entity:has("WalkingComponent") then
+				local path = entity:get("WalkingComponent"):getPath()
 				-- Backwards:
 				local prevx, prevy
-				for _,grid in ipairs(path) do
+				for _,grid in ipairs(path or {}) do
 					if prevx and prevy then
 						love.graphics.line(prevx, prevy, self.map:gridToWorldCoords(grid.gi + 0.5, grid.gj + 0.5))
 					end
@@ -51,7 +54,7 @@ function DebugSystem:draw()
 
 			-- XXX:
 			local vector = require "lib.hump.vector"
-			local v = vector(0,-3):rotateInplace(math.rad(villager:getDirection()))
+			local v = vector(0,-3):rotateInplace(math.rad(entity:get("VillagerComponent"):getDirection()))
 			local gx, gy = entity:get("GroundComponent"):getPosition()
 			v = v + vector((gx - gy) / 2, (gx + gy) / 4)
 			love.graphics.points(v.x, v.y)

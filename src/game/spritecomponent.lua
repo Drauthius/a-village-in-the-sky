@@ -33,6 +33,14 @@ function SpriteComponent:setDrawPosition(x, y)
 	self.origx, self.origy = x, y
 end
 
+function SpriteComponent:getDrawIndex()
+	return self.index
+end
+
+function SpriteComponent:setDrawIndex(index)
+	self.index = index
+end
+
 function SpriteComponent:getColor()
 	return self.color
 end

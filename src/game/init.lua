@@ -12,7 +12,6 @@
 --    * Villagers can pick up unextracted trees to fulfil a resource requirement.
 --    * Villagers walk in place on higher speeds.
 --  - Next:
---    * Selection order is bogus (should be "last drawn", and not "last placed").
 --    * Allow changing profession without locking up resources, work grids, etc.
 --  - Refactoring:
 --    * Remove some logic in the components, and instead create more components?
@@ -329,221 +328,21 @@ function Game:mousemoved(x, y)
 end
 
 function Game:mousereleased(x, y)
-	--print(x, y)
 	x, y = screen:getCoordinate(x, y)
 
 	if not self.dragging or not self.dragging.dragged then
 		if not self.gui:handlePress(x, y) then
-			if not state:isPlacing() then
-				x, y = state:getMousePosition()
-				--print(x, y)
-				local clicked = nil
-				for _,entity in pairs(self.engine:getEntitiesWithComponent("InteractiveComponent")) do
-					if entity:get("InteractiveComponent"):isWithin(x, y) then
-						clicked = entity
-						break
-					end
-				end
-
-				if clicked then
-					--print(clicked)
-					local selected = state:getSelection()
-					if selected and selected:has("VillagerComponent") and selected:get("VillagerComponent"):isAdult() and
-					   (clicked:has("WorkComponent") or clicked:has("ConstructionComponent") or clicked:has("DwellingComponent")) then
-						-- TODO: Should probably be an event or similar.
-
-						-- Whether that there is room to work there.
-						-- FIXME: Reassignment not handled!
-						local valid
-
-						-- TODO: lol... fix logic.
-						if clicked:has("ConstructionComponent") then
-							if #clicked:get("ConstructionComponent"):getAssignedVillagers() >= 4 then
-								valid = false
-							else
-								local alreadyAdded = false
-								for _,villager in ipairs(clicked:get("ConstructionComponent"):getAssignedVillagers()) do
-									if villager == selected then
-										alreadyAdded = true
-										break
-									end
-								end
-								if not alreadyAdded then
-									-- For things being built, update the places where builders can stand, so that rubbish can
-									-- be cleared around the build site after placing the building.
-									local adjacent = self.map:getAdjacentGrids(clicked)
-									clicked:get("ConstructionComponent"):updateWorkGrids(adjacent)
-								end
-								valid = true
-							end
-						elseif clicked:has("WorkComponent") then
-							if #clicked:get("WorkComponent"):getAssignedVillagers() >= 1 or
-							   not selected:get("VillagerComponent"):getHome() then
-								valid = false
-							else
-								local alreadyAdded = false
-								for _,villager in ipairs(clicked:get("WorkComponent"):getAssignedVillagers()) do
-									if villager == selected then
-										alreadyAdded = true
-										break
-									end
-								end
-								if not alreadyAdded then
-									clicked:get("WorkComponent"):assign(selected)
-								end
-								valid = true
-							end
-						elseif clicked:has("DwellingComponent") then
-							if #clicked:get("DwellingComponent"):getAssignedVillagers() >= 2 then
-								valid = false
-							else
-								local alreadyAdded = false
-								for _,villager in ipairs(clicked:get("DwellingComponent"):getAssignedVillagers()) do
-									if villager == selected then
-										alreadyAdded = true
-										break
-									end
-								end
-								if not alreadyAdded then
-									clicked:get("DwellingComponent"):assign(selected)
-								end
-								valid = true
-							end
-						end
-
-						if valid then
-							if clicked:has("DwellingComponent") then
-								selected:get("VillagerComponent"):setHome(clicked)
-							else
-								selected:get("VillagerComponent"):setWorkPlace(clicked)
-								selected:get("VillagerComponent"):setOccupation(
-									clicked:has("WorkComponent") and clicked:get("WorkComponent"):getType() or WorkComponent.BUILDER)
-							end
-							soundManager:playEffect("successfulAssignment") -- TODO: Different sounds per assigned occupation?
-							BlinkComponent:makeBlinking(clicked, { 0.15, 0.70, 0.15, 1.0 }) -- TODO: Colour value
-						else
-							soundManager:playEffect("failedAssignment")
-							BlinkComponent:makeBlinking(clicked, { 0.70, 0.15, 0.15, 1.0 }) -- TODO: Colour value
-						end
-					else
-						soundManager:playEffect("selecting") -- TODO: Different sounds depending on what is selected.
-						state:setSelection(clicked)
-					end
+			if state:isPlacing() then
+				local placing = state:getPlacing()
+				if placing:has("TileComponent") then
+					self:_placeTile(placing)
+				elseif placing:has("BuildingComponent") then
+					self:_placeBuilding(placing)
 				else
-					soundManager:playEffect("clearSelection")
-					state:clearSelection()
+					error("Placing what?")
 				end
-			elseif state:getPlacing():has("TileComponent") then
-				soundManager:playEffect("tilePlaced") -- TODO: Type?
-
-				local placing = state:getPlacing()
-				placing:remove("PlacingComponent")
-				local ti, tj = placing:get("TileComponent"):getPosition()
-				self.map:addTile(ti, tj)
-
-				--local spec = Game.tileSpec[placing:get("TileComponent"):getType()]
-				--local trees = #spec.trees > 0 and spec.trees[love.math.random(#spec.trees)] or 0
-				--local iron = #spec.iron > 0 and spec.iron[love.math.random(#spec.iron)] or 0
-
-				local trees, iron = self:_getResources(placing:get("TileComponent"):getType())
-
-				--print("Will spawn "..tostring(trees).." trees and "..tostring(iron).." iron")
-
-				local sgi, sgj = ti * self.map.gridsPerTile, tj * self.map.gridsPerTile
-				local egi, egj = sgi + self.map.gridsPerTile, sgj + self.map.gridsPerTile
-
-				local resources = {}
-
-				-- TODO: Runestone logic
-				--if love.math.random(1, 5) == 1 then
-				if false then
-					local runestone = blueprint:createRunestone()
-					local ax, ay, grid = self.map:addObject(runestone, ti, tj)
-					assert(ax and ay and grid, "Could not add runestone to empty tile.")
-					runestone:get("SpriteComponent"):setDrawPosition(ax, ay)
-					runestone:get("PositionComponent"):setPosition(grid)
-					InteractiveComponent:makeInteractive(runestone, ax, ay)
-					self.engine:addEntity(runestone)
-					table.insert(resources, runestone)
-				end
-
-				-- Resources
-				for i=1,trees+iron do
-					local resource
-					if i <= trees then
-						resource = blueprint:createTree()
-					else
-						resource = blueprint:createIron()
-					end
-					for _=1,1000 do -- lol
-						local gi, gj = love.math.random(sgi + 1, egi - 1), love.math.random(sgj + 1, egj - 1)
-						local ax, ay, grid = self.map:addObject(resource, gi, gj)
-						if ax then
-							resource:get("SpriteComponent"):setDrawPosition(ax, ay)
-							resource:get("PositionComponent"):setPosition(grid)
-							InteractiveComponent:makeInteractive(resource, ax, ay)
-							self.engine:addEntity(resource)
-							table.insert(resources, resource)
-							resource = nil
-							break
-						end
-					end
-
-					if resource then
-						print("Could not add object.")
-					end
-				end
-
-				-- DROP
-				for _,resource in ipairs(resources) do
-					local sprite = resource:get("SpriteComponent")
-					local dest = sprite.y
-					sprite.y = sprite.y - 10
-					Timer.tween(0.15, sprite, { y = dest }, "in-bounce")
-				end
-
-				local sprite = placing:get("SpriteComponent")
-				sprite:resetColor()
-				local dest = sprite.y
-				sprite.y = sprite.y - 10
-
-				Timer.tween(0.15, sprite, { y = dest }, "in-bounce", function()
-					-- Screen shake
-					local orig_x, orig_y = self.camera:position()
-					Timer.during(0.10, function()
-						self.camera:lookAt(orig_x + math.random(-2,2), orig_y + math.random(-4,4))
-					end, function()
-						-- reset camera position
-						self.camera:lookAt(orig_x, orig_y)
-					end)
-				end)
-
-				-- Notify GUI to update its state.
-				self.gui:placed()
-			elseif state:getPlacing():has("BuildingComponent") then
-				soundManager:playEffect("buildingPlaced") -- TODO: Type?
-
-				local placing = state:getPlacing()
-
-				local ax, ay, grid = self.map:addObject(placing, placing:get("BuildingComponent"):getPosition())
-				assert(ax and ay and grid, "Could not add building with building component.")
-				placing:get("SpriteComponent"):setDrawPosition(ax, ay)
-				placing:get("SpriteComponent"):resetColor()
-				placing:set(PositionComponent(grid))
-				placing:add(ConstructionComponent(placing:get("PlacingComponent"):getType()))
-				InteractiveComponent:makeInteractive(placing, ax, ay)
-
-				placing:remove("PlacingComponent")
-
-				-- DROP
-				local sprite = placing:get("SpriteComponent")
-				sprite:resetColor()
-				local dest = sprite.y
-				sprite.y = sprite.y - 4
-				Timer.tween(0.11, sprite, { y = dest }, "in-back")
-
-				-- Notify GUI to update its state.
-				self.gui:placed()
+			else
+				self:_handleClick(state:getMousePosition())
 			end
 		end
 	end
@@ -563,6 +362,106 @@ function Game:wheelmoved(_, y)
 	end
 end
 
+function Game:_handleClick(x, y)
+	local clicked, clickedIndex = nil, 0
+	for _,entity in pairs(self.engine:getEntitiesWithComponent("InteractiveComponent")) do
+		local index = entity:get("SpriteComponent"):getDrawIndex()
+		if index > clickedIndex and entity:get("InteractiveComponent"):isWithin(x, y) then
+			clicked = entity
+			clickedIndex = index
+		end
+	end
+
+	if not clicked then
+		soundManager:playEffect("clearSelection")
+		state:clearSelection()
+		return
+	end
+
+	local selected = state:getSelection()
+	if selected and selected:has("VillagerComponent") and selected:get("VillagerComponent"):isAdult() and
+	   (clicked:has("WorkComponent") or clicked:has("ConstructionComponent") or clicked:has("DwellingComponent")) then
+		-- TODO: Should probably be an event or similar.
+
+		-- Whether that there is room to work there.
+		-- FIXME: Reassignment not handled!
+		local valid
+
+		-- TODO: lol... fix logic.
+		if clicked:has("ConstructionComponent") then
+			if #clicked:get("ConstructionComponent"):getAssignedVillagers() >= 4 then
+				valid = false
+			else
+				local alreadyAdded = false
+				for _,villager in ipairs(clicked:get("ConstructionComponent"):getAssignedVillagers()) do
+					if villager == selected then
+						alreadyAdded = true
+						break
+					end
+				end
+				if not alreadyAdded then
+					-- For things being built, update the places where builders can stand, so that rubbish can
+					-- be cleared around the build site after placing the building.
+					local adjacent = self.map:getAdjacentGrids(clicked)
+					clicked:get("ConstructionComponent"):updateWorkGrids(adjacent)
+				end
+				valid = true
+			end
+		elseif clicked:has("WorkComponent") then
+			if #clicked:get("WorkComponent"):getAssignedVillagers() >= 1 or
+			   not selected:get("VillagerComponent"):getHome() then
+				valid = false
+			else
+				local alreadyAdded = false
+				for _,villager in ipairs(clicked:get("WorkComponent"):getAssignedVillagers()) do
+					if villager == selected then
+						alreadyAdded = true
+						break
+					end
+				end
+				if not alreadyAdded then
+					clicked:get("WorkComponent"):assign(selected)
+				end
+				valid = true
+			end
+		elseif clicked:has("DwellingComponent") then
+			if #clicked:get("DwellingComponent"):getAssignedVillagers() >= 2 then
+				valid = false
+			else
+				local alreadyAdded = false
+				for _,villager in ipairs(clicked:get("DwellingComponent"):getAssignedVillagers()) do
+					if villager == selected then
+						alreadyAdded = true
+						break
+					end
+				end
+				if not alreadyAdded then
+					clicked:get("DwellingComponent"):assign(selected)
+				end
+				valid = true
+			end
+		end
+
+		if valid then
+			if clicked:has("DwellingComponent") then
+				selected:get("VillagerComponent"):setHome(clicked)
+			else
+				selected:get("VillagerComponent"):setWorkPlace(clicked)
+				selected:get("VillagerComponent"):setOccupation(
+					clicked:has("WorkComponent") and clicked:get("WorkComponent"):getType() or WorkComponent.BUILDER)
+			end
+			soundManager:playEffect("successfulAssignment") -- TODO: Different sounds per assigned occupation?
+			BlinkComponent:makeBlinking(clicked, { 0.15, 0.70, 0.15, 1.0 }) -- TODO: Colour value
+		else
+			soundManager:playEffect("failedAssignment")
+			BlinkComponent:makeBlinking(clicked, { 0.70, 0.15, 0.15, 1.0 }) -- TODO: Colour value
+		end
+	else
+		soundManager:playEffect("selecting") -- TODO: Different sounds depending on what is selected.
+		state:setSelection(clicked)
+	end
+end
+
 function Game:_getResources(tile)
 	if tile == TileComponent.GRASS then
 		-- TODO: Would be nice with some trees, but not the early levels
@@ -572,6 +471,118 @@ function Game:_getResources(tile)
 	elseif tile == TileComponent.MOUNTAIN then
 		return math.max(0, love.math.random(5) - 4), love.math.random(2, 4)
 	end
+end
+
+function Game:_placeTile(placing)
+	soundManager:playEffect("tilePlaced") -- TODO: Type?
+
+	placing:remove("PlacingComponent")
+	local ti, tj = placing:get("TileComponent"):getPosition()
+	self.map:addTile(ti, tj)
+
+	--local spec = Game.tileSpec[placing:get("TileComponent"):getType()]
+	--local trees = #spec.trees > 0 and spec.trees[love.math.random(#spec.trees)] or 0
+	--local iron = #spec.iron > 0 and spec.iron[love.math.random(#spec.iron)] or 0
+
+	local trees, iron = self:_getResources(placing:get("TileComponent"):getType())
+
+	--print("Will spawn "..tostring(trees).." trees and "..tostring(iron).." iron")
+
+	local sgi, sgj = ti * self.map.gridsPerTile, tj * self.map.gridsPerTile
+	local egi, egj = sgi + self.map.gridsPerTile, sgj + self.map.gridsPerTile
+
+	local resources = {}
+
+	-- TODO: Runestone logic
+	--if love.math.random(1, 5) == 1 then
+	if false then
+		local runestone = blueprint:createRunestone()
+		local ax, ay, grid = self.map:addObject(runestone, ti, tj)
+		assert(ax and ay and grid, "Could not add runestone to empty tile.")
+		runestone:get("SpriteComponent"):setDrawPosition(ax, ay)
+		runestone:get("PositionComponent"):setPosition(grid)
+		InteractiveComponent:makeInteractive(runestone, ax, ay)
+		self.engine:addEntity(runestone)
+		table.insert(resources, runestone)
+	end
+
+	-- Resources
+	for i=1,trees+iron do
+		local resource
+		if i <= trees then
+			resource = blueprint:createTree()
+		else
+			resource = blueprint:createIron()
+		end
+		for _=1,1000 do -- lol
+			local gi, gj = love.math.random(sgi + 1, egi - 1), love.math.random(sgj + 1, egj - 1)
+			local ax, ay, grid = self.map:addObject(resource, gi, gj)
+			if ax then
+				resource:get("SpriteComponent"):setDrawPosition(ax, ay)
+				resource:get("PositionComponent"):setPosition(grid)
+				InteractiveComponent:makeInteractive(resource, ax, ay)
+				self.engine:addEntity(resource)
+				table.insert(resources, resource)
+				resource = nil
+				break
+			end
+		end
+
+		if resource then
+			print("Could not add object.")
+		end
+	end
+
+	-- DROP
+	for _,resource in ipairs(resources) do
+		local sprite = resource:get("SpriteComponent")
+		local dest = sprite.y
+		sprite.y = sprite.y - 10
+		Timer.tween(0.15, sprite, { y = dest }, "in-bounce")
+	end
+
+	local sprite = placing:get("SpriteComponent")
+	sprite:resetColor()
+	local dest = sprite.y
+	sprite.y = sprite.y - 10
+
+	Timer.tween(0.15, sprite, { y = dest }, "in-bounce", function()
+		-- Screen shake
+		local orig_x, orig_y = self.camera:position()
+		Timer.during(0.10, function()
+			self.camera:lookAt(orig_x + math.random(-2,2), orig_y + math.random(-4,4))
+		end, function()
+			-- reset camera position
+			self.camera:lookAt(orig_x, orig_y)
+		end)
+	end)
+
+	-- Notify GUI to update its state.
+	self.gui:placed()
+end
+
+function Game:_placeBuilding(placing)
+	soundManager:playEffect("buildingPlaced") -- TODO: Type?
+
+	local ax, ay, grid = self.map:addObject(placing, placing:get("BuildingComponent"):getPosition())
+	assert(ax and ay and grid, "Could not add building with building component.")
+	placing:get("SpriteComponent"):setDrawPosition(ax, ay)
+	placing:get("SpriteComponent"):resetColor()
+	placing:set(PositionComponent(grid))
+	placing:add(ConstructionComponent(placing:get("PlacingComponent"):getType()))
+	InteractiveComponent:makeInteractive(placing, ax, ay)
+
+	placing:remove("PlacingComponent")
+
+	-- DROP
+	local sprite = placing:get("SpriteComponent")
+	sprite:resetColor()
+	local dest = sprite.y
+	sprite.y = sprite.y - 4
+	Timer.tween(0.11, sprite, { y = dest }, "in-back")
+
+	-- Notify GUI to update its state.
+	self.gui:placed()
 end
 
 return Game
