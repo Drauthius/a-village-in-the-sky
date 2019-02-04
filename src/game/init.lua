@@ -173,12 +173,19 @@ function Game:enter()
 	}
 
 	local startingVillagers = {
-		maleVillagers = 3, -- 1, -- TODO
-		femaleVillagers = 0, -- 2, -- TODO
+		maleVillagers = 2,
+		femaleVillagers = 2,
 		maleChild = 1,
 		femaleChild = 1
 	}
-	startingVillagers = { maleVillagers = 1 }
+	local startingPositions = {
+		{ 11, 2 },
+		{ 12, 6 },
+		{ 12, 10 },
+		{ 9, 12 },
+		{ 5, 12 },
+		{ 2, 11 },
+	}
 
 	for type,num in pairs(startingResources) do
 		while num > 0 do
@@ -205,7 +212,10 @@ function Game:enter()
 		for _=1,num do
 			local villager = lovetoys.Entity()
 
-			local gi, gj = self.map:getFreeGrid(0, 0, "villager")
+			local gi, gj = unpack(table.remove(startingPositions) or {})
+			if not gi or not gj then
+				gi, gj = self.map:getFreeGrid(0, 0, "villager")
+			end
 			self.map:reserve(villager, self.map:getGrid(gi, gj))
 
 			villager:add(PositionComponent(self.map:getGrid(gi, gj)))

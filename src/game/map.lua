@@ -1,6 +1,7 @@
 local class = require "lib.middleclass"
 
 local bit = require "bit"
+local ResourceComponent = require "src.game.resourcecomponent"
 
 -- Throughout this class, "grid" refers to the collision isometric squares, and "tile"
 -- refers to the bigger isometric squares (sprites). That being said, "gi" and "gj"
@@ -221,10 +222,49 @@ end
 
 function Map:getFreeGrid(ti, tj, resource)
 	local sgi, sgj = ti * self.gridsPerTile, tj * self.gridsPerTile
-	for gi=sgi,sgi + self.gridsPerTile - 1 do
-		for gj=sgj,sgj + self.gridsPerTile - 1 do
-			if self.grid[gi][gj].collision == Map.COLL_NONE then
-				return gi, gj
+	local gi, gj
+	if resource == ResourceComponent.WOOD then
+		gi, gj = sgi + self.gridsPerTile, sgj + self.gridsPerTile
+	elseif resource == ResourceComponent.IRON then
+		gi, gj = sgi + self.gridsPerTile, sgj
+	elseif resource == ResourceComponent.TOOL then
+		gi, gj = sgi, sgj + self.gridsPerTile
+	elseif resource == ResourceComponent.GRAIN then
+		gi, gj = sgi + self.gridsPerTile, sgj + math.floor(self.gridsPerTile / 2)
+	elseif resource == ResourceComponent.BREAD then
+		gi, gj = sgi + math.floor(self.gridsPerTile / 2), sgj + self.gridsPerTile
+	end
+
+	-- Look for a good place in a spiral pattern.
+	if gi and gj then
+		local x, y = 0, 0
+		local d = 1
+		local m = 1
+		for _=1,self.gridsPerTile^2 do -- Upper bound
+			while 2 * x * d < m do
+				if self.grid[gi + x] and self.grid[gi + x][gj + y] and self.grid[gi + x][gj + y].collision == Map.COLL_NONE then
+					return gi + x, gj + y
+				end
+				x = x + d
+			end
+			while 2 * y * d < m do
+				if self.grid[gi + x] and self.grid[gi + x][gj + y] and self.grid[gi + x][gj + y].collision == Map.COLL_NONE then
+					return gi + x, gj + y
+				end
+				y = y + d
+			end
+
+			d = d * -1
+			m = m + 1
+		end
+	end
+
+	print("No spot found for "..tostring(resource)..". Brute forcing")
+
+	for cgi=sgi,sgi + self.gridsPerTile - 1 do
+		for cgj=sgj,sgj + self.gridsPerTile - 1 do
+			if self.grid[cgi][cgj].collision == Map.COLL_NONE then
+				return cgi, cgj
 			end
 		end
 	end
