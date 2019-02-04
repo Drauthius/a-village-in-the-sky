@@ -12,6 +12,7 @@
 --    * Villagers can pick up unextracted trees to fulfil a resource requirement.
 --    * Villagers walk in place on higher speeds.
 --  - Next:
+--    * More robust path finding and exception handling.
 --    * Allow changing profession without locking up resources, work grids, etc.
 --  - Refactoring:
 --    * Remove some logic in the components, and instead create more components?
@@ -92,6 +93,8 @@ local soundManager = require "src.soundmanager"
 local state = require "src.game.state"
 
 local Game = {}
+
+Game.CAMERA_EPSILON = 0.025
 
 function Game:init()
 	lovetoys.initialize({ debug = true, middleclassPath = "lib.middleclass" })
@@ -254,6 +257,12 @@ function Game:update(dt)
 				self.dragging.cx,
 				self.dragging.cy,
 				Camera.smooth.damped(15))
+		if self.dragging.released and
+		   math.abs(self.dragging.cx - self.camera.x) <= Game.CAMERA_EPSILON and
+		   math.abs(self.dragging.cy - self.camera.y) <= Game.CAMERA_EPSILON then
+			-- Clear and release the dragging table, to avoid minimal camera movement which looks choppy.
+			self.dragging = nil
+		end
 	end
 
 	self.gui:update(dt)
@@ -341,7 +350,7 @@ end
 function Game:mousereleased(x, y)
 	x, y = screen:getCoordinate(x, y)
 
-	if not self.dragging or not self.dragging.dragged then
+	if not self.dragging or not self.dragging.dragged or self.dragging.released then
 		if not self.gui:handlePress(x, y) then
 			if state:isPlacing() then
 				local placing = state:getPlacing()
