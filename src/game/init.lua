@@ -33,8 +33,6 @@
 --  - Controls
 --    * Zoom (less smooth, to avoid uneven pixels)
 --    * Drag (with min/max, to avoid getting lost in space)
---    * Camera stops abruptly when mouse is released (should keep going in the
---      same direction a bit)
 --    * Assigning/selecting through double tap or hold?
 --      The details panel must have a "Deselect/Cancel/Close" button/icon so
 --      that villagers can be easily deselected.
@@ -242,12 +240,9 @@ function Game:update(dt)
 	state:setMousePosition(self.camera:worldCoords(mx, my, drawArea.x, drawArea.y, drawArea.width, drawArea.height))
 
 	if self.dragging and self.dragging.dragged then
-		--self.camera:lockWindow(
 		self.camera:lockPosition(
 				self.dragging.cx,
 				self.dragging.cy,
-				--0, 0,
-				--0, 0,
 				Camera.smooth.damped(15))
 	end
 
@@ -272,6 +267,10 @@ function Game:draw()
 
 	self.gui:draw()
 end
+
+--
+-- Input handling
+--
 
 function Game:keyreleased(key)
 	if key == "d" then
@@ -306,12 +305,14 @@ function Game:mousepressed(x, y)
 		-- Current camera coordinates.
 		cx = origx, cy = origy,
 		-- Whether dragging or simply pressing.
-		dragged = false
+		dragged = false,
+		-- Whether the mouse has been released.
+		released = false
 	}
 end
 
 function Game:mousemoved(x, y)
-	if self.dragging then
+	if self.dragging and not self.dragging.released then
 		local ex, ey = screen:getCoordinate(x, y)
 		local newx, newy = self.dragging.sx - ex, self.dragging.sy - ey
 		newx, newy = newx / self.camera.scale, newy / self.camera.scale
@@ -347,7 +348,9 @@ function Game:mousereleased(x, y)
 		end
 	end
 
-	self.dragging = nil
+	if self.dragging then
+		self.dragging.released = true
+	end
 end
 
 function Game:wheelmoved(_, y)
@@ -361,6 +364,10 @@ function Game:wheelmoved(_, y)
 		end
 	end
 end
+
+--
+-- Internal functions
+--
 
 function Game:_handleClick(x, y)
 	local clicked, clickedIndex = nil, 0
