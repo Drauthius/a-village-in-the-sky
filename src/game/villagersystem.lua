@@ -16,7 +16,9 @@ VillagerSystem.static.TIMERS = {
 	PICKUP_BEFORE = 0.25,
 	PICKUP_AFTER = 0.5,
 	DROPOFF_BEFORE = 0.25,
-	DROPOFF_AFTER = 0.5
+	DROPOFF_AFTER = 0.5,
+	IDLE_ROTATE_MIN = 1,
+	IDLE_ROTATE_MAX = 4
 }
 
 function VillagerSystem.requires()
@@ -50,12 +52,20 @@ function VillagerSystem:_updateVillager(entity)
 
 			entity:add(WalkingComponent(ti, tj, nil, WalkingComponent.INSTRUCTIONS.DROPOFF))
 			villager:setGoal(VillagerComponent.GOALS.DROPOFF)
+			-- Remove any lingering timer.
+			if entity:has("TimerComponent") then
+				entity:remove("TimerComponent")
+			end
 		elseif villager:getWorkPlace() then
 			local workPlace = villager:getWorkPlace()
 			local grid = workPlace:get("PositionComponent"):getPosition()
 			local ti, tj = self.map:gridToTileCoords(grid.gi, grid.gj)
 
 			entity:add(WorkingComponent())
+			-- Remove any lingering timer.
+			if entity:has("TimerComponent") then
+				entity:remove("TimerComponent")
+			end
 
 			if villager:getOccupation() == WorkComponent.BUILDER then
 				local construction = workPlace:get("ConstructionComponent")
@@ -75,9 +85,19 @@ function VillagerSystem:_updateVillager(entity)
 				villager:setGoal(VillagerComponent.GOALS.WORK)
 			end
 		else
-			local dir = villager:getDirection()
-			dir = (dir + 2) % 360
-			villager:setDirection(dir)
+			if not entity:has("TimerComponent") then
+				local timer = TimerComponent()
+				-- Fidget a little by rotating the villager.
+				timer:getTimer():after(
+					love.math.random() *
+					(VillagerSystem.TIMERS.IDLE_ROTATE_MAX - VillagerSystem.TIMERS.IDLE_ROTATE_MIN) +
+					VillagerSystem.TIMERS.IDLE_ROTATE_MIN, function()
+						local dir = villager:getDirection()
+						villager:setDirection((dir + 45 * love.math.random(-1, 1)) % 360)
+						entity:remove("TimerComponent")
+					end)
+				entity:add(timer)
+			end
 		end
 	end
 end

@@ -121,7 +121,7 @@ function Game:enter()
 	-- Set up the camera.
 	self.camera = Camera()
 	self.camera:lookAt(0, 0)
-	self.camera:zoom(6)
+	self.camera:zoom(3)
 
 	self.engine = lovetoys.Engine()
 	self.eventManager = lovetoys.EventManager()
