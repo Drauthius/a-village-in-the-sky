@@ -18,7 +18,8 @@ VillagerSystem.static.TIMERS = {
 	DROPOFF_BEFORE = 0.25,
 	DROPOFF_AFTER = 0.5,
 	IDLE_ROTATE_MIN = 1,
-	IDLE_ROTATE_MAX = 4
+	IDLE_ROTATE_MAX = 4,
+	PATH_FAILED_DELAY = 3
 }
 
 function VillagerSystem.requires()
@@ -102,6 +103,44 @@ function VillagerSystem:_updateVillager(entity)
 	end
 end
 
+function VillagerSystem:_unreserveAll(entity)
+	local villager = entity:get("VillagerComponent")
+	local workPlace = villager:getWorkPlace()
+
+	local type, amount
+	for _,resourceEntity in pairs(self.engine:getEntitiesWithComponent("ResourceComponent")) do
+		local resource = resourceEntity:get("ResourceComponent")
+		if resource:getReservedBy() == entity then
+			type, amount = resource:getResource(), resource:getReservedAmount()
+			state:removeReservedResource(type, amount)
+			resource:setReserved(nil)
+			break -- Should only have one
+		end
+	end
+
+	if workPlace then
+		if workPlace:has("ConstructionComponent") then
+			workPlace:get("ConstructionComponent"):unreserveGrid(entity)
+
+			if not type and entity:has("CarryingComponent") then
+				type, amount = entity:get("CarryingComponent"):getResource(), entity:get("CarryingComponent"):getAmount()
+			end
+
+			if type and amount then
+				workPlace:get("ConstructionComponent"):unreserveResource(type, amount)
+			end
+		elseif workPlace:has("WorkComponent") then
+			workPlace:get("WorkComponent"):unassign(entity)
+		else
+			error("Unknown work place")
+		end
+	end
+end
+
+--
+-- Events
+--
+
 function VillagerSystem:targetReachedEvent(event)
 	local entity = event:getVillager()
 	local villager = entity:get("VillagerComponent")
@@ -115,12 +154,12 @@ function VillagerSystem:targetReachedEvent(event)
 	if goal == VillagerComponent.GOALS.DROPOFF then
 		local timer = TimerComponent()
 		timer:getTimer():after(VillagerSystem.TIMERS.DROPOFF_BEFORE, function()
+			assert(event:getTarget(), "Nowhere to put the resource.")
+
 			-- Stop carrying the stuff.
 			local resource = entity:get("CarryingComponent"):getResource()
 			local amount = entity:get("CarryingComponent"):getAmount()
 			entity:remove("CarryingComponent")
-
-			assert(event:getTarget(), "Nowhere to put the resource.")
 
 			local resourceEntity = blueprint:createResourcePile(resource, amount)
 			self.map:addResource(resourceEntity, event:getTarget())
@@ -146,11 +185,14 @@ function VillagerSystem:targetReachedEvent(event)
 	elseif goal == VillagerComponent.GOALS.WORK_PICKUP then
 		local timer = TimerComponent()
 		timer:getTimer():after(VillagerSystem.TIMERS.PICKUP_BEFORE, function()
+			assert(event:getNextStop(), "Nowhere to put the resource.")
+
 			-- Start carrying the stuff.
 			local resourceEntity = event:getTarget()
 			local resource = resourceEntity:get("ResourceComponent")
-			entity:add(CarryingComponent(resource:getResource(), resource:getReservedAmount()))
-			resource:decreaseAmount(resource:getReservedAmount())
+			local type, amount = resource:getResource(), resource:getReservedAmount()
+			entity:add(CarryingComponent(type, amount))
+			resource:decreaseAmount(amount)
 
 			if resource:getResourceAmount() < 1 then
 				-- Remove it from the engine.
@@ -161,7 +203,9 @@ function VillagerSystem:targetReachedEvent(event)
 				resource:setReserved(nil)
 			end
 
-			assert(event:getNextStop(), "Nowhere to put the resource.")
+			-- Update the state here, since dropping it off anywhere will increase the counter again.
+			state:removeReservedResource(type, amount)
+			state:decreaseResource(type, amount)
 
 			timer:getTimer():after(VillagerSystem.TIMERS.PICKUP_AFTER, function()
 				-- Go next.
@@ -179,12 +223,30 @@ function VillagerSystem:targetReachedEvent(event)
 		if entity:has("CarryingComponent") then
 			local resource = entity:get("CarryingComponent"):getResource()
 			local amount = entity:get("CarryingComponent"):getAmount()
-			state:removeReservedResource(resource, amount)
-			state:decreaseResource(resource, amount)
 			villager:getWorkPlace():get("ConstructionComponent"):addResources(resource, amount)
 			entity:remove("CarryingComponent")
 		end
 	end
+end
+
+function VillagerSystem:targetUnreachableEvent(event)
+	local entity = event:getEntity()
+	local villager = entity:get("VillagerComponent")
+
+	-- TODO: Look for deadlock amongst villagers (two villagers heading in the opposite directions).
+	--       This could be resolved by temporarily allowing collision.
+	-- TODO: Look for idling villagers that are just standing around, that might be blocking the path.
+
+	-- Start by unreserving everything
+	self:_unreserveAll(entity)
+
+	villager:setGoal(VillagerComponent.GOALS.WAIT)
+	local timer = TimerComponent()
+	timer:getTimer():after(VillagerComponent.TIMERS.PATH_FAILED_DELAY, function()
+		villager:setGoal(VillagerComponent.GOALS.NONE)
+		entity:remove("TimerComponent")
+	end)
+	entity:add(timer)
 end
 
 return VillagerSystem

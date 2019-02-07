@@ -15,6 +15,7 @@ function WalkingComponent:initialize(ti, tj, grids, instructions)
 	self:setTargetTile(ti, tj)
 	self:setTargetGrids(grids)
 	self:setInstructions(instructions)
+	self:setNextStop(nil)
 end
 
 function WalkingComponent:getPath()

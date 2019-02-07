@@ -9,11 +9,10 @@
 --      Maybe it would need to check "how" it is reserved, or we simply split it up further...
 --      reserve() for resources, occupy() for villagers?
 --    * Villagers always reserve two grids when walking. Problem?
---    * Villagers can pick up unextracted trees to fulfil a resource requirement.
 --    * Villagers walk in place on higher speeds.
 --  - Next:
---    * More robust path finding and exception handling.
---    * Allow changing profession without locking up resources, work grids, etc.
+--    * Allow changing profession.
+--      Changing workplace mid-work makes it look really wacky (will start building the other building)
 --  - Refactoring:
 --    * Remove some logic in the components, and instead create more components?
 --      Like Villager:isAdult() can be split into a Adult and Child component,
@@ -145,6 +144,7 @@ function Game:enter()
 	self.engine:stopSystem("PositionSystem")
 
 	self.eventManager:addListener("TargetReachedEvent", villagerSystem, villagerSystem.targetReachedEvent)
+	self.eventManager:addListener("TargetUnreachableEvent", villagerSystem, villagerSystem.targetUnreachableEvent)
 	self.eventManager:addListener("WorkEvent", workSystem, workSystem.workEvent)
 
 	self.gui = GUI(self.engine)
@@ -358,8 +358,6 @@ function Game:mousereleased(x, y)
 					self:_placeTile(placing)
 				elseif placing:has("BuildingComponent") then
 					self:_placeBuilding(placing)
-				else
-					error("Placing what?")
 				end
 			else
 				self:_handleClick(state:getMousePosition())

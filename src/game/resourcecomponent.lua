@@ -32,17 +32,21 @@ function ResourceComponent:getResourceAmount()
 	return self.stack
 end
 
-function ResourceComponent:getReservedAmount()
-	return self.reservedAmount
-end
-
 function ResourceComponent:decreaseAmount(amount)
 	self.stack = self.stack - amount
 	assert(self.stack >= 0)
 end
 
 function ResourceComponent:isUsable()
-	return self.extracted and self.reserved ~= nil
+	return self.extracted and self.reserved == nil
+end
+
+function ResourceComponent:getReservedBy()
+	return self.reserved
+end
+
+function ResourceComponent:getReservedAmount()
+	return self.reservedAmount
 end
 
 function ResourceComponent:setReserved(target, amount)

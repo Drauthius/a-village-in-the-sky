@@ -117,6 +117,11 @@ function ConstructionComponent:reserveResource(resource, amount)
 	assert(self.resourcesLeft[resource] >= 0)
 end
 
+function ConstructionComponent:unreserveResource(resource, amount)
+	self.resourcesLeft[resource] = self.resourcesLeft[resource] + amount
+	assert(self.resourcesLeft[resource] <= ConstructionComponent.MATERIALS[self.buildingType][resource])
+end
+
 function ConstructionComponent:reserveGrid(villager, workGrid)
 	workGrid[3] = villager
 end

@@ -61,6 +61,15 @@ function WorkComponent:assign(villager)
 	table.insert(self.workers, villager)
 end
 
+function WorkComponent:unassign(villager)
+	for k,v in ipairs(self.workers) do
+		if v == villager then
+			table.remove(self.workers, k)
+			return
+		end
+	end
+end
+
 function WorkComponent:getAssignedVillagers()
 	return self.workers
 end

@@ -76,7 +76,7 @@ function WorkSystem:workEvent(event)
 					worker:remove("WorkingComponent")
 					villager:setGoal(VillagerComponent.GOALS.NONE)
 				else
-					if worker:get("WorkingComponent"):getWorking() then
+					if worker:has("WorkingComponent") and worker:get("WorkingComponent"):getWorking() then
 						construction:unreserveGrid(worker)
 						worker:remove("WorkingComponent")
 						villager:setGoal(VillagerComponent.GOALS.NONE)
