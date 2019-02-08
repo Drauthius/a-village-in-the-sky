@@ -9,7 +9,7 @@
 --      Maybe it would need to check "how" it is reserved, or we simply split it up further...
 --      reserve() for resources, occupy() for villagers?
 --    * Villagers always reserve two grids when walking. Problem?
---    * Villagers walk in place on higher speeds.
+--    * Villagers can get stuck in a four-grid gridlock.
 --  - Next:
 --    * Allow changing profession.
 --      Changing workplace mid-work makes it look really wacky (will start building the other building)
@@ -244,10 +244,6 @@ function Game:enter()
 end
 
 function Game:update(dt)
-	dt = dt * self.speed
-
-	Timer.update(dt)
-
 	local mx, my = screen:getCoordinate(love.mouse.getPosition())
 	local drawArea = screen:getDrawArea()
 	state:setMousePosition(self.camera:worldCoords(mx, my, drawArea.x, drawArea.y, drawArea.width, drawArea.height))
@@ -265,8 +261,11 @@ function Game:update(dt)
 		end
 	end
 
-	self.gui:update(dt)
-	self.engine:update(dt)
+	for _=1,self.speed do
+		Timer.update(dt)
+		self.gui:update(dt)
+		self.engine:update(dt)
+	end
 end
 
 function Game:draw()
@@ -303,7 +302,7 @@ function Game:keyreleased(key)
 	elseif key == "2" then
 		self.speed = 2
 	elseif key == "3" then
-		self.speed = 3
+		self.speed = 5
 	end
 end
 
