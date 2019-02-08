@@ -63,17 +63,12 @@ local lovetoys = require "lib.lovetoys.lovetoys"
 
 local GUI = require "src.game.gui"
 local Map = require "src.game.map"
+local DefaultLevel = require "src.game.level.default"
 -- Components
-local AnimationComponent = require "src.game.animationcomponent"
 local BlinkComponent = require "src.game.blinkcomponent"
 local ConstructionComponent = require "src.game.constructioncomponent"
-local GroundComponent = require "src.game.groundcomponent"
 local InteractiveComponent = require "src.game.interactivecomponent"
 local PositionComponent = require "src.game.positioncomponent"
-local ResourceComponent = require "src.game.resourcecomponent"
-local SpriteComponent = require "src.game.spritecomponent"
-local TileComponent = require "src.game.tilecomponent"
-local VillagerComponent = require "src.game.villagercomponent"
 local WorkComponent = require "src.game.workcomponent"
 -- Systems
 local DebugSystem
@@ -116,6 +111,7 @@ function Game:enter()
 	self.speed = 1
 
 	self.map = Map()
+	self.level = DefaultLevel()
 
 	-- Set up the camera.
 	self.camera = Camera()
@@ -149,98 +145,7 @@ function Game:enter()
 
 	self.gui = GUI(self.engine)
 
-	local spriteSheet = require "src.game.spritesheet"
-
-	do -- Initial tile.
-		local tile = lovetoys.Entity()
-		tile:add(TileComponent(TileComponent.GRASS, 0, 0))
-		tile:add(SpriteComponent(spriteSheet:getSprite("grass-tile"), -self.map.halfTileWidth))
-		self.engine:addEntity(tile)
-		self.map:addTile(0, 0)
-	end
-
-	do -- Initial runestone.
-		local runestone = blueprint:createRunestone()
-		local x, y, grid = self.map:addObject(runestone, 0, 0)
-		runestone:get("SpriteComponent"):setDrawPosition(x, y)
-		runestone:get("PositionComponent"):setPosition(grid)
-		InteractiveComponent:makeInteractive(runestone, x, y)
-		self.engine:addEntity(runestone)
-	end
-
-	local startingResources = {
-		[ResourceComponent.WOOD] = 30,
-		[ResourceComponent.IRON] = 6,
-		[ResourceComponent.TOOL] = 12,
-		[ResourceComponent.BREAD] = 6
-	}
-
-	local startingVillagers = {
-		maleVillagers = 2,
-		femaleVillagers = 2,
-		maleChild = 1,
-		femaleChild = 1
-	}
-	local startingPositions = {
-		{ 11, 2 },
-		{ 12, 6 },
-		{ 12, 10 },
-		{ 9, 12 },
-		{ 5, 12 },
-		{ 2, 11 },
-	}
-
-	for type,num in pairs(startingResources) do
-		while num > 0 do
-			local resource = blueprint:createResourcePile(type, math.min(3, num))
-
-			local gi, gj = self.map:getFreeGrid(0, 0, type)
-			self.map:addResource(resource, self.map:getGrid(gi, gj))
-
-			local ox, oy = self.map:gridToWorldCoords(gi, gj)
-			ox = ox - self.map.halfGridWidth
-			oy = oy - resource:get("SpriteComponent"):getSprite():getHeight() + self.map.gridHeight
-
-			resource:get("SpriteComponent"):setDrawPosition(ox, oy)
-			resource:get("PositionComponent"):setPosition(self.map:getGrid(gi, gj))
-
-			self.engine:addEntity(resource)
-			state:increaseResource(type, resource:get("ResourceComponent"):getResourceAmount())
-
-			num = num - resource:get("ResourceComponent"):getResourceAmount()
-		end
-	end
-
-	for type,num in pairs(startingVillagers) do
-		for _=1,num do
-			local villager = lovetoys.Entity()
-
-			local gi, gj = unpack(table.remove(startingPositions) or {})
-			if not gi or not gj then
-				gi, gj = self.map:getFreeGrid(0, 0, "villager")
-			end
-			self.map:reserve(villager, self.map:getGrid(gi, gj))
-
-			villager:add(PositionComponent(self.map:getGrid(gi, gj)))
-			villager:add(GroundComponent(self.map:gridToGroundCoords(gi + 0.5, gj + 0.5)))
-			villager:add(VillagerComponent({
-				gender = type:match("^male") and "male" or "female",
-				age = type:match("Child$") and 5 or 20 }))
-			villager:add(SpriteComponent())
-			villager:add(AnimationComponent())
-
-			self.engine:addEntity(villager)
-
-			-- XXX:
-			state["increaseNum" .. type:gsub("^%l", string.upper):gsub("Child$", "Children")](state)
-		end
-	end
-
-	--self:mousereleased(353, 420)
-	--local mx, my = screen:getCoordinate(327, 253)
-	--local drawArea = screen:getDrawArea()
-	--state:setMousePosition(self.camera:worldCoords(mx, my, drawArea.x, drawArea.y, drawArea.width, drawArea.height))
-	--self:mousereleased(327, 253)
+	self.level:initiate(self.engine, self.map)
 end
 
 function Game:update(dt)
@@ -290,18 +195,18 @@ end
 -- Input handling
 --
 
-function Game:keyreleased(key)
-	if key == "d" then
+function Game:keyreleased(key, scancode)
+	if scancode == "d" then
 		self.debug = not self.debug
-	elseif key == "escape" then
+	elseif scancode == "escape" then
 		self.gui:back()
-	elseif key == "½" then
+	elseif scancode == "`" then
 		self.speed = 0
-	elseif key == "1" then
+	elseif scancode == "1" then
 		self.speed = 1
-	elseif key == "2" then
+	elseif scancode == "2" then
 		self.speed = 2
-	elseif key == "3" then
+	elseif scancode == "3" then
 		self.speed = 5
 	end
 end
@@ -485,17 +390,6 @@ function Game:_handleClick(x, y)
 	end
 end
 
-function Game:_getResources(tile)
-	if tile == TileComponent.GRASS then
-		-- TODO: Would be nice with some trees, but not the early levels
-		return 0, 0 --return math.max(0, math.floor((love.math.random(9) - 5) / 2)), 0
-	elseif tile == TileComponent.FOREST then
-		return love.math.random(2, 6), 0
-	elseif tile == TileComponent.MOUNTAIN then
-		return math.max(0, love.math.random(5) - 4), love.math.random(2, 4)
-	end
-end
-
 function Game:_placeTile(placing)
 	soundManager:playEffect("tilePlaced") -- TODO: Type?
 
@@ -503,11 +397,7 @@ function Game:_placeTile(placing)
 	local ti, tj = placing:get("TileComponent"):getPosition()
 	self.map:addTile(ti, tj)
 
-	--local spec = Game.tileSpec[placing:get("TileComponent"):getType()]
-	--local trees = #spec.trees > 0 and spec.trees[love.math.random(#spec.trees)] or 0
-	--local iron = #spec.iron > 0 and spec.iron[love.math.random(#spec.iron)] or 0
-
-	local trees, iron = self:_getResources(placing:get("TileComponent"):getType())
+	local trees, iron = self.level:getResources(placing:get("TileComponent"):getType())
 
 	--print("Will spawn "..tostring(trees).." trees and "..tostring(iron).." iron")
 
@@ -516,9 +406,7 @@ function Game:_placeTile(placing)
 
 	local resources = {}
 
-	-- TODO: Runestone logic
-	--if love.math.random(1, 5) == 1 then
-	if false then
+	if self.level:shouldPlaceRunestone() then
 		local runestone = blueprint:createRunestone()
 		local ax, ay, grid = self.map:addObject(runestone, ti, tj)
 		assert(ax and ay and grid, "Could not add runestone to empty tile.")
