@@ -105,17 +105,22 @@ end
 
 function Map:addResource(resource, grid)
 	grid.collision = Map.COLL_STATIC
+	assert(not grid.owner, "Overlap")
 	grid.owner = resource
 end
 
 function Map:reserve(villager, grid)
 	grid.collision = bit.bor(grid.collision, Map.COLL_DYNAMIC)
-	grid.owner = villager
+	if not grid.owner then -- The villager can "walk over" some reserved grids, but shouldn't take over ownership
+		grid.owner = villager
+	end
 end
 
 function Map:unreserve(villager, grid)
 	grid.collision = bit.band(grid.collision, bit.bnot(Map.COLL_DYNAMIC))
-	grid.owner = nil
+	if grid.owner == villager then
+		grid.owner = nil
+	end
 end
 
 function Map:remove(entity)
@@ -222,6 +227,7 @@ end
 
 function Map:getFreeGrid(ti, tj, resource)
 	local sgi, sgj = ti * self.gridsPerTile, tj * self.gridsPerTile
+	local egi, egj = sgi + self.gridsPerTile - 1, sgj + self.gridsPerTile - 1
 	local gi, gj
 	if resource == ResourceComponent.WOOD then
 		gi, gj = sgi + self.gridsPerTile, sgj + self.gridsPerTile
@@ -241,17 +247,22 @@ function Map:getFreeGrid(ti, tj, resource)
 		local d = 1
 		local m = 1
 		for _=1,self.gridsPerTile^2 do -- Upper bound
+			local cgi, cgj = gi + x, gj +y
 			while 2 * x * d < m do
-				if self.grid[gi + x] and self.grid[gi + x][gj + y] and self.grid[gi + x][gj + y].collision == Map.COLL_NONE then
-					return gi + x, gj + y
+				if cgi >= sgi and cgi <= egi and cgj >= sgj and cgj <= egj and
+				   self.grid[cgi] and self.grid[cgi][cgj] and self.grid[cgi][cgj].collision == Map.COLL_NONE then
+					return cgi, cgj
 				end
 				x = x + d
+				cgi = gi + x
 			end
 			while 2 * y * d < m do
-				if self.grid[gi + x] and self.grid[gi + x][gj + y] and self.grid[gi + x][gj + y].collision == Map.COLL_NONE then
-					return gi + x, gj + y
+				if cgi >= sgi and cgi <= egi and cgj >= sgj and cgj <= egj and
+				   self.grid[cgi] and self.grid[cgi][cgj] and self.grid[cgi][cgj].collision == Map.COLL_NONE then
+					return cgi, cgj
 				end
 				y = y + d
+				cgj = gj + y
 			end
 
 			d = d * -1
