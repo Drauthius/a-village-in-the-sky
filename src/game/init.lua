@@ -2,19 +2,22 @@
 --  - Get the game play in, taking time to fix other things around when the need or fancy arises.
 -- TODO:
 --  - Bugs:
+--    * Villagers always reserve two grids when walking. Problem?
+--    * Villagers can get stuck in a four-grid gridlock.
+--    * Villagers can be assigned a workplace, but don't make their way there.
+--    * Villagers leave a reserved grid after extracting a resource.
+--    * Iron is placed on the wrong tile??
+--  - Next:
+--    * Allow changing profession.
+--      Changing workplace mid-work makes it look really wacky (will start building the other building)
+--  - Refactoring:
+--    * There is little reason to have the VillagerComponent be called "VillagerComponent", other than symmetry.
 --    * Map:reserve() is a bad name for something that doesn't use COLL_RESERVED
 --      We could rename COLL_RESERVED to COLL_SPECIAL, and COLL_DYNAMIC to COLL_RESERVED,
 --      but it needs to make sense if a spot to drop a resource is reserved, and the villager
 --      assumes that there is a villager in the way and tries to tell it to move or something.
 --      Maybe it would need to check "how" it is reserved, or we simply split it up further...
 --      reserve() for resources, occupy() for villagers?
---    * Villagers always reserve two grids when walking. Problem?
---    * Villagers can get stuck in a four-grid gridlock.
---  - Next:
---    * Allow changing profession.
---      Changing workplace mid-work makes it look really wacky (will start building the other building)
---  - Refactoring:
---    * There is little reason to have the VillagerComponent be called "VillagerComponent", other than symmetry.
 --  - Draw order:
 --    * Update sprites to be square.
 --  - Particles:
@@ -370,6 +373,7 @@ function Game:_handleClick(x, y)
 			if clicked:has("DwellingComponent") then
 				selected:get("VillagerComponent"):setHome(clicked)
 			else
+				selected:get("AdultComponent"):setWorkArea(clicked:get("PositionComponent"):getTile())
 				selected:get("AdultComponent"):setWorkPlace(clicked)
 				selected:get("AdultComponent"):setOccupation(
 					clicked:has("WorkComponent") and clicked:get("WorkComponent"):getType() or WorkComponent.BUILDER)
@@ -407,7 +411,8 @@ function Game:_placeTile(placing)
 		local ax, ay, grid = self.map:addObject(runestone, ti, tj)
 		assert(ax and ay and grid, "Could not add runestone to empty tile.")
 		runestone:get("SpriteComponent"):setDrawPosition(ax, ay)
-		runestone:get("PositionComponent"):setPosition(grid)
+		runestone:get("PositionComponent"):setGrid(grid)
+		runestone:get("PositionComponent"):setTile(ti, tj)
 		InteractiveComponent:makeInteractive(runestone, ax, ay)
 		self.engine:addEntity(runestone)
 		table.insert(resources, runestone)
@@ -426,7 +431,8 @@ function Game:_placeTile(placing)
 			local ax, ay, grid = self.map:addObject(resource, gi, gj)
 			if ax then
 				resource:get("SpriteComponent"):setDrawPosition(ax, ay)
-				resource:get("PositionComponent"):setPosition(grid)
+				resource:get("PositionComponent"):setGrid(grid)
+				resource:get("PositionComponent"):setTile(ti, tj)
 				InteractiveComponent:makeInteractive(resource, ax, ay)
 				self.engine:addEntity(resource)
 				table.insert(resources, resource)
@@ -475,7 +481,7 @@ function Game:_placeBuilding(placing)
 	assert(ax and ay and grid, "Could not add building with building component.")
 	placing:get("SpriteComponent"):setDrawPosition(ax, ay)
 	placing:get("SpriteComponent"):resetColor()
-	placing:set(PositionComponent(grid))
+	placing:set(PositionComponent(grid, self.map:gridToTileCoords(grid.gi, grid.gj)))
 	placing:add(ConstructionComponent(placing:get("PlacingComponent"):getType()))
 	InteractiveComponent:makeInteractive(placing, ax, ay)
 

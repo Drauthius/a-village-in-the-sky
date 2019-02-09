@@ -76,6 +76,10 @@ function SpriteSystem:initialize(eventManager)
 		E = spriteSheet:getFrameTag("Woodcutter left"),
 		W = spriteSheet:getFrameTag("Woodcutter right")
 	}
+	working[WorkComponent.MINER] = {
+		E = spriteSheet:getFrameTag("Miner left"),
+		W = spriteSheet:getFrameTag("Miner right")
+	}
 	working[WorkComponent.BUILDER] = {
 		NE = spriteSheet:getFrameTag("Builder left"),
 		NW = spriteSheet:getFrameTag("Builder right")

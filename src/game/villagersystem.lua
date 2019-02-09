@@ -1,6 +1,7 @@
 local lovetoys = require "lib.lovetoys.lovetoys"
 
 local CarryingComponent = require "src.game.carryingcomponent"
+local ResourceComponent = require "src.game.resourcecomponent"
 local TimerComponent = require "src.game.timercomponent"
 local VillagerComponent = require "src.game.villagercomponent"
 local WalkingComponent = require "src.game.walkingcomponent"
@@ -49,8 +50,7 @@ function VillagerSystem:_updateVillager(entity)
 
 			-- Drop off at home.
 			local home = villager:getHome()
-			local grid = home:get("PositionComponent"):getPosition()
-			local ti, tj = self.map:gridToTileCoords(grid.gi, grid.gj)
+			local ti, tj = home:get("PositionComponent"):getTile()
 
 			entity:add(WalkingComponent(ti, tj, nil, WalkingComponent.INSTRUCTIONS.DROPOFF))
 			villager:setGoal(VillagerComponent.GOALS.DROPOFF)
@@ -60,8 +60,7 @@ function VillagerSystem:_updateVillager(entity)
 			end
 		elseif adult and adult:getWorkPlace() then
 			local workPlace = adult:getWorkPlace()
-			local grid = workPlace:get("PositionComponent"):getPosition()
-			local ti, tj = self.map:gridToTileCoords(grid.gi, grid.gj)
+			local ti, tj = workPlace:get("PositionComponent"):getTile()
 
 			if adult:getOccupation() == WorkComponent.BUILDER then
 				local construction = workPlace:get("ConstructionComponent")
@@ -83,6 +82,7 @@ function VillagerSystem:_updateVillager(entity)
 				entity:add(WalkingComponent(ti, tj, construction:getFreeWorkGrids(), WalkingComponent.INSTRUCTIONS.BUILD))
 				villager:setGoal(VillagerComponent.GOALS.WORK_PICKUP)
 			else
+				local grid = workPlace:get("PositionComponent"):getGrid()
 				local workGrids = workPlace:get("WorkComponent"):getWorkGrids()
 				assert(workGrids, "No grid information for workplace "..workPlace:get("WorkComponent"):getTypeName())
 
@@ -101,6 +101,26 @@ function VillagerSystem:_updateVillager(entity)
 			if entity:has("TimerComponent") then
 				entity:remove("TimerComponent")
 			end
+		elseif adult and adult:getWorkArea() and
+		       (adult:getOccupation() == WorkComponent.WOODCUTTER or
+		        adult:getOccupation() == WorkComponent.MINER) then
+			local resource = adult:getOccupation() == WorkComponent.WOODCUTTER and
+				ResourceComponent.WOOD or ResourceComponent.IRON
+			-- This could be optimized through the map or something, but eh.
+			local ti, tj = adult:getWorkArea()
+			for _,workEntity in pairs(self.engine:getEntitiesWithComponent("WorkComponent")) do
+				local eti, etj = workEntity:get("PositionComponent"):getTile()
+				if ti == eti and tj == etj and workEntity:has("ResourceComponent") and
+				   workEntity:get("ResourceComponent"):getResource() == resource and
+				   #workEntity:get("WorkComponent"):getAssignedVillagers() < 1 then
+					workEntity:get("WorkComponent"):assign(entity)
+					adult:setWorkPlace(workEntity)
+					return -- Start working the next round.
+				end
+			end
+
+			-- No such entity found. No work able to be carried out.
+			adult:setWorkArea(nil)
 		else
 			if not entity:has("TimerComponent") then
 				local timer = TimerComponent()
@@ -186,7 +206,8 @@ function VillagerSystem:targetReachedEvent(event)
 			oy = oy - resourceEntity:get("SpriteComponent"):getSprite():getHeight() + self.map.gridHeight
 
 			resourceEntity:get("SpriteComponent"):setDrawPosition(ox, oy)
-			resourceEntity:get("PositionComponent"):setPosition(self.map:getGrid(gi, gj))
+			resourceEntity:get("PositionComponent"):setGrid(self.map:getGrid(gi, gj))
+			resourceEntity:get("PositionComponent"):setTile(self.map:gridToTileCoords(gi, gj))
 
 			self.engine:addEntity(resourceEntity)
 			state:increaseResource(resource, amount)
@@ -245,7 +266,7 @@ function VillagerSystem:targetReachedEvent(event)
 end
 
 function VillagerSystem:targetUnreachableEvent(event)
-	local entity = event:getEntity()
+	local entity = event:getVillager()
 	local villager = entity:get("VillagerComponent")
 
 	print("Unreachable!")
@@ -259,7 +280,7 @@ function VillagerSystem:targetUnreachableEvent(event)
 
 	villager:setGoal(VillagerComponent.GOALS.WAIT)
 	local timer = TimerComponent()
-	timer:getTimer():after(VillagerComponent.TIMERS.PATH_FAILED_DELAY, function()
+	timer:getTimer():after(VillagerSystem.TIMERS.PATH_FAILED_DELAY, function()
 		villager:setGoal(VillagerComponent.GOALS.NONE)
 		entity:remove("TimerComponent")
 	end)

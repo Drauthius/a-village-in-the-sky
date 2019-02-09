@@ -99,8 +99,8 @@ function RenderSystem:draw()
 		if entity:has("PositionComponent") then
 			table.insert(objects, entity)
 			table.sort(objects, function(a, b)
-				local agrid = a:get("PositionComponent"):getPosition()
-				local bgrid = b:get("PositionComponent"):getPosition()
+				local agrid = a:get("PositionComponent"):getGrid()
+				local bgrid = b:get("PositionComponent"):getGrid()
 				--if aj < bj then
 					--return false
 				--elseif aj == bj then
@@ -195,7 +195,7 @@ function RenderSystem:draw()
 			-- Prepare text
 			local percent = entity:get("ConstructionComponent"):getPercentDone()
 			love.graphics.setFont(self.font)
-			local grid = entity:get("PositionComponent"):getPosition()
+			local grid = entity:get("PositionComponent"):getGrid()
 			local gi, gj = grid.gi, grid.gj
 			-- TODO
 			local ox, oy = 4, 2

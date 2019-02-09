@@ -119,7 +119,7 @@ function Map:unreserve(villager, grid)
 end
 
 function Map:remove(entity)
-	local grid = entity:get("PositionComponent"):getPosition()
+	local grid = entity:get("PositionComponent"):getGrid()
 
 	-- XXX: It might occupy multiple grids.
 	local ti, tj = math.floor(grid.gi / self.gridsPerTile), math.floor(grid.gj / self.gridsPerTile)
@@ -137,7 +137,7 @@ function Map:remove(entity)
 end
 
 function Map:getAdjacentGrids(entity)
-	local grid = entity:get("PositionComponent"):getPosition()
+	local grid = entity:get("PositionComponent"):getGrid()
 
 	-- XXX: Get all the adjacent grids that aren't occupied, and that are "visible".
 	local adjacent = {}

@@ -109,7 +109,7 @@ function WorkSystem:workEvent(event)
 					local adult = worker:get("AdultComponent")
 					worker:remove("WorkingComponent")
 					adult:setWorkPlace(nil)
-					adult:setGoal(VillagerComponent.GOALS.NONE)
+					entity:get("VillagerComponent"):setGoal(VillagerComponent.GOALS.NONE)
 				end
 
 				local resource = workPlace:get("ResourceComponent")

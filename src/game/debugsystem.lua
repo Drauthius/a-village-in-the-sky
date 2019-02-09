@@ -45,7 +45,7 @@ function DebugSystem:draw()
 					prevx, prevy = self.map:gridToWorldCoords(grid.gi + 0.5, grid.gj + 0.5)
 				end
 				if prevx and prevy then
-					local grid = entity:get("PositionComponent"):getPosition()
+					local grid = entity:get("PositionComponent"):getGrid()
 					love.graphics.line(prevx, prevy, self.map:gridToWorldCoords(grid.gi + 0.5, grid.gj + 0.5))
 					grid = path[1]
 					love.graphics.points(self.map:gridToWorldCoords(grid.gi + 0.5, grid.gj + 0.5))

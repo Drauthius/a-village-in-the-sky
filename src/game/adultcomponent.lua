@@ -25,7 +25,11 @@ function AdultComponent:setWorkArea(ti, tj)
 end
 
 function AdultComponent:getWorkArea()
-	return self.workArea and unpack(self.workArea) or nil
+	if self.workArea then
+		return unpack(self.workArea)
+	end
+
+	return nil
 end
 
 function AdultComponent:getWorkPlace()

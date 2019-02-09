@@ -70,7 +70,7 @@ function WalkingSystem:_walkTheWalk(entity, dt)
 				nextGrid.collision = Map.COLL_STATIC
 
 				-- Calculate a new path, in case that is enough.
-				local start = entity:get("PositionComponent"):getPosition()
+				local start = entity:get("PositionComponent"):getGrid()
 				local nodes = astar.search(self.map, start, path[1])
 				path = astar.reconstructReversedPath(start, path[1], nodes)
 
@@ -109,12 +109,12 @@ function WalkingSystem:_walkTheWalk(entity, dt)
 
 	if nextGrid ~= oldGrid then
 		-- New direction!
-		villager:setDirection(self:_getRotation(entity:get("PositionComponent"):getPosition(), nextGrid))
+		villager:setDirection(self:_getRotation(entity:get("PositionComponent"):getGrid(), nextGrid))
 	end
 
 	if diff:len2() <= WalkingSystem.MIN_DISTANCE_SQUARED then
-		self.map:unreserve(entity, entity:get("PositionComponent"):getPosition())
-		entity:get("PositionComponent"):setPosition(nextGrid)
+		self.map:unreserve(entity, entity:get("PositionComponent"):getGrid())
+		entity:get("PositionComponent"):setGrid(nextGrid)
 		walking:setNextGrid(nil)
 	end
 end
@@ -137,7 +137,7 @@ end
 function WalkingSystem:_createPath(entity)
 	local walking = entity:get("WalkingComponent")
 
-	local start = entity:get("PositionComponent"):getPosition()
+	local start = entity:get("PositionComponent"):getGrid()
 	local path, targetEntity, targetRotation, nextStop
 
 	if walking:getInstructions() == WalkingComponent.INSTRUCTIONS.DROPOFF then
@@ -191,7 +191,7 @@ function WalkingSystem:_createPath(entity)
 			"entity",
 			self.engine:getEntitiesWithComponent("ResourceComponent"),
 			start,
-			workPlace:get("PositionComponent"):getPosition(),
+			workPlace:get("PositionComponent"):getGrid(),
 			function(resourceEntity)
 				local resourceComponent = resourceEntity:get("ResourceComponent")
 				return resourceComponent:getResource() == resource and resourceComponent:isUsable()
@@ -206,7 +206,7 @@ function WalkingSystem:_createPath(entity)
 		local workNearest = self:_createClosestPath(
 			function(item) return item[1] end,
 			construction:getFreeWorkGrids(),
-			resourceNearest:get("PositionComponent"):getPosition())
+			resourceNearest:get("PositionComponent"):getGrid())
 
 		assert(workNearest, "No path from resource to work grid.") -- FIXME: Do something smart.
 
@@ -229,7 +229,7 @@ function WalkingSystem:_createPath(entity)
 
 		path = resourcePath
 		targetEntity = resourceNearest
-		targetRotation = self:_getRotation(resourcePath[1] or start, resourceNearest:get("PositionComponent"):getPosition())
+		targetRotation = self:_getRotation(resourcePath[1] or start, resourceNearest:get("PositionComponent"):getGrid())
 		nextStop = workNearest
 	else
 		error("Don't know how to walk.")
@@ -255,7 +255,7 @@ function WalkingSystem:_createClosestPath(extract, entities, start, goal, check)
 			if not blacklist[entity] and (not check or check(entity)) then
 				local grid
 				if extract == "entity" then
-					grid = entity:get("PositionComponent"):getPosition()
+					grid = entity:get("PositionComponent"):getGrid()
 				elseif extract == "grid" then
 					grid = entity
 				else
