@@ -187,20 +187,28 @@ function VillagerSystem:targetReachedEvent(event)
 	end
 
 	if goal == VillagerComponent.GOALS.DROPOFF then
+		local grid = event:getTarget()
+		assert(grid, "Nowhere to put the resource.")
+
+		-- Check if someone beat us to the grid.
+		if not self.map:isGridEmpty(grid) then
+			-- The default action will make sure we drop it somewhere else.
+			villager:setGoal(VillagerComponent.GOALS.NONE)
+			return
+		end
+
 		local timer = TimerComponent()
 		timer:getTimer():after(VillagerSystem.TIMERS.DROPOFF_BEFORE, function()
-			assert(event:getTarget(), "Nowhere to put the resource.")
-
 			-- Stop carrying the stuff.
 			local resource = entity:get("CarryingComponent"):getResource()
 			local amount = entity:get("CarryingComponent"):getAmount()
 			entity:remove("CarryingComponent")
 
 			local resourceEntity = blueprint:createResourcePile(resource, amount)
-			self.map:addResource(resourceEntity, event:getTarget())
+			self.map:addResource(resourceEntity, grid)
 
 			-- TODO: Set up the resource somewhere else.
-			local gi, gj = event:getTarget().gi, event:getTarget().gj
+			local gi, gj = grid.gi, grid.gj
 			local ox, oy = self.map:gridToWorldCoords(gi, gj)
 			ox = ox - self.map.halfGridWidth
 			oy = oy - resourceEntity:get("SpriteComponent"):getSprite():getHeight() + self.map.gridHeight

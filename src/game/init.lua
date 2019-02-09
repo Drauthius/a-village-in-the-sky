@@ -5,7 +5,6 @@
 --    * Villagers always reserve two grids when walking. Problem?
 --    * Villagers can get stuck in a four-grid gridlock.
 --    * Villagers can be assigned a workplace, but don't make their way there.
---    * Villagers can reserve the same free grid to place a resource.
 --  - Next:
 --    * Allow changing profession.
 --      Changing workplace mid-work makes it look really wacky (will start building the other building)
