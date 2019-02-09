@@ -84,6 +84,7 @@ end
 
 function SpriteSystem:updateVillager(dt, entity)
 	local villager = entity:get("VillagerComponent")
+	local adult = entity:has("AdultComponent") and entity:get("AdultComponent")
 	local sprite = entity:get("SpriteComponent")
 	local animation = entity:get("AnimationComponent")
 
@@ -107,14 +108,14 @@ function SpriteSystem:updateVillager(dt, entity)
 		assert(targetAnimation, "Missing carrying animation for villager")
 	elseif entity:has("WorkingComponent") then
 		if entity:has("WalkingComponent") or not entity:get("WorkingComponent"):getWorking() then
-			targetAnimation = SpriteSystem.ANIMATIONS.walking_to_work[villager:getOccupation()]
+			targetAnimation = SpriteSystem.ANIMATIONS.walking_to_work[adult:getOccupation()]
 			assert(targetAnimation, "Missing walking animation")
 		else
-			assert(SpriteSystem.ANIMATIONS.working[villager:getOccupation()], "No animation for "..villager:getOccupationName())
-			targetAnimation = SpriteSystem.ANIMATIONS.working[villager:getOccupation()][cardinalDir]
+			assert(SpriteSystem.ANIMATIONS.working[adult:getOccupation()], "No animation for "..adult:getOccupationName())
+			targetAnimation = SpriteSystem.ANIMATIONS.working[adult:getOccupation()][cardinalDir]
 			working = true
 			assert(targetAnimation, "Missing working animation. " ..
-				"Occupation: "..villager:getOccupationName()..", Direction: "..cardinalDir)
+				"Occupation: "..adult:getOccupationName()..", Direction: "..cardinalDir)
 		end
 	elseif entity:has("WalkingComponent") then
 		targetAnimation = SpriteSystem.ANIMATIONS.walking.nothing
@@ -145,7 +146,7 @@ function SpriteSystem:updateVillager(dt, entity)
 		sliceFrame = animation:getAnimation().from
 		targetSprite, duration = spriteSheet:getSprite("villagers-action "..frame..palette, slice)
 	else
-		if villager:isAdult() then
+		if adult then
 			slice = villager:getGender() .. " - " .. cardinalDir
 			targetSprite, duration = spriteSheet:getSprite("villagers "..frame..palette, slice)
 		else
@@ -161,12 +162,12 @@ function SpriteSystem:updateVillager(dt, entity)
 	-- TODO: Improve?
 	if working and newFrame then
 		local frameNum = frame - animation:getAnimation().from
-		if villager:getOccupation() == WorkComponent.BUILDER then
+		if adult:getOccupation() == WorkComponent.BUILDER then
 			if frameNum == 2 then
-				self.eventManager:fireEvent(WorkEvent(entity, villager:getWorkPlace()))
+				self.eventManager:fireEvent(WorkEvent(entity, adult:getWorkPlace()))
 			end
 		elseif frameNum == 3 then
-			self.eventManager:fireEvent(WorkEvent(entity, villager:getWorkPlace()))
+			self.eventManager:fireEvent(WorkEvent(entity, adult:getWorkPlace()))
 		end
 	end
 

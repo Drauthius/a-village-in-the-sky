@@ -25,7 +25,7 @@ function DetailsPanel:initialize(y)
 		{ "Age", "getAge" },
 		{ "Food", "getAge" },
 		{},
-		{ "Occupation", "getOccupationName" },
+		{ "Occupation", "getOccupationName", true },
 		{ "Strength", "getAge" },
 		{ "Craftsmanship", "getAge" }
 	}
@@ -46,16 +46,21 @@ function DetailsPanel:draw()
 
 	if selection:has("VillagerComponent") then
 		local villager = selection:get("VillagerComponent")
+		local adult = selection:has("AdultComponent") and selection:get("AdultComponent")
 
 		for _,details in ipairs(self.villagerDetails) do
-			local key, value = details[1], details[2]
+			local key, value, adultComp = details[1], details[2], details[3]
 			if not key then
-				if not villager:isAdult() then
+				if not adult then
 					break
 				end
 			else
 				key = key .. ": "
-				value = villager[value](villager)
+				if adultComp then
+					value = adult[value](adult)
+				else
+					value = villager[value](villager)
+				end
 				love.graphics.setFont(self.fontBold)
 				love.graphics.print(key, x, y)
 

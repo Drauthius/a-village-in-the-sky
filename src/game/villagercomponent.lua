@@ -1,7 +1,5 @@
 local class = require "lib.middleclass"
 
-local WorkComponent = require "src.game.workcomponent"
-
 local VillagerComponent = class("VillagerComponent")
 
 VillagerComponent.static.GOALS = {
@@ -15,20 +13,16 @@ VillagerComponent.static.GOALS = {
 function VillagerComponent:initialize(stats)
 	self.name = stats.name or "Uh"
 	self.age = stats.age or 0.0
-	self.adult = self.age >= 16
 	self.gender = stats.gender
 	self.strength = stats.strength or 0.5
 	self.craftsmanship = stats.craftsmanship or 0.5
 
 	self.direction = love.math.random(0, 359)
 	self.palette = love.math.random(1, 2)
-	self.hairy = love.math.random(0, 1) == 1
 
 	self.speedModifier = 1
 	self.goal = VillagerComponent.GOALS.NONE
 	self.home = nil
-	self.workPlace = nil
-	self.occupation = 0
 end
 
 function VillagerComponent:getName()
@@ -37,10 +31,6 @@ end
 
 function VillagerComponent:getAge()
 	return self.age
-end
-
-function VillagerComponent:isAdult()
-	return self.adult
 end
 
 function VillagerComponent:getGender()
@@ -53,10 +43,6 @@ end
 
 function VillagerComponent:getCraftsmanship()
 	return self.craftsmanship
-end
-
-function VillagerComponent:isHairy()
-	return self.hairy
 end
 
 function VillagerComponent:getPalette()
@@ -96,10 +82,6 @@ function VillagerComponent:getCardinalDirection()
 	end
 end
 
-function VillagerComponent:getState()
-	return self.state
-end
-
 function VillagerComponent:getGoal()
 	return self.goal
 end
@@ -114,26 +96,6 @@ end
 
 function VillagerComponent:setHome(home)
 	self.home = home
-end
-
-function VillagerComponent:getWorkPlace()
-	return self.workPlace
-end
-
-function VillagerComponent:setWorkPlace(entity)
-	self.workPlace = entity
-end
-
-function VillagerComponent:setOccupation(occupation)
-	self.occupation = occupation
-end
-
-function VillagerComponent:getOccupation()
-	return self.occupation
-end
-
-function VillagerComponent:getOccupationName()
-	return WorkComponent.WORK_NAME[self.occupation]
 end
 
 function VillagerComponent:getSpeedModifier()

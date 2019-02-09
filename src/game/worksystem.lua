@@ -46,9 +46,9 @@ function WorkSystem:update(dt)
 end
 
 function WorkSystem:workEvent(event)
-	local villager = event:getVillager()
+	local entity = event:getVillager()
 	local workPlace = event:getWorkPlace()
-	local cardinalDir = villager:get("VillagerComponent"):getCardinalDirection()
+	local cardinalDir = entity:get("VillagerComponent"):getCardinalDirection()
 
 	local shake = 2
 	local workSprite = workPlace:get("SpriteComponent")
@@ -58,7 +58,7 @@ function WorkSystem:workEvent(event)
 	Timer.tween(0.12, workSprite, { x = dx, y = dy }, "in-bounce")
 
 	if workPlace:has("ConstructionComponent") then
-		local crafts = villager:get("VillagerComponent"):getCraftsmanship()
+		local crafts = entity:get("VillagerComponent"):getCraftsmanship()
 
 		local construction = workPlace:get("ConstructionComponent")
 		construction:commitResources(crafts * 1) -- TODO: Value
@@ -70,16 +70,16 @@ function WorkSystem:workEvent(event)
 			local workers = construction:getAssignedVillagers()
 
 			for _,worker in ipairs(workers) do
-				villager = worker:get("VillagerComponent")
+				local adult = worker:get("AdultComponent")
 				if construction:isComplete() then
-					villager:setWorkPlace(nil)
+					adult:setWorkPlace(nil)
 					worker:remove("WorkingComponent")
-					villager:setGoal(VillagerComponent.GOALS.NONE)
+					entity:get("VillagerComponent"):setGoal(VillagerComponent.GOALS.NONE)
 				else
 					if worker:has("WorkingComponent") and worker:get("WorkingComponent"):getWorking() then
 						construction:unreserveGrid(worker)
 						worker:remove("WorkingComponent")
-						villager:setGoal(VillagerComponent.GOALS.NONE)
+						entity:get("VillagerComponent"):setGoal(VillagerComponent.GOALS.NONE)
 					end
 				end
 			end
@@ -106,10 +106,10 @@ function WorkSystem:workEvent(event)
 			if work:getType() == WorkComponent.WOODCUTTER or
 			   work:getType() == WorkComponent.MINER then
 				for _,worker in ipairs(workers) do
-					villager = worker:get("VillagerComponent")
+					local adult = worker:get("AdultComponent")
 					worker:remove("WorkingComponent")
-					villager:setWorkPlace(nil)
-					villager:setGoal(VillagerComponent.GOALS.NONE)
+					adult:setWorkPlace(nil)
+					adult:setGoal(VillagerComponent.GOALS.NONE)
 				end
 
 				local resource = workPlace:get("ResourceComponent")

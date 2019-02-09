@@ -256,7 +256,7 @@ function RenderSystem:draw()
 			local header = spriteSheet:getSprite("headers", "person-header")
 			local x, y = sprite:getDrawPosition()
 			x = x - 5
-			if villager:isAdult() then
+			if entity:has("AdultComponent") then
 				y = y - 10
 			else
 				y = y - 8

@@ -40,6 +40,7 @@ end
 
 function VillagerSystem:_updateVillager(entity)
 	local villager = entity:get("VillagerComponent")
+	local adult = entity:has("AdultComponent") and entity:get("AdultComponent")
 	local goal = villager:getGoal()
 
 	if goal == VillagerComponent.GOALS.NONE then
@@ -57,19 +58,28 @@ function VillagerSystem:_updateVillager(entity)
 			if entity:has("TimerComponent") then
 				entity:remove("TimerComponent")
 			end
-		elseif villager:getWorkPlace() then
-			local workPlace = villager:getWorkPlace()
+		elseif adult and adult:getWorkPlace() then
+			local workPlace = adult:getWorkPlace()
 			local grid = workPlace:get("PositionComponent"):getPosition()
 			local ti, tj = self.map:gridToTileCoords(grid.gi, grid.gj)
 
-			entity:add(WorkingComponent())
-			-- Remove any lingering timer.
-			if entity:has("TimerComponent") then
-				entity:remove("TimerComponent")
-			end
-
-			if villager:getOccupation() == WorkComponent.BUILDER then
+			if adult:getOccupation() == WorkComponent.BUILDER then
 				local construction = workPlace:get("ConstructionComponent")
+
+				-- Make a first pass to determine if any work can be carried out.
+				-- TODO: Builders should work on buildings that can be completed.
+				local blacklist, resource = {}
+				repeat
+					resource = construction:getRemainingResources(blacklist)
+					if not resource then
+						adult:setWorkPlace(nil)
+						return
+					end
+
+					-- Don't count that resource again, in case we go round again.
+					blacklist[resource] = true
+				until state:getNumResources(resource) - state:getNumReservedResources(resource) > 0
+
 				entity:add(WalkingComponent(ti, tj, construction:getFreeWorkGrids(), WalkingComponent.INSTRUCTIONS.BUILD))
 				villager:setGoal(VillagerComponent.GOALS.WORK_PICKUP)
 			else
@@ -84,6 +94,12 @@ function VillagerSystem:_updateVillager(entity)
 
 				entity:add(WalkingComponent(ti, tj, grids, WalkingComponent.INSTRUCTIONS.WORK))
 				villager:setGoal(VillagerComponent.GOALS.WORK)
+			end
+
+			entity:add(WorkingComponent())
+			-- Remove any lingering timer.
+			if entity:has("TimerComponent") then
+				entity:remove("TimerComponent")
 			end
 		else
 			if not entity:has("TimerComponent") then
@@ -104,8 +120,7 @@ function VillagerSystem:_updateVillager(entity)
 end
 
 function VillagerSystem:_unreserveAll(entity)
-	local villager = entity:get("VillagerComponent")
-	local workPlace = villager:getWorkPlace()
+	local workPlace = entity:get("AdultComponent"):getWorkPlace()
 
 	local type, amount
 	for _,resourceEntity in pairs(self.engine:getEntitiesWithComponent("ResourceComponent")) do
@@ -223,7 +238,7 @@ function VillagerSystem:targetReachedEvent(event)
 		if entity:has("CarryingComponent") then
 			local resource = entity:get("CarryingComponent"):getResource()
 			local amount = entity:get("CarryingComponent"):getAmount()
-			villager:getWorkPlace():get("ConstructionComponent"):addResources(resource, amount)
+			entity:get("AdultComponent"):getWorkPlace():get("ConstructionComponent"):addResources(resource, amount)
 			entity:remove("CarryingComponent")
 		end
 	end
@@ -232,6 +247,8 @@ end
 function VillagerSystem:targetUnreachableEvent(event)
 	local entity = event:getEntity()
 	local villager = entity:get("VillagerComponent")
+
+	print("Unreachable!")
 
 	-- TODO: Look for deadlock amongst villagers (two villagers heading in the opposite directions).
 	--       This could be resolved by temporarily allowing collision.

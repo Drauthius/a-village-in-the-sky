@@ -62,7 +62,7 @@ function WalkingSystem:_walkTheWalk(entity, dt)
 			return
 		elseif not self.map:isGridEmpty(nextGrid) then
 			--print("Something in the way")
-			if nextGrid == path[1] then -- If the next grid is the target, then we're out of luck.
+			if nextGrid == path[1] or not path[1] then -- If the next grid is the target, then we're out of luck.
 				path = nil
 			else
 				-- XXX: The next grid might be walkable, but blocked by a villager. Change that temporarily.
@@ -136,7 +136,6 @@ end
 
 function WalkingSystem:_createPath(entity)
 	local walking = entity:get("WalkingComponent")
-	local villager = entity:get("VillagerComponent")
 
 	local start = entity:get("PositionComponent"):getPosition()
 	local path, targetEntity, targetRotation, nextStop
@@ -171,13 +170,11 @@ function WalkingSystem:_createPath(entity)
 		-- This part takes care of finding the shortest Manhattan distance to a resource and then to the construction
 		-- site, and creating a path to the resource.
 		--
-		local workPlace = villager:getWorkPlace()
+		local workPlace = entity:get("AdultComponent"):getWorkPlace()
 		assert(workPlace, "Can't build nothing.")
 
 		local construction = workPlace:get("ConstructionComponent")
-		local blacklist = {}
-
-		local resource, count
+		local blacklist, resource, count = {}
 		repeat
 			resource, count = construction:getRemainingResources(blacklist)
 			if not resource then

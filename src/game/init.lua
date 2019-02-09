@@ -14,11 +14,6 @@
 --    * Allow changing profession.
 --      Changing workplace mid-work makes it look really wacky (will start building the other building)
 --  - Refactoring:
---    * Remove some logic in the components, and instead create more components?
---      Like Villager:isAdult() can be split into a Adult and Child component,
---      with the adult one handling things like occupation.
---      Pro:
---        Adult and Child can have different systems handling their behaviour.
 --    * There is little reason to have the VillagerComponent be called "VillagerComponent", other than symmetry.
 --  - Draw order:
 --    * Update sprites to be square.
@@ -134,6 +129,7 @@ function Game:enter()
 	self.engine:addSystem(RenderSystem(), "draw")
 	self.engine:addSystem(DebugSystem(self.map), "draw")
 
+	-- Not enabled by default.
 	self.engine:toggleSystem("DebugSystem")
 
 	-- Currently only listens to events.
@@ -161,7 +157,7 @@ function Game:update(dt)
 		if self.dragging.released and
 		   math.abs(self.dragging.cx - self.camera.x) <= Game.CAMERA_EPSILON and
 		   math.abs(self.dragging.cy - self.camera.y) <= Game.CAMERA_EPSILON then
-			-- Clear and release the dragging table, to avoid minimal camera movement which looks choppy.
+			-- Clear and release the dragging table, to avoid subpixel camera movement which looks choppy.
 			self.dragging = nil
 		end
 	end
@@ -307,7 +303,7 @@ function Game:_handleClick(x, y)
 	end
 
 	local selected = state:getSelection()
-	if selected and selected:has("VillagerComponent") and selected:get("VillagerComponent"):isAdult() and
+	if selected and selected:has("VillagerComponent") and selected:has("AdultComponent") and
 	   (clicked:has("WorkComponent") or clicked:has("ConstructionComponent") or clicked:has("DwellingComponent")) then
 		-- TODO: Should probably be an event or similar.
 
@@ -374,8 +370,8 @@ function Game:_handleClick(x, y)
 			if clicked:has("DwellingComponent") then
 				selected:get("VillagerComponent"):setHome(clicked)
 			else
-				selected:get("VillagerComponent"):setWorkPlace(clicked)
-				selected:get("VillagerComponent"):setOccupation(
+				selected:get("AdultComponent"):setWorkPlace(clicked)
+				selected:get("AdultComponent"):setOccupation(
 					clicked:has("WorkComponent") and clicked:get("WorkComponent"):getType() or WorkComponent.BUILDER)
 			end
 			soundManager:playEffect("successfulAssignment") -- TODO: Different sounds per assigned occupation?

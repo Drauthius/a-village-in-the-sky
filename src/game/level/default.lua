@@ -2,6 +2,7 @@ local lovetoys = require "lib.lovetoys.lovetoys"
 
 local Level = require "src.game.level"
 
+local AdultComponent = require "src.game.adultcomponent"
 local AnimationComponent = require "src.game.animationcomponent"
 local GroundComponent = require "src.game.groundcomponent"
 local InteractiveComponent = require "src.game.interactivecomponent"
@@ -95,6 +96,9 @@ function DefaultLevel:initiate(engine, map)
 				age = type:match("Child$") and 5 or 20 }))
 			villager:add(SpriteComponent())
 			villager:add(AnimationComponent())
+			if not type:match("Child$") then
+				villager:add(AdultComponent())
+			end
 
 			engine:addEntity(villager)
 
