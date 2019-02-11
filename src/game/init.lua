@@ -6,6 +6,7 @@
 --    * Villagers can get stuck in a four-grid gridlock.
 --    * Villagers can be assigned a workplace, but don't make their way there.
 --  - Next:
+--    * Open/close door when going in/out.
 --    * Allow changing profession.
 --      Changing workplace mid-work makes it look really wacky (will start building the other building)
 --  - Refactoring:
@@ -16,6 +17,9 @@
 --      assumes that there is a villager in the way and tries to tell it to move or something.
 --      Maybe it would need to check "how" it is reserved, or we simply split it up further...
 --      reserve() for resources, occupy() for villagers?
+--    * Either consolidate work/production/construction components (wrt assigning), or maybe add an "assign" component?
+--    * Either consolidate production/construction components (wrt input), or maybe add an "input" component?
+--    * Either consolidate dwelling/production component (wrt entrance), or maybe add an "entrance" component?
 --  - Draw order:
 --    * Update sprites to be square.
 --  - Particles:
@@ -118,15 +122,14 @@ function Game:enter()
 	self.eventManager = lovetoys.EventManager()
 
 	local villagerSystem = VillagerSystem(self.engine, self.map)
-	local workSystem = WorkSystem(self.engine)
+	local workSystem = WorkSystem(self.engine, self.map)
 
 	self.engine:addSystem(PlacingSystem(self.map), "update")
-	self.engine:addSystem(SpriteSystem(self.eventManager), "update")
+	self.engine:addSystem(workSystem, "update") -- Must be before the sprite system
 	self.engine:addSystem(villagerSystem, "update")
 	self.engine:addSystem(WalkingSystem(self.engine, self.eventManager, self.map), "update")
-	self.engine:addSystem(workSystem, "update")
+	self.engine:addSystem(SpriteSystem(self.eventManager), "update")
 	self.engine:addSystem(TimerSystem(), "update")
-	self.engine:addSystem(PositionSystem(self.map), "update")
 	self.engine:addSystem(RenderSystem(), "draw")
 	self.engine:addSystem(DebugSystem(self.map), "draw")
 
@@ -134,6 +137,7 @@ function Game:enter()
 	self.engine:toggleSystem("DebugSystem")
 
 	-- Currently only listens to events.
+	self.engine:addSystem(PositionSystem(self.map), "update")
 	self.engine:stopSystem("PositionSystem")
 
 	self.eventManager:addListener("TargetReachedEvent", villagerSystem, villagerSystem.targetReachedEvent)
@@ -194,6 +198,8 @@ end
 
 function Game:keyreleased(key, scancode)
 	if scancode == "d" then
+		self.engine:toggleSystem("DebugSystem")
+	elseif scancode == "g" then
 		self.debug = not self.debug
 	elseif scancode == "escape" then
 		self.gui:back()
@@ -205,6 +211,8 @@ function Game:keyreleased(key, scancode)
 		self.speed = 2
 	elseif scancode == "3" then
 		self.speed = 5
+	elseif scancode == "4" then
+		self.speed = 10
 	end
 end
 
@@ -305,7 +313,10 @@ function Game:_handleClick(x, y)
 
 	local selected = state:getSelection()
 	if selected and selected:has("VillagerComponent") and selected:has("AdultComponent") and
-	   (clicked:has("WorkComponent") or clicked:has("ConstructionComponent") or clicked:has("DwellingComponent")) then
+	   (clicked:has("WorkComponent") or
+	    clicked:has("ConstructionComponent") or
+	    clicked:has("DwellingComponent") or
+		clicked:has("ProductionComponent")) then
 		-- TODO: Should probably be an event or similar.
 
 		-- Whether that there is room to work there.
@@ -331,6 +342,7 @@ function Game:_handleClick(x, y)
 					clicked:get("ConstructionComponent"):updateWorkGrids(adjacent)
 				end
 				valid = true
+				selected:get("AdultComponent"):setOccupation(WorkComponent.BUILDER)
 			end
 		elseif clicked:has("WorkComponent") then
 			if #clicked:get("WorkComponent"):getAssignedVillagers() >= 1 or
@@ -348,6 +360,7 @@ function Game:_handleClick(x, y)
 					clicked:get("WorkComponent"):assign(selected)
 				end
 				valid = true
+				selected:get("AdultComponent"):setOccupation(clicked:get("WorkComponent"):getType())
 			end
 		elseif clicked:has("DwellingComponent") then
 			if #clicked:get("DwellingComponent"):getAssignedVillagers() >= 2 then
@@ -365,6 +378,24 @@ function Game:_handleClick(x, y)
 				end
 				valid = true
 			end
+		elseif clicked:has("ProductionComponent") then
+			local prod = clicked:get("ProductionComponent")
+			if #prod:getAssignedVillagers() >= prod:getMaxWorkers() then
+				valid = false
+			else
+				local alreadyAdded = false
+				for _,villager in ipairs(prod:getAssignedVillagers()) do
+					if villager == selected then
+						alreadyAdded = true
+						break
+					end
+				end
+				if not alreadyAdded then
+					prod:assign(selected)
+				end
+				valid = true
+				selected:get("AdultComponent"):setOccupation(WorkComponent.BLACKSMITH) -- TODO!
+			end
 		end
 
 		if valid then
@@ -373,8 +404,6 @@ function Game:_handleClick(x, y)
 			else
 				selected:get("AdultComponent"):setWorkArea(clicked:get("PositionComponent"):getTile())
 				selected:get("AdultComponent"):setWorkPlace(clicked)
-				selected:get("AdultComponent"):setOccupation(
-					clicked:has("WorkComponent") and clicked:get("WorkComponent"):getType() or WorkComponent.BUILDER)
 			end
 			soundManager:playEffect("successfulAssignment") -- TODO: Different sounds per assigned occupation?
 			BlinkComponent:makeBlinking(clicked, { 0.15, 0.70, 0.15, 1.0 }) -- TODO: Colour value

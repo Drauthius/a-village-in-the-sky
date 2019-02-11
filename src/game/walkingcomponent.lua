@@ -6,7 +6,8 @@ WalkingComponent.static.INSTRUCTIONS = {
 	NONE = 0,
 	DROPOFF = 1,
 	WORK = 2,
-	BUILD = 3
+	BUILD = 3,
+	PRODUCE = 4
 }
 
 function WalkingComponent:initialize(ti, tj, grids, instructions)

@@ -4,7 +4,10 @@ local lovetoys = require "lib.lovetoys.lovetoys"
 local BuildingComponent = require "src.game.buildingcomponent"
 local CarryingComponent = require "src.game.carryingcomponent"
 local DwellingComponent = require "src.game.dwellingcomponent"
+local PositionComponent = require "src.game.positioncomponent"
+local ProductionComponent = require "src.game.productioncomponent"
 local ResourceComponent = require "src.game.resourcecomponent"
+local SpriteComponent = require "src.game.spritecomponent"
 local VillagerComponent = require "src.game.villagercomponent"
 local WorkComponent = require "src.game.workcomponent"
 
@@ -23,26 +26,43 @@ WorkSystem.static.DIR_CONV = {
 	NW = { -1, -1 }
 }
 
--- TODO: Currently handles both Work and Construction
+-- TODO: Currently handles both Work, Construction, and Production
 function WorkSystem.requires()
-	return {"WorkComponent"}
+	return {"ProductionComponent"}
 end
 
-function WorkSystem:initialize(engine)
+function WorkSystem:initialize(engine, map)
 	lovetoys.System.initialize(self)
 
 	self.engine = engine
+	self.map = map
 end
 
 function WorkSystem:update(dt)
-	--[[
 	for _,entity in pairs(self.targets) do
-		local work = entity:get("WorkComponent")
-		if entity:has("ConstructionComponent") then
-		elseif work:isComplete() then
+		local production = entity:get("ProductionComponent")
+		for _,villagerEntity in ipairs(production:getAssignedVillagers()) do
+			if villagerEntity:has("WorkingComponent") and villagerEntity:get("WorkingComponent"):getWorking() then
+				production:increaseCompletion(villagerEntity, 10.0 * dt) -- TODO: Value!
+				if production:isComplete(villagerEntity) then
+					production:reset(villagerEntity)
+
+					local entrance = production:getEntrance()
+					local grid = entity:get("PositionComponent"):getGrid()
+					local entranceGrid = self.map:getGrid(grid.gi + entrance.ogi, grid.gj + entrance.ogj)
+
+					-- TODO: Maybe send this away in an event?
+					local villager = villagerEntity:get("VillagerComponent")
+					villagerEntity:remove("WorkingComponent")
+					villager:setGoal(VillagerComponent.GOALS.NONE)
+					villagerEntity:add(SpriteComponent())
+					villagerEntity:add(PositionComponent(entranceGrid))
+
+					villagerEntity:add(CarryingComponent(next(production:getOutput())))
+				end
+			end
 		end
 	end
-	--]]
 end
 
 function WorkSystem:workEvent(event)
@@ -86,11 +106,14 @@ function WorkSystem:workEvent(event)
 
 			if construction:isComplete() then
 				workPlace:remove("ConstructionComponent")
-				soundManager:playEffect("buildingComplete")
+				soundManager:playEffect("buildingComplete") -- TODO: Add type
 
 				-- TODO: Maybe send this off in an event.
-				if construction:getType() == BuildingComponent.DWELLING then
+				local type = construction:getType()
+				if type == BuildingComponent.DWELLING then
 					workPlace:add(DwellingComponent())
+				elseif type == BuildingComponent.BLACKSMITH then
+					workPlace:add(ProductionComponent(type))
 				end
 			end
 		end

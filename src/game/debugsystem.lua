@@ -21,13 +21,13 @@ function DebugSystem:draw()
 	love.graphics.setFont(self.font)
 
 	for _,entity in pairs(self.targets) do
+		if entity == state:getSelection() then
+			love.graphics.setColor(0.25, 0, 0.75)
+		else
+			love.graphics.setColor(0.75, 0, 0.75)
+		end
 		if entity:has("InteractiveComponent") then
 			local interactive = entity:get("InteractiveComponent")
-			if entity == state:getSelection() then
-				love.graphics.setColor(0.25, 0, 0.75)
-			else
-				love.graphics.setColor(0.75, 0, 0.75)
-			end
 			love.graphics.rectangle("line",
 					interactive.x, interactive.y,
 					interactive.w, interactive.h)

@@ -20,7 +20,8 @@ VillagerSystem.static.TIMERS = {
 	DROPOFF_AFTER = 0.5,
 	IDLE_ROTATE_MIN = 1,
 	IDLE_ROTATE_MAX = 4,
-	PATH_FAILED_DELAY = 3
+	PATH_FAILED_DELAY = 3,
+	NO_RESOURCE_DELAY = 5
 }
 
 function VillagerSystem.requires()
@@ -48,19 +49,25 @@ function VillagerSystem:_updateVillager(entity)
 		if entity:has("CarryingComponent") then
 			assert(villager:getHome(), "TODO: No home!") -- TODO: Just drop it here
 
+			-- Remove any lingering timer.
+			if entity:has("TimerComponent") then
+				entity:remove("TimerComponent")
+			end
+
 			-- Drop off at home.
 			local home = villager:getHome()
 			local ti, tj = home:get("PositionComponent"):getTile()
 
 			entity:add(WalkingComponent(ti, tj, nil, WalkingComponent.INSTRUCTIONS.DROPOFF))
 			villager:setGoal(VillagerComponent.GOALS.DROPOFF)
+		elseif adult and adult:getWorkPlace() then
+			local workPlace = adult:getWorkPlace()
+			local ti, tj = workPlace:get("PositionComponent"):getTile()
+
 			-- Remove any lingering timer.
 			if entity:has("TimerComponent") then
 				entity:remove("TimerComponent")
 			end
-		elseif adult and adult:getWorkPlace() then
-			local workPlace = adult:getWorkPlace()
-			local ti, tj = workPlace:get("PositionComponent"):getTile()
 
 			if adult:getOccupation() == WorkComponent.BUILDER then
 				local construction = workPlace:get("ConstructionComponent")
@@ -81,6 +88,33 @@ function VillagerSystem:_updateVillager(entity)
 
 				entity:add(WalkingComponent(ti, tj, construction:getFreeWorkGrids(), WalkingComponent.INSTRUCTIONS.BUILD))
 				villager:setGoal(VillagerComponent.GOALS.WORK_PICKUP)
+			elseif workPlace:has("ProductionComponent") then
+				local production = workPlace:get("ProductionComponent")
+
+				-- Make a first pass to determine if any work can be carried out.
+				local blacklist, resource = {}
+				repeat
+					resource = production:getNeededResources(entity, blacklist)
+					if not resource then
+						villager:setGoal(VillagerComponent.GOALS.WAIT)
+						entity:add(TimerComponent(VillagerSystem.TIMERS.NO_RESOURCE_DELAY, function()
+							villager:setGoal(VillagerComponent.GOALS.NONE)
+							entity:remove("TimerComponent")
+						end))
+						return
+					end
+
+					-- Don't count that resource again, in case we go round again.
+					blacklist[resource] = true
+				until state:getNumResources(resource) - state:getNumReservedResources(resource) > 0
+
+				-- The entrance is an offset, so translate it to a real grid coordinate.
+				local entrance = production:getEntrance()
+				local grid = workPlace:get("PositionComponent"):getGrid()
+				local entranceGrid = self.map:getGrid(grid.gi + entrance.ogi, grid.gj + entrance.ogj)
+
+				entity:add(WalkingComponent(ti, tj, { entranceGrid }, WalkingComponent.INSTRUCTIONS.PRODUCE))
+				villager:setGoal(VillagerComponent.GOALS.WORK_PICKUP)
 			else
 				local grid = workPlace:get("PositionComponent"):getGrid()
 				local workGrids = workPlace:get("WorkComponent"):getWorkGrids()
@@ -97,10 +131,6 @@ function VillagerSystem:_updateVillager(entity)
 			end
 
 			entity:add(WorkingComponent())
-			-- Remove any lingering timer.
-			if entity:has("TimerComponent") then
-				entity:remove("TimerComponent")
-			end
 		elseif adult and adult:getWorkArea() and
 		       (adult:getOccupation() == WorkComponent.WOODCUTTER or
 		        adult:getOccupation() == WorkComponent.MINER) then
@@ -123,9 +153,8 @@ function VillagerSystem:_updateVillager(entity)
 			adult:setWorkArea(nil)
 		else
 			if not entity:has("TimerComponent") then
-				local timer = TimerComponent()
 				-- Fidget a little by rotating the villager.
-				timer:getTimer():after(
+				entity:add(TimerComponent(
 					love.math.random() *
 					(VillagerSystem.TIMERS.IDLE_ROTATE_MAX - VillagerSystem.TIMERS.IDLE_ROTATE_MIN) +
 					VillagerSystem.TIMERS.IDLE_ROTATE_MIN, function()
@@ -133,7 +162,7 @@ function VillagerSystem:_updateVillager(entity)
 						villager:setDirection((dir + 45 * love.math.random(-1, 1)) % 360)
 						entity:remove("TimerComponent")
 					end)
-				entity:add(timer)
+				)
 			end
 		end
 	end
@@ -267,7 +296,30 @@ function VillagerSystem:targetReachedEvent(event)
 		if entity:has("CarryingComponent") then
 			local resource = entity:get("CarryingComponent"):getResource()
 			local amount = entity:get("CarryingComponent"):getAmount()
-			entity:get("AdultComponent"):getWorkPlace():get("ConstructionComponent"):addResources(resource, amount)
+			local workPlace = entity:get("AdultComponent"):getWorkPlace()
+
+			if workPlace:has("ConstructionComponent") then
+				workPlace:get("ConstructionComponent"):addResources(resource, amount)
+			elseif workPlace:has("ProductionComponent") then
+				local production = workPlace:get("ProductionComponent")
+				production:addResource(resource, amount)
+				production:reserveResource(entity, resource, amount)
+
+				if production:getNeededResources(entity) then
+					-- There still are resources needed. Might as well circle back.
+					entity:remove("WorkingComponent")
+					villager:setGoal(VillagerComponent.GOALS.NONE)
+				else
+					-- Enter the building!
+					self.map:unreserve(entity, entity:get("PositionComponent"):getGrid())
+					entity:remove("SpriteComponent")
+					entity:remove("PositionComponent")
+					entity:remove("InteractiveComponent")
+				end
+			else
+				error("Carried resources to unknown workplace.")
+			end
+
 			entity:remove("CarryingComponent")
 		end
 	end
@@ -287,12 +339,10 @@ function VillagerSystem:targetUnreachableEvent(event)
 	self:_unreserveAll(entity)
 
 	villager:setGoal(VillagerComponent.GOALS.WAIT)
-	local timer = TimerComponent()
-	timer:getTimer():after(VillagerSystem.TIMERS.PATH_FAILED_DELAY, function()
+	entity:add(TimerComponent(VillagerSystem.TIMERS.PATH_FAILED_DELAY, function()
 		villager:setGoal(VillagerComponent.GOALS.NONE)
 		entity:remove("TimerComponent")
-	end)
-	entity:add(timer)
+	end))
 end
 
 return VillagerSystem

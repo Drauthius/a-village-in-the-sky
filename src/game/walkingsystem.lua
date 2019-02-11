@@ -211,9 +211,6 @@ function WalkingSystem:_createPath(entity)
 		assert(workNearest, "No path from resource to work grid.") -- FIXME: Do something smart.
 
 		-- Reserve the resources.
-		-- TODO: Track/cache which resource we have reserved, to
-		-- make it easier to unreserve it once the villager does
-		-- something else or dies?
 		local pickupAmount = math.min(count, resourceNearest:get("ResourceComponent"):getResourceAmount())
 		resourceNearest:get("ResourceComponent"):setReserved(entity, pickupAmount)
 		construction:reserveResource(resource, pickupAmount)
@@ -231,6 +228,58 @@ function WalkingSystem:_createPath(entity)
 		targetEntity = resourceNearest
 		targetRotation = self:_getRotation(resourcePath[1] or start, resourceNearest:get("PositionComponent"):getGrid())
 		nextStop = workNearest
+	elseif walking:getInstructions() == WalkingComponent.INSTRUCTIONS.PRODUCE then
+		--
+		-- When producing, we want to pick up a resource and walk it to the work site.
+		-- This part takes care of finding the shortest Manhattan distance to a resource and then to the work
+		-- site, and creating a path to the resource.
+		--
+		local workPlace = entity:get("AdultComponent"):getWorkPlace()
+		assert(workPlace, "Can't produce nothing.")
+
+		local production = workPlace:get("ProductionComponent")
+		local blacklist, resource, count = {}
+		repeat
+			resource, count = production:getNeededResources(entity, blacklist)
+			if not resource then
+				error("TODO: No work can be carried out. Do something else.") -- TODO
+				return nil
+			end
+
+			-- Don't count that resource again, in case we go round again.
+			blacklist[resource] = true
+		until state:getNumResources(resource) - state:getNumReservedResources(resource) > 0
+		assert(count > 0, "No "..tostring(resource).." resource needed?!")
+
+		local resourceNearest, resourcePath = self:_createClosestPath(
+			"entity",
+			self.engine:getEntitiesWithComponent("ResourceComponent"),
+			start,
+			workPlace:get("PositionComponent"):getGrid(),
+			function(resourceEntity)
+				local resourceComponent = resourceEntity:get("ResourceComponent")
+				return resourceComponent:getResource() == resource and resourceComponent:isUsable()
+			end)
+
+		assert(resourceNearest, "Available resource not reachable") -- FIXME: Do something smart.
+
+		-- Remove the last grid, which is the location of the resource.
+		table.remove(resourcePath, 1)
+
+		-- Reserve the resources.
+		local pickupAmount = math.min(count, resourceNearest:get("ResourceComponent"):getResourceAmount())
+		resourceNearest:get("ResourceComponent"):setReserved(entity, pickupAmount)
+		state:reserveResource(resource, pickupAmount)
+
+		-- TODO: If less than 3 resources, look for more resources
+		-- (from the last resource). (ALT: Do this when picking up
+		-- the resource instead, since things might change (more
+		-- resource available nearby, etc.).)
+
+		path = resourcePath
+		targetEntity = resourceNearest
+		targetRotation = self:_getRotation(resourcePath[1] or start, resourceNearest:get("PositionComponent"):getGrid())
+		nextStop = walking:getTargetGrids()
 	else
 		error("Don't know how to walk.")
 	end
