@@ -5,7 +5,11 @@
 --    * Villagers always reserve two grids when walking. Problem?
 --    * Villagers can get stuck in a four-grid gridlock.
 --    * Villagers can be assigned a workplace, but don't make their way there.
+--      Problem seems to be that they're stuck in a limbo after something just finished working (WorkSystem).
+--    * The grid position for houses/things is wrong (takes reserved grids into account).
 --  - Next:
+--    * Take a random step forward when idle.
+--    * Use different palettes for the villagers in the shader.
 --    * Open/close door when going in/out.
 --    * Allow changing profession.
 --      Changing workplace mid-work makes it look really wacky (will start building the other building)
@@ -44,7 +48,7 @@
 --    * Placing runestones
 --    * Placing buildings
 --  - Optimization:
---    * Quads are being (re)created each frame.
+--    * Quads are created on demand. Problem?
 --  - Info panel updates:
 --    * Make the info panel title bar thicker, and put the name there + a button to
 --      minimize/maximize.

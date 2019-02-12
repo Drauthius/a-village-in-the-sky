@@ -14,6 +14,8 @@ function SpriteSheet:load()
 	self.image = love.graphics.newImage("asset/gfx/spritesheet.png")
 	self.imageData = love.image.newImageData("asset/gfx/spritesheet.png")
 	self.data = json.decode(love.filesystem.read("asset/gfx/spritesheet.json"))
+
+	self.spriteCache = {}
 end
 
 -- @tparam string name The name of the Aseprite source file.
@@ -23,26 +25,33 @@ function SpriteSheet:getSprite(name, slice, frame)
 		error("No data loaded. Cannot load sprite '" .. name .. "'")
 	end
 
-	--local def = self.data.frames[name .. ".aseprite"]
-	local def = self.data.frames[name]
-	if not def then
-		print("Failed to find sprite '"..name.."'")
-		return Sprite()
+	local cacheName = name .. (slice and ("|" .. slice) or "")
+
+	if not self.spriteCache[cacheName] then
+		local def = self.data.frames[name]
+		if not def then
+			print("Failed to find sprite '"..name.."'")
+			return Sprite()
+		end
+
+		local x, y, w, h =
+			def.frame.x + self.innerMargin, def.frame.y + self.innerMargin,
+			def.sourceSize.w, def.sourceSize.h
+
+		if slice then
+			local data = self:getData(slice, frame)
+
+			x, y = x + data.bounds.x, y + data.bounds.y
+			w, h = data.bounds.w, data.bounds.h
+		end
+
+		self.spriteCache[cacheName] = {
+			Sprite(self, love.graphics.newQuad(x, y, w, h, self.image:getDimensions())),
+			def.duration
+		}
 	end
 
-	local x, y, w, h =
-		def.frame.x + self.innerMargin, def.frame.y + self.innerMargin,
-		def.sourceSize.w, def.sourceSize.h
-
-	if slice then
-		local data = self:getData(slice, frame)
-
-		x, y = x + data.bounds.x, y + data.bounds.y
-		w, h = data.bounds.w, data.bounds.h
-	end
-
-	return Sprite(self,
-			love.graphics.newQuad(x, y, w, h, self.image:getDimensions())), def.duration
+	return unpack(self.spriteCache[cacheName])
 end
 
 function SpriteSheet:getData(name, frame)
