@@ -133,8 +133,6 @@ function ConstructionComponent:unreserveGrid(villager)
 			return
 		end
 	end
-
-	error("Villager had not reserved a grid.")
 end
 
 function ConstructionComponent:addResources(resource, amount)

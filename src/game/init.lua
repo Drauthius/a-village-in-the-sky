@@ -5,8 +5,6 @@
 --    * Villagers always reserve two grids when walking. Problem?
 --    * Villagers can get stuck in a four-grid gridlock.
 --    * Villagers can reserve a workplace that is occupied by an idle villager.
---    * Villagers can be assigned a workplace, but don't make their way there.
---      Problem seems to be that they're stuck in a limbo after something just finished working (WorkSystem).
 --  - Next:
 --    * Take a random step forward when idle (or two if it's a child).
 --    * Use different palettes for the villagers in the shader.
@@ -24,6 +22,7 @@
 --    * Either consolidate work/production/construction components (wrt assigning), or maybe add an "assign" component?
 --    * Either consolidate production/construction components (wrt input), or maybe add an "input" component?
 --    * Either consolidate dwelling/production component (wrt entrance), or maybe add an "entrance" component?
+--    * Calling variables for "entity" in different contexts begs for trouble.
 --  - Draw order:
 --    * Update sprites to be square.
 --  - Particles:
@@ -59,6 +58,7 @@
 --    * Refrain from using hardcoded strings, and consult a library instead.
 --      https://github.com/martin-damien/babel
 --  - Nice to have:
+--    * Add a delay between actions (before going somewhere, before leaving a worksite, etc.), to make it more natural.
 --    * Don't increase opacity for overlapping shadows.
 
 local Camera = require "lib.hump.camera"
@@ -384,7 +384,8 @@ function Game:_handleClick(x, y)
 			end
 		elseif clicked:has("ProductionComponent") then
 			local prod = clicked:get("ProductionComponent")
-			if #prod:getAssignedVillagers() >= prod:getMaxWorkers() then
+			if #prod:getAssignedVillagers() >= prod:getMaxWorkers() or
+			   not selected:get("VilagerComponent"):getHome() then
 				valid = false
 			else
 				local alreadyAdded = false

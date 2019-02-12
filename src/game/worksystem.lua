@@ -90,16 +90,15 @@ function WorkSystem:workEvent(event)
 			local workers = construction:getAssignedVillagers()
 
 			for _,worker in ipairs(workers) do
-				local adult = worker:get("AdultComponent")
 				if construction:isComplete() then
-					adult:setWorkPlace(nil)
 					worker:remove("WorkingComponent")
-					entity:get("VillagerComponent"):setGoal(VillagerComponent.GOALS.NONE)
+					worker:get("AdultComponent"):setWorkPlace(nil)
+					worker:get("VillagerComponent"):setGoal(VillagerComponent.GOALS.NONE)
 				else
 					if worker:has("WorkingComponent") and worker:get("WorkingComponent"):getWorking() then
 						construction:unreserveGrid(worker)
 						worker:remove("WorkingComponent")
-						entity:get("VillagerComponent"):setGoal(VillagerComponent.GOALS.NONE)
+						worker:get("VillagerComponent"):setGoal(VillagerComponent.GOALS.NONE)
 					end
 				end
 			end
@@ -129,10 +128,9 @@ function WorkSystem:workEvent(event)
 			if work:getType() == WorkComponent.WOODCUTTER or
 			   work:getType() == WorkComponent.MINER then
 				for _,worker in ipairs(workers) do
-					local adult = worker:get("AdultComponent")
 					worker:remove("WorkingComponent")
-					adult:setWorkPlace(nil)
-					entity:get("VillagerComponent"):setGoal(VillagerComponent.GOALS.NONE)
+					worker:get("AdultComponent"):setWorkPlace(nil)
+					worker:get("VillagerComponent"):setGoal(VillagerComponent.GOALS.NONE)
 				end
 
 				local resource = workPlace:get("ResourceComponent")

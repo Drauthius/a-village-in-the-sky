@@ -161,7 +161,9 @@ function WalkingSystem:_createPath(entity)
 	elseif walking:getInstructions() == WalkingComponent.INSTRUCTIONS.WORK then
 		local workGrid
 		workGrid, path = self:_createClosestPath(function(item) return item[1] end, walking:getTargetGrids(), start)
-		assert(path, "TODO: No path :(") -- TODO
+		if not path then
+			return nil
+		end
 		targetEntity = workGrid[1]
 		targetRotation = workGrid[2]
 	elseif walking:getInstructions() == WalkingComponent.INSTRUCTIONS.BUILD then
@@ -178,7 +180,7 @@ function WalkingSystem:_createPath(entity)
 		repeat
 			resource, count = construction:getRemainingResources(blacklist)
 			if not resource then
-				error("TODO: No work can be carried out. Do something else.") -- TODO
+				-- No work can be carried out. Do something else.
 				return nil
 			end
 
@@ -242,7 +244,7 @@ function WalkingSystem:_createPath(entity)
 		repeat
 			resource, count = production:getNeededResources(entity, blacklist)
 			if not resource then
-				error("TODO: No work can be carried out. Do something else.") -- TODO
+				-- No work can be carried out. Do something else.
 				return nil
 			end
 

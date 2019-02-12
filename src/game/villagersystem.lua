@@ -198,6 +198,10 @@ function VillagerSystem:_unreserveAll(entity)
 		else
 			error("Unknown work place")
 		end
+
+		if entity:has("WorkingComponent") then
+			entity:remove("WorkingComponent")
+		end
 	end
 end
 
