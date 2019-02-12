@@ -98,23 +98,20 @@ function RenderSystem:draw()
 	for _,entity in pairs(self.targets) do
 		if entity:has("PositionComponent") then
 			table.insert(objects, entity)
-			table.sort(objects, function(a, b)
-				local agrid = a:get("PositionComponent"):getGrid()
-				local bgrid = b:get("PositionComponent"):getGrid()
-				--if aj < bj then
-					--return false
-				--elseif aj == bj then
-					--return ai > bi
-				--else
-					--return false
-				--end
-				if agrid.gi == bgrid.gi then
-					return agrid.gj < bgrid.gj
-				end
-				return agrid.gi < bgrid.gi
-			end)
 		end
 	end
+	table.sort(objects, function(a, b)
+		local aTopLeft, aBottomRight = a:get("PositionComponent"):getFromGrid(), a:get("PositionComponent"):getToGrid()
+		local bTopLeft, bBottomRight = b:get("PositionComponent"):getFromGrid(), b:get("PositionComponent"):getToGrid()
+
+		if aBottomRight.gj < bTopLeft.gj then
+			return true
+		elseif aTopLeft.gj > bBottomRight.gj then
+			return false
+		else
+			return aTopLeft.gi < bTopLeft.gi
+		end
+	end)
 
 	if state:isPlacing() then
 		table.insert(objects, state:getPlacing())

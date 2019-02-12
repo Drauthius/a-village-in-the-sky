@@ -29,10 +29,9 @@ function DefaultLevel:initiate(engine, map)
 
 	do -- Initial runestone.
 		local runestone = blueprint:createRunestone()
-		local x, y, grid = map:addObject(runestone, 0, 0)
+		local x, y, minGrid, maxGrid = map:addObject(runestone, 0, 0)
 		runestone:get("SpriteComponent"):setDrawPosition(x, y)
-		runestone:get("PositionComponent"):setGrid(grid)
-		runestone:get("PositionComponent"):setTile(0, 0)
+		runestone:add(PositionComponent(minGrid, maxGrid, 0, 0))
 		InteractiveComponent:makeInteractive(runestone, x, y)
 		engine:addEntity(runestone)
 	end
@@ -71,8 +70,7 @@ function DefaultLevel:initiate(engine, map)
 			oy = oy - resource:get("SpriteComponent"):getSprite():getHeight() + map.gridHeight
 
 			resource:get("SpriteComponent"):setDrawPosition(ox, oy)
-			resource:get("PositionComponent"):setGrid(map:getGrid(gi, gj))
-			resource:get("PositionComponent"):setTile(0, 0)
+			resource:add(PositionComponent(map:getGrid(gi, gj), nil, 0, 0))
 
 			engine:addEntity(resource)
 			state:increaseResource(type, resource:get("ResourceComponent"):getResourceAmount())
@@ -91,7 +89,7 @@ function DefaultLevel:initiate(engine, map)
 			end
 			map:reserve(villager, map:getGrid(gi, gj))
 
-			villager:add(PositionComponent(map:getGrid(gi, gj), 0, 0))
+			villager:add(PositionComponent(map:getGrid(gi, gj), nil, 0, 0))
 			villager:add(GroundComponent(map:gridToGroundCoords(gi + 0.5, gj + 0.5)))
 			villager:add(VillagerComponent({
 				gender = type:match("^male") and "male" or "female",

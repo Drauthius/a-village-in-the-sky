@@ -6,7 +6,6 @@ local spriteSheet = require "src.game.spritesheet"
 local BuildingComponent = require "src.game.buildingcomponent"
 local CollisionComponent = require "src.game.collisioncomponent"
 local PlacingComponent = require "src.game.placingcomponent"
-local PositionComponent = require "src.game.positioncomponent"
 local ResourceComponent = require "src.game.resourcecomponent"
 local RunestoneComponent = require "src.game.runestonecomponent"
 local SpriteComponent = require "src.game.spritecomponent"
@@ -45,7 +44,6 @@ function Blueprint:createRunestone()
 	local sprite = spriteSheet:getSprite("monolith 0")
 	local collision = spriteSheet:getSprite("monolith (Grid information) 0")
 
-	runestone:add(PositionComponent())
 	runestone:add(CollisionComponent(collision))
 	runestone:add(SpriteComponent(sprite))
 	runestone:add(RunestoneComponent())
@@ -58,7 +56,6 @@ function Blueprint:createTree()
 	local sprite = spriteSheet:getSprite("tree")
 	local collision = spriteSheet:getSprite("tree (Grid information)")
 
-	tree:add(PositionComponent())
 	tree:add(CollisionComponent(collision))
 	tree:add(SpriteComponent(sprite))
 	tree:add(ResourceComponent(ResourceComponent.WOOD))
@@ -75,7 +72,6 @@ function Blueprint:createIron()
 	local sprite = spriteSheet:getSprite("iron")
 	local collision = spriteSheet:getSprite("iron (Grid information)")
 
-	iron:add(PositionComponent())
 	iron:add(CollisionComponent(collision))
 	iron:add(SpriteComponent(sprite))
 	iron:add(ResourceComponent(ResourceComponent.IRON))
@@ -93,7 +89,6 @@ function Blueprint:createResourcePile(type, amount)
 	local name = ResourceComponent.RESOURCE_NAME[type]
 	local sprite = spriteSheet:getSprite(name.."-resource "..tostring(amount - 1))
 
-	resource:add(PositionComponent())
 	resource:add(ResourceComponent(type, amount, true))
 	resource:add(SpriteComponent(sprite))
 

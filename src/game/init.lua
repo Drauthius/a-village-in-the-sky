@@ -385,7 +385,7 @@ function Game:_handleClick(x, y)
 		elseif clicked:has("ProductionComponent") then
 			local prod = clicked:get("ProductionComponent")
 			if #prod:getAssignedVillagers() >= prod:getMaxWorkers() or
-			   not selected:get("VilagerComponent"):getHome() then
+			   not selected:get("VillagerComponent"):getHome() then
 				valid = false
 			else
 				local alreadyAdded = false
@@ -440,11 +440,10 @@ function Game:_placeTile(placing)
 
 	if self.level:shouldPlaceRunestone() then
 		local runestone = blueprint:createRunestone()
-		local ax, ay, grid = self.map:addObject(runestone, ti, tj)
-		assert(ax and ay and grid, "Could not add runestone to empty tile.")
+		local ax, ay, minGrid, maxGrid = self.map:addObject(runestone, ti, tj)
+		assert(ax and ay and minGrid and maxGrid, "Could not add runestone to empty tile.")
 		runestone:get("SpriteComponent"):setDrawPosition(ax, ay)
-		runestone:get("PositionComponent"):setGrid(grid)
-		runestone:get("PositionComponent"):setTile(ti, tj)
+		runestone:add(PositionComponent(minGrid, maxGrid, ti, tj))
 		InteractiveComponent:makeInteractive(runestone, ax, ay)
 		self.engine:addEntity(runestone)
 		table.insert(resources, runestone)
@@ -460,11 +459,10 @@ function Game:_placeTile(placing)
 		end
 		for _=1,1000 do -- lol
 			local gi, gj = love.math.random(sgi + 1, egi - 1), love.math.random(sgj + 1, egj - 1)
-			local ax, ay, grid = self.map:addObject(resource, gi, gj)
+			local ax, ay, minGrid, maxGrid = self.map:addObject(resource, gi, gj)
 			if ax then
 				resource:get("SpriteComponent"):setDrawPosition(ax, ay)
-				resource:get("PositionComponent"):setGrid(grid)
-				resource:get("PositionComponent"):setTile(ti, tj)
+				resource:add(PositionComponent(minGrid, maxGrid, ti, tj))
 				InteractiveComponent:makeInteractive(resource, ax, ay)
 				self.engine:addEntity(resource)
 				table.insert(resources, resource)
@@ -509,11 +507,11 @@ end
 function Game:_placeBuilding(placing)
 	soundManager:playEffect("buildingPlaced") -- TODO: Type?
 
-	local ax, ay, grid = self.map:addObject(placing, placing:get("BuildingComponent"):getPosition())
-	assert(ax and ay and grid, "Could not add building with building component.")
+	local ax, ay, minGrid, maxGrid = self.map:addObject(placing, placing:get("BuildingComponent"):getPosition())
+	assert(ax and ay and minGrid and maxGrid, "Could not add building with building component.")
 	placing:get("SpriteComponent"):setDrawPosition(ax, ay)
 	placing:get("SpriteComponent"):resetColor()
-	placing:set(PositionComponent(grid, self.map:gridToTileCoords(grid.gi, grid.gj)))
+	placing:add(PositionComponent(minGrid, maxGrid, self.map:gridToTileCoords(minGrid.gi, minGrid.gj)))
 	placing:add(ConstructionComponent(placing:get("PlacingComponent"):getType()))
 	InteractiveComponent:makeInteractive(placing, ax, ay)
 

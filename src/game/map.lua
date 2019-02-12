@@ -364,7 +364,7 @@ function Map:_placeObject(entity, gi, gj, dryrun)
 	sgi, sgj, egi, egj = math.floor(sgi), math.floor(sgj), math.floor(egi), math.floor(egj)
 
 	--print(("(%d, %d) -> (%d, %d)"):format(sgi, sgj, egi, egj))
-	local maxgi, maxgj
+	local mingi, mingj, maxgi, maxgj
 
 	-- Loop over all the grids the sprite can potentially affect.
 	for cgi=sgi,egi do
@@ -396,6 +396,8 @@ function Map:_placeObject(entity, gi, gj, dryrun)
 						grid.owner = entity
 						if r == 1 and g == 0 and b == 0 then
 							grid.collision = Map.COLL_STATIC
+							mingi = mingi and math.min(mingi, cgi) or cgi
+							mingj = mingj and math.min(mingj, cgj) or cgj
 							maxgi = maxgi and math.max(maxgi, cgi) or cgi
 							maxgj = maxgj and math.max(maxgj, cgj) or cgj
 						elseif r == 0 and g == 0 and b == 1 then
@@ -409,7 +411,7 @@ function Map:_placeObject(entity, gi, gj, dryrun)
 		end
 	end
 
-	return x, y, self.grid[maxgi] and self.grid[maxgi][maxgj]
+	return x, y, self.grid[mingi] and self.grid[mingi][mingj], self.grid[maxgi] and self.grid[maxgi][maxgj]
 end
 
 -- For objects that cover a whole tile.
@@ -428,7 +430,7 @@ function Map:_placeFullWidthObject(entity, ti, tj, dryrun)
 	-- Get the starting grid for that tile
 	local sgi, sgj = ti * self.gridsPerTile, tj * self.gridsPerTile
 
-	local maxgi, maxgj
+	local mingi, mingj, maxgi, maxgj
 
 	for cgi=sgi,sgi + self.gridsPerTile do
 		for cgj=sgj,sgj + self.gridsPerTile do
@@ -451,6 +453,8 @@ function Map:_placeFullWidthObject(entity, ti, tj, dryrun)
 					grid.owner = entity
 					if r == 1 and g == 0 and b == 0 then
 						grid.collision = Map.COLL_STATIC
+						mingi = mingi and math.min(mingi, cgi) or cgi
+						mingj = mingj and math.min(mingj, cgj) or cgj
 						maxgi = maxgi and math.max(maxgi, cgi) or cgi
 						maxgj = maxgj and math.max(maxgj, cgj) or cgj
 					elseif r == 0 and g == 0 and b == 1 then
@@ -463,7 +467,7 @@ function Map:_placeFullWidthObject(entity, ti, tj, dryrun)
 		end
 	end
 
-	return x, y, self.grid[maxgi] and self.grid[maxgi][maxgj]
+	return x, y, self.grid[mingi] and self.grid[mingi][mingj], self.grid[maxgi] and self.grid[maxgi][maxgj]
 end
 
 --
