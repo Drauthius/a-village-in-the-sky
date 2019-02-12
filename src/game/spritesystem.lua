@@ -1,4 +1,5 @@
 local lovetoys = require "lib.lovetoys.lovetoys"
+local table = require "lib.table"
 
 local InteractiveComponent = require "src.game.interactivecomponent"
 local ResourceComponent = require "src.game.resourcecomponent"
@@ -42,7 +43,8 @@ function SpriteSystem:initialize(eventManager)
 
 	self.eventManager = eventManager
 
-	SpriteSystem.ANIMATIONS.idle = spriteSheet:getFrameTag("Emptyhanded")
+	-- Make sure to clone the table since we want to change things in it.
+	SpriteSystem.ANIMATIONS.idle = table.clone(spriteSheet:getFrameTag("Emptyhanded"), true)
 	SpriteSystem.ANIMATIONS.idle.to = SpriteSystem.ANIMATIONS.idle.from
 
 	local walking = SpriteSystem.ANIMATIONS.walking

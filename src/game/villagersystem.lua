@@ -24,6 +24,11 @@ VillagerSystem.static.TIMERS = {
 	NO_RESOURCE_DELAY = 5
 }
 
+VillagerSystem.static.RAND = {
+	WANDER_FORWARD_CHANCE = 0.2,
+	CHILD_DOUBLE_FORWARD_CHANCE = 0.5
+}
+
 function VillagerSystem.requires()
 	return {"VillagerComponent"}
 end
@@ -152,7 +157,7 @@ function VillagerSystem:_updateVillager(entity)
 			-- No such entity found. No work able to be carried out.
 			adult:setWorkArea(nil)
 		else
-			if not entity:has("TimerComponent") then
+			if not entity:has("TimerComponent") and not entity:has("WalkingComponent") then
 				-- Fidget a little by rotating the villager.
 				entity:add(TimerComponent(
 					love.math.random() *
@@ -161,6 +166,20 @@ function VillagerSystem:_updateVillager(entity)
 						local dir = villager:getDirection()
 						villager:setDirection((dir + 45 * love.math.random(-1, 1)) % 360)
 						entity:remove("TimerComponent")
+
+						if love.math.random() < VillagerSystem.CHANCE.WANDER_FORWARD_CHANCE then
+							-- XXX:
+							local WorkSystem = require "src.game.worksystem"
+							local dirConv = WorkSystem.DIR_CONV[villager:getCardinalDirection()]
+							local grid = entity:get("PositionComponent"):getGrid()
+							local target = self.map:getGrid(grid.gi + dirConv[1], grid.gj + dirConv[2])
+							if target then
+								if not adult and love.math.random() < VillagerSystem.CHANCE.CHILD_DOUBLE_FORWARD_CHANCE then
+									target = self.map:getGrid(target.gi + dirConv[1], target.gj + dirConv[2]) or target
+								end
+								entity:add(WalkingComponent(nil, nil, { target }, WalkingComponent.INSTRUCTIONS.WANDER))
+							end
+						end
 					end)
 				)
 			end
@@ -332,6 +351,11 @@ end
 function VillagerSystem:targetUnreachableEvent(event)
 	local entity = event:getVillager()
 	local villager = entity:get("VillagerComponent")
+
+	-- If wandering about, don't do anything.
+	if event:getInstructions() == WalkingComponent.INSTRUCTIONS.WANDER then
+		return
+	end
 
 	print("Unreachable!")
 

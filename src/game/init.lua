@@ -6,7 +6,8 @@
 --    * Villagers can get stuck in a four-grid gridlock.
 --    * Villagers can reserve a workplace that is occupied by an idle villager.
 --  - Next:
---    * Take a random step forward when idle (or two if it's a child).
+--    * The wandering action can't be cleanly interrupted, crashing because of double WalkingComponent, or reserving a
+--      grid it shouldn't.
 --    * Use different palettes for the villagers in the shader.
 --    * Open/close door when going in/out.
 --    * Allow changing profession.

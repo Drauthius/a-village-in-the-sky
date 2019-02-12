@@ -43,8 +43,7 @@ function WalkingSystem:_walkTheWalk(entity, dt)
 			path = walking:getPath()
 		else
 			--print("No path to thing")
-			self.eventManager:fireEvent(
-				TargetUnreachableEvent(entity))
+			self.eventManager:fireEvent(TargetUnreachableEvent(entity, walking:getInstructions()))
 			entity:remove("WalkingComponent")
 			return
 		end
@@ -86,8 +85,7 @@ function WalkingSystem:_walkTheWalk(entity, dt)
 				assert(nextGrid, "Recalculated path should not be empty.")
 			else
 				--print("No new path :(")
-				self.eventManager:fireEvent(
-					TargetUnreachableEvent(entity))
+				self.eventManager:fireEvent(TargetUnreachableEvent(entity, walking:getInstructions()))
 				entity:remove("WalkingComponent")
 				return
 			end
@@ -139,8 +137,9 @@ function WalkingSystem:_createPath(entity)
 
 	local start = entity:get("PositionComponent"):getGrid()
 	local path, targetEntity, targetRotation, nextStop
+	local instruction = walking:getInstructions()
 
-	if walking:getInstructions() == WalkingComponent.INSTRUCTIONS.DROPOFF then
+	if instruction == WalkingComponent.INSTRUCTIONS.DROPOFF then
 		assert(entity:has("CarryingComponent"), "Can't drop off nothing.")
 
 		local ti, tj = walking:getTargetTile()
@@ -158,7 +157,7 @@ function WalkingSystem:_createPath(entity)
 
 		targetEntity = grid
 		targetRotation = self:_getRotation(path[1] or start, grid)
-	elseif walking:getInstructions() == WalkingComponent.INSTRUCTIONS.WORK then
+	elseif instruction == WalkingComponent.INSTRUCTIONS.WORK then
 		local workGrid
 		workGrid, path = self:_createClosestPath(function(item) return item[1] end, walking:getTargetGrids(), start)
 		if not path then
@@ -166,7 +165,7 @@ function WalkingSystem:_createPath(entity)
 		end
 		targetEntity = workGrid[1]
 		targetRotation = workGrid[2]
-	elseif walking:getInstructions() == WalkingComponent.INSTRUCTIONS.BUILD then
+	elseif instruction == WalkingComponent.INSTRUCTIONS.BUILD then
 		--
 		-- When building, we want to pick up a resource and walk it to the construction site.
 		-- This part takes care of finding the shortest Manhattan distance to a resource and then to the construction
@@ -230,7 +229,7 @@ function WalkingSystem:_createPath(entity)
 		targetEntity = resourceNearest
 		targetRotation = self:_getRotation(resourcePath[1] or start, resourceNearest:get("PositionComponent"):getGrid())
 		nextStop = workNearest
-	elseif walking:getInstructions() == WalkingComponent.INSTRUCTIONS.PRODUCE then
+	elseif instruction == WalkingComponent.INSTRUCTIONS.PRODUCE then
 		--
 		-- When producing, we want to pick up a resource and walk it to the work site.
 		-- This part takes care of finding the shortest Manhattan distance to a resource and then to the work
@@ -282,6 +281,10 @@ function WalkingSystem:_createPath(entity)
 		targetEntity = resourceNearest
 		targetRotation = self:_getRotation(resourcePath[1] or start, resourceNearest:get("PositionComponent"):getGrid())
 		nextStop = walking:getTargetGrids()
+	elseif instruction == WalkingComponent.INSTRUCTIONS.WANDER then
+		local target = walking:getTargetGrids()[1]
+		local nodes = astar.search(self.map, start, target)
+		path = astar.reconstructReversedPath(start, target, nodes)
 	else
 		error("Don't know how to walk.")
 	end
