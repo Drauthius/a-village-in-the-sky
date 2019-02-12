@@ -16,7 +16,7 @@ ProductionComponent.static.SPECS = {
 			[ResourceComponent.TOOL] = 1
 		},
 		entrance = {
-			rotation = 0, ogi = -1, ogj = -8
+			rotation = 0, ogi = 0, ogj = -8
 		}
 	}
 }

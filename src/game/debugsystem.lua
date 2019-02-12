@@ -5,7 +5,7 @@ local state = require "src.game.state"
 local DebugSystem = lovetoys.System:subclass("DebugSystem")
 
 function DebugSystem.requires()
-	return {"InteractiveComponent"}
+	return {"SpriteComponent"}
 end
 
 function DebugSystem:initialize(map)
@@ -32,6 +32,10 @@ function DebugSystem:draw()
 					interactive.x, interactive.y,
 					interactive.w, interactive.h)
 			love.graphics.print(entity:get("SpriteComponent"):getDrawIndex(), interactive.x, interactive.y)
+		end
+		if entity:has("PositionComponent") then
+			local grid = entity:get("PositionComponent"):getGrid()
+			love.graphics.points(self.map:gridToWorldCoords(grid.gi + 0.5, grid.gj + 0.5))
 		end
 		if entity:has("VillagerComponent") then
 			if entity:has("WalkingComponent") then

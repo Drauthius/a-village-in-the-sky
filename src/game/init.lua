@@ -4,11 +4,11 @@
 --  - Bugs:
 --    * Villagers always reserve two grids when walking. Problem?
 --    * Villagers can get stuck in a four-grid gridlock.
+--    * Villagers can reserve a workplace that is occupied by an idle villager.
 --    * Villagers can be assigned a workplace, but don't make their way there.
 --      Problem seems to be that they're stuck in a limbo after something just finished working (WorkSystem).
---    * The grid position for houses/things is wrong (takes reserved grids into account).
 --  - Next:
---    * Take a random step forward when idle.
+--    * Take a random step forward when idle (or two if it's a child).
 --    * Use different palettes for the villagers in the shader.
 --    * Open/close door when going in/out.
 --    * Allow changing profession.

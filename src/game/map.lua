@@ -392,13 +392,12 @@ function Map:_placeObject(entity, gi, gj, dryrun)
 							return nil
 						end
 					else
-						maxgi = maxgi and math.max(maxgi, cgi) or cgi
-						maxgj = maxgj and math.max(maxgj, cgj) or cgj
-
 						local grid = self.grid[cgi][cgj]
 						grid.owner = entity
 						if r == 1 and g == 0 and b == 0 then
 							grid.collision = Map.COLL_STATIC
+							maxgi = maxgi and math.max(maxgi, cgi) or cgi
+							maxgj = maxgj and math.max(maxgj, cgj) or cgj
 						elseif r == 0 and g == 0 and b == 1 then
 							grid.collision = Map.COLL_RESERVED
 						else
@@ -442,9 +441,6 @@ function Map:_placeFullWidthObject(entity, ti, tj, dryrun)
 			local r, g, b, a = collision:getPixel(cx, cy + 1)
 
 			if a > 0.5 then
-				maxgi = maxgi and math.max(maxgi, cgi) or cgi
-				maxgj = maxgj and math.max(maxgj, cgj) or cgj
-
 				if dryrun then
 					if self.grid[cgi][cgj].collision ~= Map.COLL_NONE then
 						--print("Something in the way")
@@ -455,6 +451,8 @@ function Map:_placeFullWidthObject(entity, ti, tj, dryrun)
 					grid.owner = entity
 					if r == 1 and g == 0 and b == 0 then
 						grid.collision = Map.COLL_STATIC
+						maxgi = maxgi and math.max(maxgi, cgi) or cgi
+						maxgj = maxgj and math.max(maxgj, cgj) or cgj
 					elseif r == 0 and g == 0 and b == 1 then
 						grid.collision = Map.COLL_RESERVED
 					else
