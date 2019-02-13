@@ -54,10 +54,7 @@ function VillagerSystem:_updateVillager(entity)
 		if entity:has("CarryingComponent") then
 			assert(villager:getHome(), "TODO: No home!") -- TODO: Just drop it here
 
-			-- Remove any lingering timer.
-			if entity:has("TimerComponent") then
-				entity:remove("TimerComponent")
-			end
+			self:_prepare(entity)
 
 			-- Drop off at home.
 			local home = villager:getHome()
@@ -69,10 +66,7 @@ function VillagerSystem:_updateVillager(entity)
 			local workPlace = adult:getWorkPlace()
 			local ti, tj = workPlace:get("PositionComponent"):getTile()
 
-			-- Remove any lingering timer.
-			if entity:has("TimerComponent") then
-				entity:remove("TimerComponent")
-			end
+			self:_prepare(entity)
 
 			if adult:getOccupation() == WorkComponent.BUILDER then
 				local construction = workPlace:get("ConstructionComponent")
@@ -167,14 +161,14 @@ function VillagerSystem:_updateVillager(entity)
 						villager:setDirection((dir + 45 * love.math.random(-1, 1)) % 360)
 						entity:remove("TimerComponent")
 
-						if love.math.random() < VillagerSystem.CHANCE.WANDER_FORWARD_CHANCE then
+						if love.math.random() < VillagerSystem.RAND.WANDER_FORWARD_CHANCE then
 							-- XXX:
 							local WorkSystem = require "src.game.worksystem"
 							local dirConv = WorkSystem.DIR_CONV[villager:getCardinalDirection()]
 							local grid = entity:get("PositionComponent"):getGrid()
 							local target = self.map:getGrid(grid.gi + dirConv[1], grid.gj + dirConv[2])
 							if target then
-								if not adult and love.math.random() < VillagerSystem.CHANCE.CHILD_DOUBLE_FORWARD_CHANCE then
+								if not adult and love.math.random() < VillagerSystem.RAND.CHILD_DOUBLE_FORWARD_CHANCE then
 									target = self.map:getGrid(target.gi + dirConv[1], target.gj + dirConv[2]) or target
 								end
 								entity:add(WalkingComponent(nil, nil, { target }, WalkingComponent.INSTRUCTIONS.WANDER))
@@ -184,6 +178,19 @@ function VillagerSystem:_updateVillager(entity)
 				)
 			end
 		end
+	end
+end
+
+function VillagerSystem:_prepare(entity)
+	-- Remove any lingering timer.
+	if entity:has("TimerComponent") then
+		entity:remove("TimerComponent")
+	end
+
+	-- Unreserve any reserved grids.
+	if entity:has("WalkingComponent") and entity:get("WalkingComponent"):getNextGrid() then
+		self.map:unreserve(entity, entity:get("WalkingComponent"):getNextGrid())
+		entity:remove("WalkingComponent")
 	end
 end
 

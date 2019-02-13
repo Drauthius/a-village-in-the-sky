@@ -117,6 +117,10 @@ function WalkingSystem:_walkTheWalk(entity, dt)
 	end
 end
 
+--
+-- Internal functions
+--
+
 function WalkingSystem:_initiatePath(entity)
 	local path, target, rotation, nextStop = self:_createPath(entity)
 	if path then

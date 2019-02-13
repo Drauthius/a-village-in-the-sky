@@ -311,6 +311,7 @@ function RenderSystem:draw()
 				love.graphics.setColor(RenderSystem.BEHIND_OUTLINE_COLOR)
 				love.graphics.print("0", Fx, Fy)
 			end
+			love.graphics.setColor(1, 1, 1, 1)
 
 			local maleIcon = spriteSheet:getSprite("headers", "male-icon")
 			local femaleIcon = spriteSheet:getSprite("headers", "female-icon")
