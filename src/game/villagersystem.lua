@@ -1,4 +1,5 @@
 local lovetoys = require "lib.lovetoys.lovetoys"
+local table = require "lib.table"
 
 local CarryingComponent = require "src.game.carryingcomponent"
 local ResourceComponent = require "src.game.resourcecomponent"
@@ -21,6 +22,7 @@ VillagerSystem.static.TIMERS = {
 	IDLE_ROTATE_MIN = 1,
 	IDLE_ROTATE_MAX = 4,
 	PATH_FAILED_DELAY = 3,
+	PATH_WAIT_DELAY = 2,
 	NO_RESOURCE_DELAY = 5
 }
 
@@ -352,23 +354,67 @@ function VillagerSystem:targetReachedEvent(event)
 
 			entity:remove("CarryingComponent")
 		end
+	elseif goal == VillagerComponent.GOALS.MOVING then
+		villager:setGoal(VillagerComponent.GOALS.NONE)
 	end
 end
 
 function VillagerSystem:targetUnreachableEvent(event)
 	local entity = event:getVillager()
-	local villager = entity:get("VillagerComponent")
 
 	-- If wandering about, don't do anything.
 	if event:getInstructions() == WalkingComponent.INSTRUCTIONS.WANDER then
 		return
 	end
 
+	local blocking = event:getBlocking()
+	local villager = entity:get("VillagerComponent")
+
+	if blocking and blocking:has("VillagerComponent") then
+		local blockingVillager = blocking:get("VillagerComponent")
+		if blockingVillager:getGoal() == VillagerComponent.GOALS.NONE or
+		   blockingVillager:getGoal() == VillagerComponent.GOALS.WAIT then
+			-- Remove any current path or timer.
+			self:_prepare(blocking)
+			blockingVillager:setGoal(VillagerComponent.GOALS.MOVING)
+			-- Go to a random walkable direction that is not here.
+			local here, there = entity:get("PositionComponent"):getGrid(), blocking:get("PositionComponent"):getGrid()
+			for _,gi in ipairs(table.shuffle({ -1, 0, 1 })) do
+				for _,gj in ipairs(table.shuffle({ -1, 0, 1 })) do
+					local grid = self.map:getGrid(there.gi + gi, there.gj + gj)
+					if grid and grid ~= here and grid ~= there and self.map:isGridWalkable(grid) then
+						blocking:add(WalkingComponent(nil, nil, { grid }, WalkingComponent.INSTRUCTIONS.GET_OUT_THE_WAY))
+						print("Blocked villager sent away")
+
+						-- The walking component will be removed, so we save it away and re-add it later.
+						local walking = table.clone(entity:get("WalkingComponent"))
+						local goal = villager:getGoal()
+						-- Wait a second and try the exact same thing again.
+						entity:add(TimerComponent(VillagerSystem.TIMERS.PATH_WAIT_DELAY, function()
+							villager:setGoal(goal)
+							local newWalking = WalkingComponent()
+							for k,v in pairs(walking) do
+								newWalking[k] = v
+							end
+							entity:add(newWalking)
+							entity:remove("TimerComponent")
+						end))
+						return
+					end
+				end
+			end
+			print("Blocked by a blocked villager")
+		else
+			print("Blocked by a busy villager")
+		end
+	else
+		print("Blocked by a non-villager")
+	end
+
 	print("Unreachable!")
 
 	-- TODO: Look for deadlock amongst villagers (two villagers heading in the opposite directions).
 	--       This could be resolved by temporarily allowing collision.
-	-- TODO: Look for idling villagers that are just standing around, that might be blocking the path.
 
 	-- Start by unreserving everything
 	self:_unreserveAll(entity)

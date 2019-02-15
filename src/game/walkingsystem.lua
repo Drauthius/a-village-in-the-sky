@@ -43,7 +43,7 @@ function WalkingSystem:_walkTheWalk(entity, dt)
 			path = walking:getPath()
 		else
 			--print("No path to thing")
-			self.eventManager:fireEvent(TargetUnreachableEvent(entity, walking:getInstructions()))
+			self.eventManager:fireEvent(TargetUnreachableEvent(entity, nil, walking:getInstructions()))
 			entity:remove("WalkingComponent")
 			return
 		end
@@ -76,7 +76,7 @@ function WalkingSystem:_walkTheWalk(entity, dt)
 				nextGrid.collision = oldCollision
 			end
 
-			if path then
+			if path and #path > 1 then
 				--print("New path!")
 				-- Set up movement to the next point, without breaking stride.
 				table.remove(path) -- Current grid
@@ -85,7 +85,9 @@ function WalkingSystem:_walkTheWalk(entity, dt)
 				assert(nextGrid, "Recalculated path should not be empty.")
 			else
 				--print("No new path :(")
-				self.eventManager:fireEvent(TargetUnreachableEvent(entity, walking:getInstructions()))
+				-- Insert the next grid back into the old path, in case the event uses it in some way.
+				table.insert(walking:getPath(), nextGrid)
+				self.eventManager:fireEvent(TargetUnreachableEvent(entity, nextGrid.owner, walking:getInstructions()))
 				entity:remove("WalkingComponent")
 				return
 			end
@@ -285,7 +287,8 @@ function WalkingSystem:_createPath(entity)
 		targetEntity = resourceNearest
 		targetRotation = self:_getRotation(resourcePath[1] or start, resourceNearest:get("PositionComponent"):getGrid())
 		nextStop = walking:getTargetGrids()
-	elseif instruction == WalkingComponent.INSTRUCTIONS.WANDER then
+	elseif instruction == WalkingComponent.INSTRUCTIONS.WANDER or
+	       instruction == WalkingComponent.INSTRUCTIONS.GET_OUT_THE_WAY then
 		local target = walking:getTargetGrids()[1]
 		local nodes = astar.search(self.map, start, target)
 		path = astar.reconstructReversedPath(start, target, nodes)
@@ -294,6 +297,9 @@ function WalkingSystem:_createPath(entity)
 	end
 
 	if path then
+		if #path < 1 then
+			return nil
+		end
 		-- Get rid of the starting (current) grid.
 		table.remove(path)
 	end

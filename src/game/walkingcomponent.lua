@@ -8,7 +8,8 @@ WalkingComponent.static.INSTRUCTIONS = {
 	WORK = 2,
 	BUILD = 3,
 	PRODUCE = 4,
-	WANDER = 5
+	WANDER = 5,
+	GET_OUT_THE_WAY = 6
 }
 
 function WalkingComponent:initialize(ti, tj, grids, instructions)

@@ -4,7 +4,8 @@
 --  - Bugs:
 --    * Villagers always reserve two grids when walking. Problem?
 --    * Villagers can get stuck in a four-grid gridlock.
---    * Villagers can reserve a workplace that is occupied by an idle villager.
+--    * Villagers pushing another villager that is pushing another villager will end up with the first villager
+--      abandoning the attempt.
 --  - Next:
 --    * Use different palettes for the villagers in the shader.
 --    * Open/close door when going in/out.

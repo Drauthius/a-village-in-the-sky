@@ -7,7 +7,8 @@ VillagerComponent.static.GOALS = {
 	DROPOFF = 1,
 	WORK_PICKUP = 2,
 	WORK = 3,
-	WAIT = 4
+	WAIT = 4,
+	MOVING = 5
 }
 
 function VillagerComponent:initialize(stats)
