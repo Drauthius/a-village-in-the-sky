@@ -31,36 +31,8 @@ function ProductionComponent:initialize(type)
 		[ResourceComponent.GRAIN] = 0,
 		[ResourceComponent.BREAD] = 0
 	}
-	self.workers = {}
 	self.completion = setmetatable({}, { __mode = 'k' })
 	self.reserved = setmetatable({}, { __mode = 'k' })
-end
-
-function ProductionComponent:assign(villager)
-	assert(#self.workers < self.specs.maxWorkers, "Too many workers")
-	table.insert(self.workers, villager)
-	self.completion[villager] = 0.0
-end
-
-function ProductionComponent:unassign(villager)
-	for k,v in ipairs(self.workers) do
-		if v == villager then
-			table.remove(self.workers, k)
-			self.completion[villager] = nil
-			for resource,amount in pairs(self.reserved[villager] or {}) do
-				self.storedResources[resource] = self.storedResource[resource] + amount
-				error("TODO: No real support for this yet.")
-				-- Villagers will not work more if there are resources left, meaning that they are currently WASTED.
-			end
-			return
-		end
-	end
-
-	error("Villager does not work here.")
-end
-
-function ProductionComponent:getAssignedVillagers()
-	return self.workers
 end
 
 function ProductionComponent:getNeededResources(villager, blacklist)
@@ -111,13 +83,11 @@ function ProductionComponent:reserveResource(villager, resource, amount)
 end
 
 function ProductionComponent:increaseCompletion(villager, value)
-	assert(self.completion[villager], "Villager does not work here.")
-	self.completion[villager] = self.completion[villager] + value
+	self.completion[villager] = (self.completion[villager] or 0.0) + value
 end
 
 function ProductionComponent:isComplete(villager)
-	assert(self.completion[villager], "Villager does not work here.")
-	return self.completion[villager] >= 100.0
+	return (self.completion[villager] or 0.0) >= 100.0
 end
 
 function ProductionComponent:reset(villager)

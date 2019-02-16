@@ -1,6 +1,7 @@
 local Timer = require "lib.hump.timer"
 local lovetoys = require "lib.lovetoys.lovetoys"
 
+local AssignmentComponent = require "src.game.assignmentcomponent"
 local BuildingComponent = require "src.game.buildingcomponent"
 local CarryingComponent = require "src.game.carryingcomponent"
 local DwellingComponent = require "src.game.dwellingcomponent"
@@ -41,7 +42,7 @@ end
 function WorkSystem:update(dt)
 	for _,entity in pairs(self.targets) do
 		local production = entity:get("ProductionComponent")
-		for _,villagerEntity in ipairs(production:getAssignedVillagers()) do
+		for _,villagerEntity in ipairs(entity:get("AssignmentComponent"):getAssignees()) do
 			if villagerEntity:has("WorkingComponent") and villagerEntity:get("WorkingComponent"):getWorking() then
 				production:increaseCompletion(villagerEntity, 10.0 * dt) -- TODO: Value!
 				if production:isComplete(villagerEntity) then
@@ -87,11 +88,11 @@ function WorkSystem:workEvent(event)
 
 		-- TODO: Maybe send this off in an event.
 		if not construction:canBuild() then
-			local workers = construction:getAssignedVillagers()
-
-			for _,worker in ipairs(workers) do
+			for _,worker in ipairs(workPlace:get("AssignmentComponent"):getAssignees()) do
 				if construction:isComplete() then
-					worker:remove("WorkingComponent")
+					if worker:has("WorkingComponent") then
+						worker:remove("WorkingComponent")
+					end
 					worker:get("AdultComponent"):setWorkPlace(nil)
 					worker:get("VillagerComponent"):setGoal(VillagerComponent.GOALS.NONE)
 				else
@@ -105,14 +106,17 @@ function WorkSystem:workEvent(event)
 
 			if construction:isComplete() then
 				workPlace:remove("ConstructionComponent")
+				workPlace:remove("AssignmentComponent")
 				soundManager:playEffect("buildingComplete") -- TODO: Add type
 
 				-- TODO: Maybe send this off in an event.
 				local type = construction:getType()
 				if type == BuildingComponent.DWELLING then
 					workPlace:add(DwellingComponent())
+					workPlace:add(AssignmentComponent(2))
 				elseif type == BuildingComponent.BLACKSMITH then
 					workPlace:add(ProductionComponent(type))
+					workPlace:add(AssignmentComponent(1))
 				end
 			end
 		end
@@ -120,11 +124,11 @@ function WorkSystem:workEvent(event)
 		local work = workPlace:get("WorkComponent")
 		work:increaseCompletion(10.0) -- TODO: Value!
 
-		local workers = work:getAssignedVillagers()
-		local numWorkers = #workers
-
 		-- TODO: Maybe send this off in an event.
 		if work:isComplete() then
+			local workers = workPlace:get("AssignmentComponent"):getAssignees()
+			local numWorkers = workPlace:get("AssignmentComponent"):getNumAssignees()
+
 			if work:getType() == WorkComponent.WOODCUTTER or
 			   work:getType() == WorkComponent.MINER then
 				for _,worker in ipairs(workers) do
@@ -134,20 +138,14 @@ function WorkSystem:workEvent(event)
 				end
 
 				local resource = workPlace:get("ResourceComponent")
-				if numWorkers == 0 then
-					-- TODO: Place on ground!
-					print("Unimplemented drop")
-				elseif numWorkers == 1 then
-					workers[1]:add(CarryingComponent(resource:getResource(), resource:getResourceAmount()))
-				else
-					error("Too many workers for resource type")
-				end
+				assert(numWorkers == 1, "Too many or too few workers on a resource.")
+				workers[1]:add(CarryingComponent(resource:getResource(), resource:getResourceAmount()))
 
 				soundManager:playEffect(ResourceComponent.RESOURCE_NAME[resource:getResource()].."Gathered")
 
 				self.engine:removeEntity(workPlace, true)
 			else
-				error("TODO: Non-gathering work complete.")
+				error("Unknown work complete.")
 			end
 		else
 			soundManager:playEffect(WorkComponent.WORK_NAME[work:getType()].."Working")

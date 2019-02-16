@@ -277,12 +277,11 @@ function RenderSystem:draw()
 			spriteSheet:draw(header, x, y)
 
 			local icon = spriteSheet:getSprite("headers", "occupied-icon")
-			for i=1,#entity:get("ConstructionComponent"):getAssignedVillagers() do
+			for i=1,entity:get("AssignmentComponent"):getNumAssignees() do
 				-- TODO: Value
 				spriteSheet:draw(icon, 9 + x + ((i - 1) * (icon:getWidth() + 1)), y + 1)
 			end
 		elseif entity:has("DwellingComponent") then
-			local dwelling = entity:get("DwellingComponent")
 			local header = spriteSheet:getSprite("headers", "dwelling-header")
 			local x, y = sprite:getOriginalDrawPosition()
 			local w, h = header:getDimensions()
@@ -315,7 +314,7 @@ function RenderSystem:draw()
 
 			local maleIcon = spriteSheet:getSprite("headers", "male-icon")
 			local femaleIcon = spriteSheet:getSprite("headers", "female-icon")
-			local villagers = dwelling:getAssignedVillagers()
+			local villagers = entity:get("AssignmentComponent"):getAssignees()
 			for i=1,#villagers do
 				local icon = villagers[i]:get("VillagerComponent"):getGender() == "male" and maleIcon or femaleIcon
 				spriteSheet:draw(icon, 10 + x + ((i - 1) * (icon:getWidth() + 1)), y + 1)

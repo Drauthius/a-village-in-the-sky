@@ -2,6 +2,7 @@ local lovetoys = require "lib.lovetoys.lovetoys"
 local table = require "lib.table"
 
 local CarryingComponent = require "src.game.carryingcomponent"
+local PositionComponent = require "src.game.positioncomponent"
 local ResourceComponent = require "src.game.resourcecomponent"
 local TimerComponent = require "src.game.timercomponent"
 local VillagerComponent = require "src.game.villagercomponent"
@@ -54,13 +55,19 @@ function VillagerSystem:_updateVillager(entity)
 
 	if goal == VillagerComponent.GOALS.NONE then
 		if entity:has("CarryingComponent") then
-			assert(villager:getHome(), "TODO: No home!") -- TODO: Just drop it here
+			local home = villager:getHome()
+			local ti, tj
 
 			self:_prepare(entity)
 
-			-- Drop off at home.
-			local home = villager:getHome()
-			local ti, tj = home:get("PositionComponent"):getTile()
+			if home then
+				-- Drop off at home.
+				ti, tj = home:get("PositionComponent"):getTile()
+			else
+				-- Drop off somewhere around here.
+				local grid = entity:get("PositionComponent"):getGrid()
+				ti, tj = self.map:gridToTileCoords(grid.gi, grid.gj)
+			end
 
 			entity:add(WalkingComponent(ti, tj, nil, WalkingComponent.INSTRUCTIONS.DROPOFF))
 			villager:setGoal(VillagerComponent.GOALS.DROPOFF)
@@ -86,6 +93,10 @@ function VillagerSystem:_updateVillager(entity)
 					-- Don't count that resource again, in case we go round again.
 					blacklist[resource] = true
 				until state:getNumResources(resource) - state:getNumReservedResources(resource) > 0
+
+				-- For things being built, update the places where builders can stand, so that rubbish can
+				-- be cleared around the build site after placing the building.
+				construction:updateWorkGrids(self.map:getAdjacentGrids(workPlace))
 
 				entity:add(WalkingComponent(ti, tj, construction:getFreeWorkGrids(), WalkingComponent.INSTRUCTIONS.BUILD))
 				villager:setGoal(VillagerComponent.GOALS.WORK_PICKUP)
@@ -140,11 +151,12 @@ function VillagerSystem:_updateVillager(entity)
 			-- This could be optimized through the map or something, but eh.
 			local ti, tj = adult:getWorkArea()
 			for _,workEntity in pairs(self.engine:getEntitiesWithComponent("WorkComponent")) do
+				local assignment = workEntity:get("AssignmentComponent")
 				local eti, etj = workEntity:get("PositionComponent"):getTile()
 				if ti == eti and tj == etj and workEntity:has("ResourceComponent") and
 				   workEntity:get("ResourceComponent"):getResource() == resource and
-				   #workEntity:get("WorkComponent"):getAssignedVillagers() < 1 then
-					workEntity:get("WorkComponent"):assign(entity)
+				   assignment:getNumAssignees() < assignment:getMaxAssignees() then
+					assignment:assign(entity)
 					adult:setWorkPlace(workEntity)
 					return -- Start working the next round.
 				end
@@ -222,7 +234,7 @@ function VillagerSystem:_unreserveAll(entity)
 				workPlace:get("ConstructionComponent"):unreserveResource(type, amount)
 			end
 		elseif workPlace:has("WorkComponent") then
-			workPlace:get("WorkComponent"):unassign(entity)
+			workPlace:get("AssignmentComponent"):unassign(entity)
 		else
 			error("Unknown work place")
 		end
@@ -236,6 +248,44 @@ end
 --
 -- Events
 --
+
+function VillagerSystem:assignedEvent(event)
+	local entity = event:getAssignee()
+	local site = event:getAssigner()
+	local adult = entity:get("AdultComponent")
+	local villager = entity:get("VillagerComponent")
+
+	if site:has("DwellingComponent") then
+		villager:setHome(site)
+	else
+		local workPlace = adult:getWorkPlace()
+
+		if workPlace == site then
+			-- If already working there, then nothing needs to be done.
+			return
+		end
+
+		self:_unreserveAll(entity)
+		self:_prepare(entity)
+		villager:setGoal(VillagerComponent.GOALS.NONE)
+
+		adult:setWorkArea(site:get("PositionComponent"):getTile())
+
+		-- The villager might be assigned to the same work area, but not the same work site.
+		if site:get("AssignmentComponent"):isAssigned(entity) then
+			adult:setWorkPlace(site)
+		end
+
+		-- Guess the occupation!
+		if site:has("ConstructionComponent") then
+			adult:setOccupation(WorkComponent.BUILDER)
+		elseif site:has("WorkComponent") then
+			adult:setOccupation(site:get("WorkComponent"):getType())
+		elseif site:has("ProductionComponent") then
+			adult:setOccupation(WorkComponent.BLACKSMITH) -- TODO!
+		end
+	end
+end
 
 function VillagerSystem:targetReachedEvent(event)
 	local entity = event:getVillager()
@@ -275,8 +325,7 @@ function VillagerSystem:targetReachedEvent(event)
 			oy = oy - resourceEntity:get("SpriteComponent"):getSprite():getHeight() + self.map.gridHeight
 
 			resourceEntity:get("SpriteComponent"):setDrawPosition(ox, oy)
-			resourceEntity:get("PositionComponent"):setGrid(self.map:getGrid(gi, gj))
-			resourceEntity:get("PositionComponent"):setTile(self.map:gridToTileCoords(gi, gj))
+			resourceEntity:add(PositionComponent(self.map:getGrid(gi, gj), nil, self.map:gridToTileCoords(gi, gj)))
 
 			self.engine:addEntity(resourceEntity)
 			state:increaseResource(resource, amount)

@@ -46,7 +46,6 @@ WorkComponent.static.WORK_PLACES = {
 function WorkComponent:initialize(workType)
 	self.type = workType
 	self.completion = 0.0
-	self.workers = setmetatable({}, { __mode = 'v' })
 end
 
 function WorkComponent:getType()
@@ -59,23 +58,6 @@ end
 
 function WorkComponent:getWorkGrids()
 	return WorkComponent.WORK_PLACES[self.type]
-end
-
-function WorkComponent:assign(villager)
-	table.insert(self.workers, villager)
-end
-
-function WorkComponent:unassign(villager)
-	for k,v in ipairs(self.workers) do
-		if v == villager then
-			table.remove(self.workers, k)
-			return
-		end
-	end
-end
-
-function WorkComponent:getAssignedVillagers()
-	return self.workers
 end
 
 function WorkComponent:increaseCompletion(value)

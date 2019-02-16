@@ -84,17 +84,6 @@ function ConstructionComponent:getFreeWorkGrids()
 	return workGrids
 end
 
-function ConstructionComponent:getAssignedVillagers()
-	local villagers = {}
-	for _,workGrid in ipairs(self.workGrids or {}) do
-		if workGrid[3] then
-			table.insert(villagers, workGrid[3])
-		end
-	end
-
-	return villagers
-end
-
 function ConstructionComponent:getRemainingResources(blacklist)
 	local resourcesLeft = {}
 	for resource,amount in pairs(self.resourcesLeft) do

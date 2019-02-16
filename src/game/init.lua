@@ -6,11 +6,10 @@
 --    * Villagers can get stuck in a four-grid gridlock.
 --    * Villagers pushing another villager that is pushing another villager will end up with the first villager
 --      abandoning the attempt.
+--    * Removing a villager from a production job can leave resources "locked in limbo".
 --  - Next:
 --    * Use different palettes for the villagers in the shader.
 --    * Open/close door when going in/out.
---    * Allow changing profession.
---      Changing workplace mid-work makes it look really wacky (will start building the other building)
 --  - Refactoring:
 --    * There is little reason to have the VillagerComponent be called "VillagerComponent", other than symmetry.
 --    * Map:reserve() is a bad name for something that doesn't use COLL_RESERVED
@@ -19,7 +18,6 @@
 --      assumes that there is a villager in the way and tries to tell it to move or something.
 --      Maybe it would need to check "how" it is reserved, or we simply split it up further...
 --      reserve() for resources, occupy() for villagers?
---    * Either consolidate work/production/construction components (wrt assigning), or maybe add an "assign" component?
 --    * Either consolidate production/construction components (wrt input), or maybe add an "input" component?
 --    * Either consolidate dwelling/production component (wrt entrance), or maybe add an "entrance" component?
 --    * Calling variables for "entity" in different contexts begs for trouble.
@@ -69,11 +67,13 @@ local GUI = require "src.game.gui"
 local Map = require "src.game.map"
 local DefaultLevel = require "src.game.level.default"
 -- Components
+local AssignmentComponent = require "src.game.assignmentcomponent"
 local BlinkComponent = require "src.game.blinkcomponent"
 local ConstructionComponent = require "src.game.constructioncomponent"
 local InteractiveComponent = require "src.game.interactivecomponent"
 local PositionComponent = require "src.game.positioncomponent"
-local WorkComponent = require "src.game.workcomponent"
+-- Events
+local AssignedEvent = require "src.game.assignedevent"
 -- Systems
 local DebugSystem
 local PlacingSystem
@@ -144,6 +144,7 @@ function Game:enter()
 	self.engine:addSystem(PositionSystem(self.map), "update")
 	self.engine:stopSystem("PositionSystem")
 
+	self.eventManager:addListener("AssignedEvent", villagerSystem, villagerSystem.assignedEvent)
 	self.eventManager:addListener("TargetReachedEvent", villagerSystem, villagerSystem.targetReachedEvent)
 	self.eventManager:addListener("TargetUnreachableEvent", villagerSystem, villagerSystem.targetUnreachableEvent)
 	self.eventManager:addListener("WorkEvent", workSystem, workSystem.workEvent)
@@ -316,100 +317,33 @@ function Game:_handleClick(x, y)
 	end
 
 	local selected = state:getSelection()
-	if selected and selected:has("VillagerComponent") and selected:has("AdultComponent") and
-	   (clicked:has("WorkComponent") or
-	    clicked:has("ConstructionComponent") or
-	    clicked:has("DwellingComponent") or
-		clicked:has("ProductionComponent")) then
-		-- TODO: Should probably be an event or similar.
+	if selected and selected:has("AdultComponent") and clicked:has("AssignmentComponent") then
+		local assignment = clicked:get("AssignmentComponent")
+		local alreadyAdded = assignment:isAssigned(selected)
+		local valid = alreadyAdded or assignment:getNumAssignees() < assignment:getMaxAssignees()
+		local skipWorkPlace = false
 
-		-- Whether that there is room to work there.
-		-- FIXME: Reassignment not handled!
-		local valid
+		if not valid and clicked:has("WorkComponent") then
+			-- Assign to work the grid instead of to the specific resource.
+			valid = true
+			skipWorkPlace = true
+		end
 
-		-- TODO: lol... fix logic.
-		if clicked:has("ConstructionComponent") then
-			if #clicked:get("ConstructionComponent"):getAssignedVillagers() >= 4 then
-				valid = false
-			else
-				local alreadyAdded = false
-				for _,villager in ipairs(clicked:get("ConstructionComponent"):getAssignedVillagers()) do
-					if villager == selected then
-						alreadyAdded = true
-						break
-					end
-				end
-				if not alreadyAdded then
-					-- For things being built, update the places where builders can stand, so that rubbish can
-					-- be cleared around the build site after placing the building.
-					local adjacent = self.map:getAdjacentGrids(clicked)
-					clicked:get("ConstructionComponent"):updateWorkGrids(adjacent)
-				end
-				valid = true
-				selected:get("AdultComponent"):setOccupation(WorkComponent.BUILDER)
-			end
-		elseif clicked:has("WorkComponent") then
-			if #clicked:get("WorkComponent"):getAssignedVillagers() >= 1 or
-			   not selected:get("VillagerComponent"):getHome() then
-				valid = false
-			else
-				local alreadyAdded = false
-				for _,villager in ipairs(clicked:get("WorkComponent"):getAssignedVillagers()) do
-					if villager == selected then
-						alreadyAdded = true
-						break
-					end
-				end
-				if not alreadyAdded then
-					clicked:get("WorkComponent"):assign(selected)
-				end
-				valid = true
-				selected:get("AdultComponent"):setOccupation(clicked:get("WorkComponent"):getType())
-			end
-		elseif clicked:has("DwellingComponent") then
-			if #clicked:get("DwellingComponent"):getAssignedVillagers() >= 2 then
-				valid = false
-			else
-				local alreadyAdded = false
-				for _,villager in ipairs(clicked:get("DwellingComponent"):getAssignedVillagers()) do
-					if villager == selected then
-						alreadyAdded = true
-						break
-					end
-				end
-				if not alreadyAdded then
-					clicked:get("DwellingComponent"):assign(selected)
-				end
-				valid = true
-			end
-		elseif clicked:has("ProductionComponent") then
-			local prod = clicked:get("ProductionComponent")
-			if #prod:getAssignedVillagers() >= prod:getMaxWorkers() or
-			   not selected:get("VillagerComponent"):getHome() then
-				valid = false
-			else
-				local alreadyAdded = false
-				for _,villager in ipairs(prod:getAssignedVillagers()) do
-					if villager == selected then
-						alreadyAdded = true
-						break
-					end
-				end
-				if not alreadyAdded then
-					prod:assign(selected)
-				end
-				valid = true
-				selected:get("AdultComponent"):setOccupation(WorkComponent.BLACKSMITH) -- TODO!
-			end
+		if valid and
+		   not selected:get("VillagerComponent"):getHome() and
+		   not clicked:has("DwellingComponent") and
+		   not clicked:has("ConstructionComponent") then
+			-- Only allowed to build or be assigned a home while homeless.
+			valid = false
 		end
 
 		if valid then
-			if clicked:has("DwellingComponent") then
-				selected:get("VillagerComponent"):setHome(clicked)
-			else
-				selected:get("AdultComponent"):setWorkArea(clicked:get("PositionComponent"):getTile())
-				selected:get("AdultComponent"):setWorkPlace(clicked)
+			if not skipWorkPlace then
+				assignment:assign(selected)
 			end
+
+			self.eventManager:fireEvent(AssignedEvent(clicked, selected))
+
 			soundManager:playEffect("successfulAssignment") -- TODO: Different sounds per assigned occupation?
 			BlinkComponent:makeBlinking(clicked, { 0.15, 0.70, 0.15, 1.0 }) -- TODO: Colour value
 		else
@@ -463,6 +397,7 @@ function Game:_placeTile(placing)
 			if ax then
 				resource:get("SpriteComponent"):setDrawPosition(ax, ay)
 				resource:add(PositionComponent(minGrid, maxGrid, ti, tj))
+				resource:add(AssignmentComponent(1))
 				InteractiveComponent:makeInteractive(resource, ax, ay)
 				self.engine:addEntity(resource)
 				table.insert(resources, resource)
@@ -513,6 +448,7 @@ function Game:_placeBuilding(placing)
 	placing:get("SpriteComponent"):resetColor()
 	placing:add(PositionComponent(minGrid, maxGrid, self.map:gridToTileCoords(minGrid.gi, minGrid.gj)))
 	placing:add(ConstructionComponent(placing:get("PlacingComponent"):getType()))
+	placing:add(AssignmentComponent(4))
 	InteractiveComponent:makeInteractive(placing, ax, ay)
 
 	placing:remove("PlacingComponent")
