@@ -17,13 +17,17 @@ monolith.aseprite
 tree.aseprite
 )
 
+split=(
+field-single.aseprite
+)
+
 other=(
 bread-resource.aseprite
 button.aseprite
 details-panel.aseprite
 dust-effect.aseprite
-field-single.aseprite
 forest-tile.aseprite
+grain-resource.aseprite
 grass-tile.aseprite
 headers.aseprite
 info-panel-1.aseprite
@@ -39,7 +43,6 @@ menu-button.aseprite
 mountain-tile.aseprite
 resource-panel.aseprite
 tool-resource.aseprite
-wheat-resource.aseprite
 windmill-blades.aseprite
 wood-resource.aseprite
 year-panel.aseprite
@@ -96,6 +99,7 @@ $aseprite --inner-padding 1 --list-tags --list-slices --ignore-empty \
 	--sheet "${output}.png" --data "${output}.json" --sheet-type packed \
 	"${buildings[@]}" "${other[@]}" \
 	"${villager_variants[@]}" \
+	--split-layers "${split[@]}" \
 	--layer "$grid_info_layer" "${buildings[@]}" \
 	--color-mode rgb \
 	>/dev/null

@@ -5,6 +5,7 @@ local AssignmentComponent = require "src.game.assignmentcomponent"
 local BuildingComponent = require "src.game.buildingcomponent"
 local CarryingComponent = require "src.game.carryingcomponent"
 local DwellingComponent = require "src.game.dwellingcomponent"
+local FieldComponent = require "src.game.fieldcomponent"
 local PositionComponent = require "src.game.positioncomponent"
 local ProductionComponent = require "src.game.productioncomponent"
 local ResourceComponent = require "src.game.resourcecomponent"
@@ -69,10 +70,15 @@ end
 function WorkSystem:workEvent(event)
 	local entity = event:getVillager()
 	local workPlace = event:getWorkPlace()
-	local cardinalDir = entity:get("VillagerComponent"):getCardinalDirection()
+
+	if workPlace:has("FieldComponent") then
+		-- Handled elsewhere.
+		return
+	end
 
 	local shake = 2
 	local workSprite = workPlace:get("SpriteComponent")
+	local cardinalDir = entity:get("VillagerComponent"):getCardinalDirection()
 	local dx, dy = workSprite.x, workSprite.y
 	workSprite.x = workSprite.x + WorkSystem.DIR_CONV[cardinalDir][1] * shake
 	workSprite.y = workSprite.y + WorkSystem.DIR_CONV[cardinalDir][2] * shake
@@ -117,6 +123,11 @@ function WorkSystem:workEvent(event)
 				elseif type == BuildingComponent.BLACKSMITH then
 					workPlace:add(ProductionComponent(type))
 					workPlace:add(AssignmentComponent(1))
+				elseif type == BuildingComponent.FIELD then
+					workPlace:add(FieldComponent())
+					workPlace:add(AssignmentComponent(2))
+				else
+					print("Dunno what to do with "..tostring(BuildingComponent.BUILDING_NAME[type]).." :(")
 				end
 			end
 		end

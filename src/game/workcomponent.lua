@@ -40,11 +40,12 @@ WorkComponent.static.WORK_PLACES = {
 	[WorkComponent.MINER] = {
 		{ rotation = 90, ogi = -2, ogj = 0 },
 		{ rotation = 270, ogi = 0, ogj = -2 }
-	},
+	}
 }
 
-function WorkComponent:initialize(workType)
+function WorkComponent:initialize(workType, workGrids)
 	self.type = workType
+	self.workGrids = workGrids
 	self.completion = 0.0
 end
 
@@ -57,7 +58,7 @@ function WorkComponent:getTypeName()
 end
 
 function WorkComponent:getWorkGrids()
-	return WorkComponent.WORK_PLACES[self.type]
+	return self.workGrids or WorkComponent.WORK_PLACES[self.type]
 end
 
 function WorkComponent:increaseCompletion(value)
@@ -66,6 +67,10 @@ end
 
 function WorkComponent:isComplete()
 	return self.completion >= 100.0
+end
+
+function WorkComponent:reset()
+	self.completion = 0.0
 end
 
 return WorkComponent

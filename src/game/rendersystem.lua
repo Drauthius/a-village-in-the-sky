@@ -80,23 +80,34 @@ function RenderSystem:draw()
 	for _,entity in pairs(self.targets) do
 		if entity:has("TileComponent") then
 			table.insert(ground, entity)
-			table.sort(ground, function(a, b)
-				local ai, aj = a:get("TileComponent"):getPosition()
-				local bi, bj = b:get("TileComponent"):getPosition()
-				if aj < bj then
-					return true
-				elseif aj == bj then
-					return ai < bi
-				else
-					return false
-				end
-			end)
 		end
 	end
+	table.sort(ground, function(a, b)
+		local ai, aj = a:get("TileComponent"):getPosition()
+		local bi, bj = b:get("TileComponent"):getPosition()
+		if aj < bj then
+			return true
+		elseif aj == bj then
+			return ai < bi
+		else
+			return false
+		end
+	end)
 
 	-- TODO: Can probably cache (overwrite addEntity/removeEntity?)
 	for _,entity in pairs(self.targets) do
-		if entity:has("PositionComponent") then
+		if entity:has("FieldComponent") then
+			local ti, tj = entity:get("PositionComponent"):getTile()
+			for k,tile in ipairs(ground) do
+				if tile:has("TileComponent") then
+					local i, j = tile:get("TileComponent"):getPosition()
+					if ti == i and tj == j then
+						table.insert(ground, k + 1, entity)
+						break
+					end
+				end
+			end
+		elseif entity:has("PositionComponent") then
 			table.insert(objects, entity)
 		end
 	end

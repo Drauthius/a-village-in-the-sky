@@ -34,8 +34,12 @@ function DebugSystem:draw()
 			love.graphics.print(entity:get("SpriteComponent"):getDrawIndex(), interactive.x, interactive.y)
 		end
 		if entity:has("PositionComponent") then
-			local grid = entity:get("PositionComponent"):getGrid()
-			love.graphics.points(self.map:gridToWorldCoords(grid.gi + 0.5, grid.gj + 0.5))
+			local fromGrid = entity:get("PositionComponent"):getFromGrid()
+			local toGrid = entity:get("PositionComponent"):getToGrid()
+			love.graphics.points(self.map:gridToWorldCoords(fromGrid.gi + 0.5, fromGrid.gj + 0.5))
+			if fromGrid ~= toGrid then
+				love.graphics.points(self.map:gridToWorldCoords(toGrid.gi + 0.5, toGrid.gj + 0.5))
+			end
 		end
 		if entity:has("VillagerComponent") then
 			if entity:has("WalkingComponent") then
@@ -56,12 +60,13 @@ function DebugSystem:draw()
 				end
 			end
 
-			-- XXX:
+			--[[ Dot the direction
 			local vector = require "lib.hump.vector"
 			local v = vector(0,-3):rotateInplace(math.rad(entity:get("VillagerComponent"):getDirection()))
 			local gx, gy = entity:get("GroundComponent"):getPosition()
 			v = v + vector((gx - gy) / 2, (gx + gy) / 4)
 			love.graphics.points(v.x, v.y)
+			--]]
 		end
 	end
 

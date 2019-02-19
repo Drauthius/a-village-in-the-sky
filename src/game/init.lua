@@ -7,7 +7,11 @@
 --    * Villagers pushing another villager that is pushing another villager will end up with the first villager
 --      abandoning the attempt.
 --    * Removing a villager from a production job can leave resources "locked in limbo".
+--    * Fields can't blink green or red.
+--      Maybe add a outline that matches the tile, or something?
+--    * 2 Villagers can get deadlocked in the field :(
 --  - Next:
+--    * Field outline (+ outline for the grain sticking out)
 --    * Use different palettes for the villagers in the shader.
 --    * Open/close door when going in/out.
 --  - Refactoring:
@@ -21,6 +25,7 @@
 --    * Either consolidate production/construction components (wrt input), or maybe add an "input" component?
 --    * Either consolidate dwelling/production component (wrt entrance), or maybe add an "entrance" component?
 --    * Calling variables for "entity" in different contexts begs for trouble.
+--    * Villagers could work the field differently (working on the patches instead of the field).
 --  - Draw order:
 --    * Update sprites to be square.
 --  - Particles:
@@ -76,6 +81,7 @@ local PositionComponent = require "src.game.positioncomponent"
 local AssignedEvent = require "src.game.assignedevent"
 -- Systems
 local DebugSystem
+local FieldSystem
 local PlacingSystem
 local PositionSystem
 local RenderSystem
@@ -99,6 +105,7 @@ function Game:init()
 
 	-- Needs to be created after initialization.
 	DebugSystem = require "src.game.debugsystem"
+	FieldSystem = require "src.game.fieldsystem"
 	PlacingSystem = require "src.game.placingsystem"
 	PositionSystem = require "src.game.positionsystem"
 	RenderSystem = require "src.game.rendersystem"
@@ -125,9 +132,11 @@ function Game:enter()
 	self.engine = lovetoys.Engine()
 	self.eventManager = lovetoys.EventManager()
 
+	local fieldSystem = FieldSystem(self.engine, self.map)
 	local villagerSystem = VillagerSystem(self.engine, self.map)
 	local workSystem = WorkSystem(self.engine, self.map)
 
+	self.engine:addSystem(fieldSystem, "update")
 	self.engine:addSystem(PlacingSystem(self.map), "update")
 	self.engine:addSystem(workSystem, "update") -- Must be before the sprite system
 	self.engine:addSystem(villagerSystem, "update")
@@ -147,6 +156,7 @@ function Game:enter()
 	self.eventManager:addListener("AssignedEvent", villagerSystem, villagerSystem.assignedEvent)
 	self.eventManager:addListener("TargetReachedEvent", villagerSystem, villagerSystem.targetReachedEvent)
 	self.eventManager:addListener("TargetUnreachableEvent", villagerSystem, villagerSystem.targetUnreachableEvent)
+	self.eventManager:addListener("WorkEvent", fieldSystem, fieldSystem.workEvent)
 	self.eventManager:addListener("WorkEvent", workSystem, workSystem.workEvent)
 
 	self.gui = GUI(self.engine)
@@ -218,6 +228,8 @@ function Game:keyreleased(key, scancode)
 		self.speed = 5
 	elseif scancode == "4" then
 		self.speed = 10
+	elseif scancode == "5" then
+		self.speed = 50
 	end
 end
 
@@ -301,6 +313,8 @@ end
 --
 
 function Game:_handleClick(x, y)
+	--print(self.map:worldToGridCoords(x, y))
+
 	local clicked, clickedIndex = nil, 0
 	for _,entity in pairs(self.engine:getEntitiesWithComponent("InteractiveComponent")) do
 		local index = entity:get("SpriteComponent"):getDrawIndex()

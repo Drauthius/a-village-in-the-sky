@@ -3,7 +3,6 @@ local table = require "lib.table"
 
 local CarryingComponent = require "src.game.carryingcomponent"
 local PositionComponent = require "src.game.positioncomponent"
-local ResourceComponent = require "src.game.resourcecomponent"
 local TimerComponent = require "src.game.timercomponent"
 local VillagerComponent = require "src.game.villagercomponent"
 local WalkingComponent = require "src.game.walkingcomponent"
@@ -24,7 +23,8 @@ VillagerSystem.static.TIMERS = {
 	IDLE_ROTATE_MAX = 4,
 	PATH_FAILED_DELAY = 3,
 	PATH_WAIT_DELAY = 2,
-	NO_RESOURCE_DELAY = 5
+	NO_RESOURCE_DELAY = 5,
+	FARM_WAIT = 5
 }
 
 VillagerSystem.static.RAND = {
@@ -77,7 +77,7 @@ function VillagerSystem:_updateVillager(entity)
 
 			self:_prepare(entity)
 
-			if adult:getOccupation() == WorkComponent.BUILDER then
+			if workPlace:has("ConstructionComponent") then
 				local construction = workPlace:get("ConstructionComponent")
 
 				-- Make a first pass to determine if any work can be carried out.
@@ -128,11 +128,24 @@ function VillagerSystem:_updateVillager(entity)
 				entity:add(WalkingComponent(ti, tj, { entranceGrid }, WalkingComponent.INSTRUCTIONS.PRODUCE))
 				villager:setGoal(VillagerComponent.GOALS.WORK_PICKUP)
 			else
-				local grid = workPlace:get("PositionComponent"):getGrid()
-				local workGrids = workPlace:get("WorkComponent"):getWorkGrids()
-				assert(workGrids, "No grid information for workplace "..workPlace:get("WorkComponent"):getTypeName())
+				local workGrids
+				if workPlace:has("FieldComponent") then
+					workGrids = workPlace:get("FieldComponent"):getWorkGrids(entity)
+					if not workGrids then
+						-- Nothing to do at the moment, try again later.
+						villager:setGoal(VillagerComponent.GOALS.WAIT)
+						entity:add(TimerComponent(VillagerSystem.TIMERS.FARM_WAIT, function()
+							villager:setGoal(VillagerComponent.GOALS.NONE)
+						end))
+						return
+					end
+				else
+					workGrids = workPlace:get("WorkComponent"):getWorkGrids()
+					assert(workGrids, "No grid information for workplace "..workPlace:get("WorkComponent"):getTypeName())
+				end
 
 				-- The work grids are an offset, so translate them to real grid coordinates.
+				local grid = workPlace:get("PositionComponent"):getGrid()
 				local grids = {}
 				for _,workGrid in ipairs(workGrids) do
 					table.insert(grids, { self.map:getGrid(grid.gi + workGrid.ogi, grid.gj + workGrid.ogj), workGrid.rotation })
@@ -146,15 +159,12 @@ function VillagerSystem:_updateVillager(entity)
 		elseif adult and adult:getWorkArea() and
 		       (adult:getOccupation() == WorkComponent.WOODCUTTER or
 		        adult:getOccupation() == WorkComponent.MINER) then
-			local resource = adult:getOccupation() == WorkComponent.WOODCUTTER and
-				ResourceComponent.WOOD or ResourceComponent.IRON
 			-- This could be optimized through the map or something, but eh.
 			local ti, tj = adult:getWorkArea()
 			for _,workEntity in pairs(self.engine:getEntitiesWithComponent("WorkComponent")) do
 				local assignment = workEntity:get("AssignmentComponent")
 				local eti, etj = workEntity:get("PositionComponent"):getTile()
-				if ti == eti and tj == etj and workEntity:has("ResourceComponent") and
-				   workEntity:get("ResourceComponent"):getResource() == resource and
+				if ti == eti and tj == etj and workEntity:get("WorkComponent"):getType() == adult:getOccupation() and
 				   assignment:getNumAssignees() < assignment:getMaxAssignees() then
 					assignment:assign(entity)
 					adult:setWorkPlace(workEntity)
@@ -202,8 +212,10 @@ function VillagerSystem:_prepare(entity)
 	end
 
 	-- Unreserve any reserved grids.
-	if entity:has("WalkingComponent") and entity:get("WalkingComponent"):getNextGrid() then
-		self.map:unreserve(entity, entity:get("WalkingComponent"):getNextGrid())
+	if entity:has("WalkingComponent") then
+		if entity:get("WalkingComponent"):getNextGrid() then
+			self.map:unreserve(entity, entity:get("WalkingComponent"):getNextGrid())
+		end
 		entity:remove("WalkingComponent")
 	end
 end
@@ -222,7 +234,10 @@ function VillagerSystem:_unreserveAll(entity)
 		end
 	end
 
+	-- TODO: Maybe send it off as an event?
 	if workPlace then
+		workPlace:get("AssignmentComponent"):unassign(entity)
+
 		if workPlace:has("ConstructionComponent") then
 			workPlace:get("ConstructionComponent"):unreserveGrid(entity)
 
@@ -233,9 +248,9 @@ function VillagerSystem:_unreserveAll(entity)
 			if type and amount then
 				workPlace:get("ConstructionComponent"):unreserveResource(type, amount)
 			end
-		elseif workPlace:has("WorkComponent") then
-			workPlace:get("AssignmentComponent"):unassign(entity)
-		else
+		elseif workPlace:has("FieldComponent") then
+			workPlace:get("FieldComponent"):unreserve(entity)
+		elseif not workPlace:has("WorkComponent") then
 			error("Unknown work place")
 		end
 
@@ -283,6 +298,10 @@ function VillagerSystem:assignedEvent(event)
 			adult:setOccupation(site:get("WorkComponent"):getType())
 		elseif site:has("ProductionComponent") then
 			adult:setOccupation(WorkComponent.BLACKSMITH) -- TODO!
+		elseif site:has("FieldComponent") then
+			adult:setOccupation(WorkComponent.FARMER)
+		else
+			error("I give up :(")
 		end
 	end
 end

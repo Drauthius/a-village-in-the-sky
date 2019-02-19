@@ -1,6 +1,7 @@
 local lovetoys = require "lib.lovetoys.lovetoys"
 local table = require "lib.table"
 
+local FieldComponent = require "src.game.fieldcomponent"
 local InteractiveComponent = require "src.game.interactivecomponent"
 local ResourceComponent = require "src.game.resourcecomponent"
 local WorkComponent = require "src.game.workcomponent"
@@ -31,6 +32,8 @@ SpriteSystem.static.ANIMATIONS = {
 	},
 	working = {
 		[WorkComponent.WOODCUTTER] = {},
+		[WorkComponent.MINER] = {},
+		[WorkComponent.BUILDER] = {}
 	}
 }
 
@@ -86,6 +89,21 @@ function SpriteSystem:initialize(eventManager)
 		NE = spriteSheet:getFrameTag("Builder left"),
 		NW = spriteSheet:getFrameTag("Builder right")
 	}
+	working[FieldComponent.UNCULTIVATED] = {
+		NW = spriteSheet:getFrameTag("Plowing")
+	}
+	working[FieldComponent.PLOWED] = {
+		NW = spriteSheet:getFrameTag("Seeding")
+	}
+	working[FieldComponent.SEEDED] = {
+		NW = spriteSheet:getFrameTag("Seeding")
+	}
+	working[FieldComponent.GROWING] = {
+		NW = spriteSheet:getFrameTag("Seeding")
+	}
+	working[FieldComponent.HARVESTING] = {
+		NW = spriteSheet:getFrameTag("Reaping")
+	}
 end
 
 function SpriteSystem:updateVillager(dt, entity)
@@ -117,11 +135,16 @@ function SpriteSystem:updateVillager(dt, entity)
 			targetAnimation = SpriteSystem.ANIMATIONS.walking_to_work[adult:getOccupation()]
 			assert(targetAnimation, "Missing walking animation")
 		else
-			assert(SpriteSystem.ANIMATIONS.working[adult:getOccupation()], "No animation for "..adult:getOccupationName())
-			targetAnimation = SpriteSystem.ANIMATIONS.working[adult:getOccupation()][cardinalDir]
+			local key = adult:getOccupation()
+			if key == WorkComponent.FARMER then
+				-- Train-wreck anti-pattern?
+				key = entity:get("AdultComponent"):getWorkPlace():get("FieldComponent"):getState()
+			end
+			assert(SpriteSystem.ANIMATIONS.working[key], "No animation for "..adult:getOccupationName())
+			targetAnimation = SpriteSystem.ANIMATIONS.working[key][cardinalDir]
 			working = true
 			assert(targetAnimation, "Missing working animation. " ..
-				"Occupation: "..adult:getOccupationName()..", Direction: "..cardinalDir)
+			       "Occupation: "..adult:getOccupationName()..", Direction: "..cardinalDir..", Key: "..key)
 		end
 	elseif entity:has("WalkingComponent") then
 		targetAnimation = SpriteSystem.ANIMATIONS.walking.nothing
