@@ -27,13 +27,15 @@ function GUI:initialize(engine)
 	self.menuButton = spriteSheet:getSprite("menu-button")
 	self.menuButton.data = spriteSheet:getData("menutext-position")
 
-	self.resourcePanel = spriteSheet:getSprite("resource-panel")
-	self.resourcePanel.resources = {
-		ResourceComponent.WOOD,
-		ResourceComponent.IRON,
-		ResourceComponent.TOOL,
-		ResourceComponent.GRAIN,
-		ResourceComponent.BREAD
+	self.resourcePanel = {
+		sprite = spriteSheet:getSprite("resource-panel"),
+		resources = {
+			ResourceComponent.WOOD,
+			ResourceComponent.IRON,
+			ResourceComponent.TOOL,
+			ResourceComponent.GRAIN,
+			ResourceComponent.BREAD
+		}
 	}
 
 	for _,resource in ipairs(self.resourcePanel.resources) do
@@ -41,20 +43,28 @@ function GUI:initialize(engine)
 		local resCapitalized = res:gsub("^%l", string.upper)
 		local work = WorkComponent.WORK_NAME[WorkComponent.RESOURCE_TO_WORK[resource]]
 
-		self.resourcePanel[res] = spriteSheet:getSprite("headers", work .. "-icon")
-		self.resourcePanel[res].icon = spriteSheet:getData(resCapitalized .. "-icon")
-		self.resourcePanel[res].text = spriteSheet:getData(resCapitalized .. "-text")
-		self.resourcePanel[work] = spriteSheet:getSprite("headers", "occupied-icon")
-		self.resourcePanel[work].icon = spriteSheet:getData(resCapitalized .. "-occupation-icon")
-		self.resourcePanel[work].text = spriteSheet:getData(resCapitalized .. "-occupation-text")
+		self.resourcePanel[res] = {
+			sprite =spriteSheet:getSprite("headers", work .. "-icon"),
+			icon = spriteSheet:getData(resCapitalized .. "-icon"),
+			text = spriteSheet:getData(resCapitalized .. "-text")
+		}
+		self.resourcePanel[work] = {
+			sprite = spriteSheet:getSprite("headers", "occupied-icon"),
+			icon = spriteSheet:getData(resCapitalized .. "-occupation-icon"),
+			text = spriteSheet:getData(resCapitalized .. "-occupation-text")
+		}
 	end
 
-	self.resourcePanel.villagers = spriteSheet:getSprite("headers", "occupied-icon")
-	self.resourcePanel.villagers.icon = spriteSheet:getData("Villagers-icon")
-	self.resourcePanel.villagers.text = spriteSheet:getData("Villagers-text")
-	self.resourcePanel.children = spriteSheet:getSprite("headers", "occupied-icon")
-	self.resourcePanel.children.icon = spriteSheet:getData("Children-icon")
-	self.resourcePanel.children.text = spriteSheet:getData("Children-text")
+	self.resourcePanel.villagers = {
+		sprite = spriteSheet:getSprite("headers", "occupied-icon"),
+		icon = spriteSheet:getData("Villagers-icon"),
+		text = spriteSheet:getData("Villagers-text")
+	}
+	self.resourcePanel.children = {
+		sprite = spriteSheet:getSprite("headers", "occupied-icon"),
+		icon = spriteSheet:getData("Children-icon"),
+		text = spriteSheet:getData("Children-text")
+	}
 
 	-- Between buttons
 	local padding = 5
@@ -153,20 +163,20 @@ function GUI:draw()
 	love.graphics.setColor(1, 1, 1)
 
 	do -- Resource panel
-		local x = (self.screenWidth - self.resourcePanel:getWidth()) / 2
-		spriteSheet:draw(self.resourcePanel, x, 0)
+		local x = (self.screenWidth - self.resourcePanel.sprite:getWidth()) / 2
+		spriteSheet:draw(self.resourcePanel.sprite, x, 0)
 
 		for _,resource in ipairs(self.resourcePanel.resources) do
 			local res = ResourceComponent.RESOURCE_NAME[resource]
 			local work = WorkComponent.WORK_NAME[WorkComponent.RESOURCE_TO_WORK[resource]]
 
 			spriteSheet:draw(
-				self.resourcePanel[res],
+				self.resourcePanel[res].sprite,
 				x + self.resourcePanel[res].icon.bounds.x,
 				self.resourcePanel[res].icon.bounds.y)
 
 			spriteSheet:draw(
-				self.resourcePanel[work],
+				self.resourcePanel[work].sprite,
 				x + self.resourcePanel[work].icon.bounds.x,
 				self.resourcePanel[work].icon.bounds.y)
 
@@ -184,11 +194,11 @@ function GUI:draw()
 		end
 
 		spriteSheet:draw(
-			self.resourcePanel.villagers,
+			self.resourcePanel.villagers.sprite,
 			x + self.resourcePanel.villagers.icon.bounds.x,
 			self.resourcePanel.villagers.icon.bounds.y)
 		spriteSheet:draw(
-			self.resourcePanel.children,
+			self.resourcePanel.children.sprite,
 			x + self.resourcePanel.children.icon.bounds.x,
 			self.resourcePanel.children.icon.bounds.y)
 
