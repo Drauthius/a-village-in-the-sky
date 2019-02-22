@@ -4,6 +4,7 @@ local Level = require "src.game.level"
 
 local AdultComponent = require "src.game.adultcomponent"
 local AnimationComponent = require "src.game.animationcomponent"
+local AssignmentComponent = require "src.game.assignmentcomponent"
 local BuildingComponent = require "src.game.buildingcomponent"
 local ConstructionComponent = require "src.game.constructioncomponent"
 local GroundComponent = require "src.game.groundcomponent"
@@ -76,6 +77,7 @@ function HallwayLevel:initiate(engine, map)
 	dwelling:get("SpriteComponent"):setDrawPosition(ax, ay)
 	dwelling:add(PositionComponent(minGrid, maxGrid, 0, -1))
 	dwelling:add(ConstructionComponent(BuildingComponent.DWELLING))
+	dwelling:add(AssignmentComponent(4))
 	InteractiveComponent:makeInteractive(dwelling, ax, ay)
 	dwelling:remove("PlacingComponent")
 	engine:addEntity(dwelling)

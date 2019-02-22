@@ -9,7 +9,6 @@
 --    * Removing a villager from a production job can leave resources "locked in limbo".
 --    * Fields can't blink green or red.
 --      Maybe add a outline that matches the tile, or something?
---    * 2 Villagers can get deadlocked in the field :(
 --  - Next:
 --    * Field outline (+ outline for the grain sticking out)
 --    * Use different palettes for the villagers in the shader.
@@ -28,6 +27,8 @@
 --    * Villagers could work the field differently (working on the patches instead of the field).
 --  - Draw order:
 --    * Update sprites to be square.
+--    * Villagers going diagonally are sometimes draw behind.
+--      Maybe because the position is updated fairly late?
 --  - Particles:
 --    * "Button is next" for the tutorial.
 --    * When villager hits tree/stone/building

@@ -6,7 +6,7 @@ function SoundManager:initialize()
 end
 
 function SoundManager:playEffect(effect)
-	print("Playing "..tostring(effect))
+	--print("Playing "..tostring(effect))
 end
 
 function SoundManager:playMusic(section)

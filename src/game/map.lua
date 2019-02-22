@@ -17,6 +17,9 @@ Map.static.COLL_STATIC = 1
 Map.static.COLL_DYNAMIC = 2
 Map.static.COLL_RESERVED = 4
 
+-- How much more work it is to push a villager than go around them.
+Map.static.OCCUPIED_MULTIPLIER = 10
+
 function Map:initialize()
 	self.tile = {}
 	self.grid = {}
@@ -330,6 +333,10 @@ function Map:cost(thisGrid, nextGrid)
 	-- Check if diagonal
 	if math.abs(thisGrid.gi - nextGrid.gi) == 1 and math.abs(thisGrid.gj, nextGrid.gj) == 1 then
 		cost = 14
+	end
+	if bit.band(nextGrid.collision, Map.COLL_DYNAMIC) ~= 0 then
+		-- Increase the cost for grids currently occupied by villagers.
+		cost = cost * Map.OCCUPIED_MULTIPLIER
 	end
 	return cost
 end

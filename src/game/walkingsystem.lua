@@ -7,12 +7,14 @@ local state = require "src.game.state"
 local Map = require "src.game.map"
 local TargetReachedEvent = require "src.game.targetreachedevent"
 local TargetUnreachableEvent = require "src.game.targetunreachableevent"
+local TimerComponent = require "src.game.timercomponent"
 local WalkingComponent = require "src.game.walkingcomponent"
 
 local WalkingSystem = lovetoys.System:subclass("WalkingSystem")
 
 WalkingSystem.static.BASE_SPEED = 15
-WalkingSystem.static.MIN_DISTANCE_SQUARED = 0.15
+WalkingSystem.static.MIN_DISTANCE_SQUARED = 0.05
+WalkingSystem.static.RECALC_DELAY = 5
 
 function WalkingSystem.requires()
 	return {"WalkingComponent"}
@@ -41,9 +43,30 @@ function WalkingSystem:_walkTheWalk(entity, dt)
 		-- Initialise the path
 		if self:_initiatePath(entity) then
 			path = walking:getPath()
+
+			-- Add a timer to recalculate the path regularly, to be more up to date with ones surroundings.
+			if walking:getInstructions() ~= WalkingComponent.INSTRUCTIONS.WANDER and
+			   walking:getInstructions() ~= WalkingComponent.INSTRUCTIONS.GET_OUT_THE_WAY then
+				if not entity:has("TimerComponent") then
+					local timer = TimerComponent()
+					timer:getTimer():every(WalkingSystem.RECALC_DELAY, function()
+						local oldPath = walking:getPath()
+						if oldPath and oldPath[1] then
+							local start = walking:getNextGrid() or entity:get("PositionComponent"):getGrid()
+							local newPath = self:_calculatePath(start, path[1])
+							if newPath then
+								walking:setPath(newPath)
+							end
+						end
+					end)
+					entity:add(timer)
+				else
+					print("Timer for instruction "..walking:getInstructions())
+				end
+			end
 		else
 			--print("No path to thing")
-			self.eventManager:fireEvent(TargetUnreachableEvent(entity, nil, walking:getInstructions()))
+			self.eventManager:fireEvent(TargetUnreachableEvent(entity, nil, false, walking:getInstructions()))
 			entity:remove("WalkingComponent")
 			return
 		end
@@ -60,36 +83,42 @@ function WalkingSystem:_walkTheWalk(entity, dt)
 			entity:remove("WalkingComponent")
 			return
 		elseif not self.map:isGridEmpty(nextGrid) then
-			--print("Something in the way")
-			if nextGrid == path[1] or not path[1] then -- If the next grid is the target, then we're out of luck.
-				path = nil
-			else
-				-- XXX: The next grid might be walkable, but blocked by a villager. Change that temporarily.
-				local oldCollision = nextGrid.collision
-				nextGrid.collision = Map.COLL_STATIC
+			-- Put back the next grid into the path, so that the things listening to the event can get the whole picture.
+			table.insert(path, nextGrid)
+			-- Do two takes, sending two events if necessary.
+			for i=1,2 do
+				local newPath
+				local retry = i == 1 and path[1] ~= nextGrid
+				local event = TargetUnreachableEvent(entity, nextGrid.owner, retry, walking:getInstructions())
+				self.eventManager:fireEvent(event)
+				if path[1] == nextGrid then
+					print(entity, "Next is the destination :(")
+				end
 
-				-- Calculate a new path, in case that is enough.
-				local start = entity:get("PositionComponent"):getGrid()
-				local nodes = astar.search(self.map, start, path[1])
-				path = astar.reconstructReversedPath(start, path[1], nodes)
+				if event:shouldRetry() then
+					print(entity, "Trying new path")
+					-- XXX: The next grid might be walkable, but blocked by a villager. Change that temporarily.
+					local oldCollision = nextGrid.collision
+					nextGrid.collision = Map.COLL_STATIC
 
-				nextGrid.collision = oldCollision
-			end
+					-- Calculate a new path, in case that is enough.
+					newPath = self:_calculatePath(entity:get("PositionComponent"):getGrid(), path[1])
 
-			if path and #path > 1 then
-				--print("New path!")
-				-- Set up movement to the next point, without breaking stride.
-				table.remove(path) -- Current grid
-				walking:setPath(path)
-				nextGrid = table.remove(path)
-				assert(nextGrid, "Recalculated path should not be empty.")
-			else
-				--print("No new path :(")
-				-- Insert the next grid back into the old path, in case the event uses it in some way.
-				table.insert(walking:getPath(), nextGrid)
-				self.eventManager:fireEvent(TargetUnreachableEvent(entity, nextGrid.owner, walking:getInstructions()))
-				entity:remove("WalkingComponent")
-				return
+					nextGrid.collision = oldCollision
+				end
+
+				if newPath and #newPath > 1 then
+					print(entity, "New path!")
+					-- Set up movement to the next point, without breaking stride.
+					table.remove(newPath) -- Current grid
+					walking:setPath(newPath)
+					nextGrid = table.remove(newPath)
+					assert(nextGrid, "Recalculated path should not be empty.")
+					break
+				elseif not event:shouldRetry() then
+					entity:remove("WalkingComponent")
+					return
+				end
 			end
 		end
 
@@ -138,6 +167,18 @@ function WalkingSystem:_initiatePath(entity)
 	return false
 end
 
+function WalkingSystem:_calculatePath(start, target)
+	local nodes = astar.search(self.map, start, target)
+	local path = astar.reconstructReversedPath(start, target, nodes)
+
+	if path and #path > 1 then
+		table.remove(path) -- Current grid
+		return path
+	end
+
+	return nil
+end
+
 function WalkingSystem:_createPath(entity)
 	local walking = entity:get("WalkingComponent")
 
@@ -154,9 +195,8 @@ function WalkingSystem:_createPath(entity)
 
 		local target = self.map:getGrid(gi, gj)
 
-		local nodes = astar.search(self.map, start, target)
-		path = astar.reconstructReversedPath(start, target, nodes)
-		assert(path and #path > 0, "TODO: No path to free resource.") -- TODO
+		path = self:_calculatePath(start, target)
+		assert(path, "TODO: No path to free resource.") -- TODO
 
 		-- Last grid is the destination.
 		local grid = table.remove(path, 1)
@@ -290,18 +330,9 @@ function WalkingSystem:_createPath(entity)
 	elseif instruction == WalkingComponent.INSTRUCTIONS.WANDER or
 	       instruction == WalkingComponent.INSTRUCTIONS.GET_OUT_THE_WAY then
 		local target = walking:getTargetGrids()[1]
-		local nodes = astar.search(self.map, start, target)
-		path = astar.reconstructReversedPath(start, target, nodes)
+		path = self:_calculatePath(start, target)
 	else
 		error("Don't know how to walk.")
-	end
-
-	if path then
-		if #path < 1 then
-			return nil
-		end
-		-- Get rid of the starting (current) grid.
-		table.remove(path)
 	end
 
 	return path, targetEntity, targetRotation, nextStop
@@ -350,12 +381,11 @@ function WalkingSystem:_createClosestPath(extract, entities, start, goal, check)
 		target.collision = Map.COLL_NONE
 
 		-- Create a path to the target, to ensure it can be reached.
-		local nodes = astar.search(self.map, start, target)
-		path = astar.reconstructReversedPath(start, target, nodes)
+		path = self:_calculatePath(start, target)
 
 		target.collision = oldCollision
 
-		if path and #path > 0 then
+		if path then
 			break
 		end
 	end

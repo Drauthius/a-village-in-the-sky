@@ -92,7 +92,7 @@ local function _createClass(name, super)
     setmetatable(aClass.static, { __index = function(_,k) return rawget(dict,k) end })
   end
 
-  setmetatable(aClass, { __index = aClass.static, __tostring = _tostring,
+  setmetatable(aClass, { __index = aClass.static, --__tostring = _tostring,
                          __call = _call, __newindex = _declareInstanceMethod })
 
   return aClass
@@ -114,7 +114,7 @@ local function _includeMixin(aClass, mixin)
 end
 
 local DefaultMixin = {
-  __tostring   = function(self) return "instance of " .. tostring(self.class) end,
+  --__tostring   = function(self) return "instance of " .. tostring(self.class) end,
 
   initialize   = function(self, ...) end,
 
