@@ -4,6 +4,7 @@ local table = require "lib.table"
 local FieldComponent = require "src.game.fieldcomponent"
 local InteractiveComponent = require "src.game.interactivecomponent"
 local ResourceComponent = require "src.game.resourcecomponent"
+local VillagerComponent = require "src.game.villagercomponent"
 local WorkComponent = require "src.game.workcomponent"
 
 local WorkEvent = require "src.game.workevent"
@@ -125,6 +126,7 @@ function SpriteSystem:updateVillager(dt, entity)
 
 	-- Figure out the animation.
 	local targetAnimation
+	local animated = true
 	local working = false
 	if entity:has("CarryingComponent") then
 		local carrying = entity:get("CarryingComponent")
@@ -134,6 +136,12 @@ function SpriteSystem:updateVillager(dt, entity)
 		if entity:has("WalkingComponent") or not entity:get("WorkingComponent"):getWorking() then
 			targetAnimation = SpriteSystem.ANIMATIONS.walking_to_work[adult:getOccupation()]
 			assert(targetAnimation, "Missing walking animation")
+			-- XXX: Didn't want to make a check like this, but here we are.
+			if not entity:has("WalkingComponent") and
+			   villager:getGoal() ~= VillagerComponent.GOALS.DROPOFF
+			   and villager:getGoal() ~= VillagerComponent.GOALS.WORK_PICKUP then
+				animated = false
+			end
 		else
 			local key = adult:getOccupation()
 			if key == WorkComponent.FARMER then
@@ -150,6 +158,7 @@ function SpriteSystem:updateVillager(dt, entity)
 		targetAnimation = SpriteSystem.ANIMATIONS.walking.nothing
 	else
 		targetAnimation = SpriteSystem.ANIMATIONS.idle
+		animated = false
 	end
 
 	-- Figure out the animation frame.
@@ -157,7 +166,7 @@ function SpriteSystem:updateVillager(dt, entity)
 	if animation:getAnimation() ~= targetAnimation then
 		newFrame = true
 		animation:setAnimation(targetAnimation)
-	else
+	elseif animated then
 		local t = animation:getTimer() - dt
 		if t <= 0 then
 			newFrame = true
