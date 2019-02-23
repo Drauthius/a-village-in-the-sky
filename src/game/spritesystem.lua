@@ -97,10 +97,10 @@ function SpriteSystem:initialize(eventManager)
 		NW = spriteSheet:getFrameTag("Seeding")
 	}
 	working[FieldComponent.SEEDED] = {
-		NW = spriteSheet:getFrameTag("Seeding")
+		NW = spriteSheet:getFrameTag("Watering")
 	}
 	working[FieldComponent.GROWING] = {
-		NW = spriteSheet:getFrameTag("Seeding")
+		NW = spriteSheet:getFrameTag("Watering")
 	}
 	working[FieldComponent.HARVESTING] = {
 		NW = spriteSheet:getFrameTag("Reaping")
