@@ -96,7 +96,7 @@ function RenderSystem:draw()
 
 	-- TODO: Can probably cache (overwrite addEntity/removeEntity?)
 	for _,entity in pairs(self.targets) do
-		if entity:has("FieldComponent") then
+		if entity:has("FieldEnclosureComponent") then
 			local ti, tj = entity:get("PositionComponent"):getTile()
 			for k,tile in ipairs(ground) do
 				if tile:has("TileComponent") then

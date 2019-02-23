@@ -17,7 +17,9 @@ FieldComponent.static.STATE_NAMES = {
 	[FieldComponent.HARVESTING] = "harvesting"
 }
 
-function FieldComponent:initialize()
+function FieldComponent:initialize(enclosure)
+	self:setState(FieldComponent.UNCULTIVATED)
+	self:setEnclosure(enclosure)
 end
 
 function FieldComponent:getState()
@@ -28,47 +30,12 @@ function FieldComponent:setState(state)
 	self.state = state
 end
 
-function FieldComponent:getPatches()
-	return self.patches
+function FieldComponent:getEnclosure()
+	return self.enclosure
 end
 
-function FieldComponent:setPatches(patches)
-	self.patches = patches
-end
-
-function FieldComponent:getWorkedPatch()
-	return self.workedPatch
-end
-
-function FieldComponent:setWorkedPatch(index)
-	self.workedPatech = index
-end
-
-function FieldComponent:getWorkGrids(villager)
-	self:reserve(villager)
-	for _,patch in ipairs(self.patches) do
-		if patch:get("AssignmentComponent"):isAssigned(villager) then
-			return patch:get("WorkComponent"):getWorkGrids()
-		end
-	end
-end
-
-function FieldComponent:reserve(villager)
-	for _,patch in ipairs(self.patches) do
-		if not patch:get("WorkComponent"):isComplete() and patch:get("AssignmentComponent"):getNumAssignees() < 1 then
-			patch:get("AssignmentComponent"):assign(villager)
-			break
-		end
-	end
-end
-
-function FieldComponent:unreserve(villager)
-	for _,patch in ipairs(self.patches) do
-		if patch:get("AssignmentComponent"):isAssigned(villager) then
-			patch:get("AssignmentComponent"):unassign(villager)
-			break
-		end
-	end
+function FieldComponent:setEnclosure(enclosure)
+	self.enclosure = enclosure
 end
 
 return FieldComponent

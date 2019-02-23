@@ -130,23 +130,8 @@ function VillagerSystem:_updateVillager(entity)
 				entity:add(WalkingComponent(ti, tj, { entranceGrid }, WalkingComponent.INSTRUCTIONS.PRODUCE))
 				villager:setGoal(VillagerComponent.GOALS.WORK_PICKUP)
 			else
-				local workGrids
-				if workPlace:has("FieldComponent") then
-					workGrids = workPlace:get("FieldComponent"):getWorkGrids(entity)
-					if not workGrids then
-						-- Nothing to do at the moment, try again later.
-						villager:setGoal(VillagerComponent.GOALS.WAIT)
-						print(entity, "Timer: FARM WAIT")
-						entity:add(TimerComponent(VillagerSystem.TIMERS.FARM_WAIT, function()
-							villager:setGoal(VillagerComponent.GOALS.NONE)
-							entity:remove("TimerComponent")
-						end))
-						return
-					end
-				else
-					workGrids = workPlace:get("WorkComponent"):getWorkGrids()
-					assert(workGrids, "No grid information for workplace "..workPlace:get("WorkComponent"):getTypeName())
-				end
+				local workGrids = workPlace:get("WorkComponent"):getWorkGrids()
+				assert(workGrids, "No grid information for workplace "..workPlace:get("WorkComponent"):getTypeName())
 
 				-- The work grids are an offset, so translate them to real grid coordinates.
 				local grid = workPlace:get("PositionComponent"):getGrid()
@@ -162,13 +147,17 @@ function VillagerSystem:_updateVillager(entity)
 			entity:add(WorkingComponent())
 		elseif adult and adult:getWorkArea() and
 		       (adult:getOccupation() == WorkComponent.WOODCUTTER or
-		        adult:getOccupation() == WorkComponent.MINER) then
+		        adult:getOccupation() == WorkComponent.MINER or
+		        adult:getOccupation() == WorkComponent.FARMER) then
 			-- This could be optimized through the map or something, but eh.
 			local ti, tj = adult:getWorkArea()
+			-- TODO: The order is somewhat random, but static. Do we want to randomise further, or calculate the
+			-- closest one? (Mostly relevant for fields.)
 			for _,workEntity in pairs(self.engine:getEntitiesWithComponent("WorkComponent")) do
 				local assignment = workEntity:get("AssignmentComponent")
 				local eti, etj = workEntity:get("PositionComponent"):getTile()
 				if ti == eti and tj == etj and workEntity:get("WorkComponent"):getType() == adult:getOccupation() and
+				   not workEntity:get("WorkComponent"):isComplete() and
 				   assignment:getNumAssignees() < assignment:getMaxAssignees() then
 					assignment:assign(entity)
 					adult:setWorkPlace(workEntity)
@@ -177,7 +166,17 @@ function VillagerSystem:_updateVillager(entity)
 			end
 
 			-- No such entity found. No work able to be carried out.
-			adult:setWorkArea(nil)
+			if adult:getOccupation() == WorkComponent.FARMER then
+				-- For farms, try again later.
+				villager:setGoal(VillagerComponent.GOALS.WAIT)
+				print(entity, "Timer: FARM WAIT")
+				entity:add(TimerComponent(VillagerSystem.TIMERS.FARM_WAIT, function()
+					villager:setGoal(VillagerComponent.GOALS.NONE)
+					entity:remove("TimerComponent")
+				end))
+			else
+				adult:setWorkArea(nil)
+			end
 		else
 			if not entity:has("TimerComponent") and not entity:has("WalkingComponent") then
 				-- Fidget a little by rotating the villager.
@@ -225,7 +224,8 @@ function VillagerSystem:_prepare(entity)
 end
 
 function VillagerSystem:_unreserveAll(entity)
-	local workPlace = entity:get("AdultComponent"):getWorkPlace()
+	local adult = entity:get("AdultComponent")
+	local workPlace = adult:getWorkPlace()
 
 	local type, amount
 	for _,resourceEntity in pairs(self.engine:getEntitiesWithComponent("ResourceComponent")) do
@@ -252,13 +252,27 @@ function VillagerSystem:_unreserveAll(entity)
 			if type and amount then
 				workPlace:get("ConstructionComponent"):unreserveResource(type, amount)
 			end
-		elseif workPlace:has("FieldComponent") then
-			workPlace:get("FieldComponent"):unreserve(entity)
 		elseif not workPlace:has("WorkComponent") then
 			error("Unknown work place")
 		end
 	end
 
+	if adult:getOccupation() == WorkComponent.FARMER then
+		local enclosure
+		if workPlace then
+			enclosure = workPlace:get("FieldComponent"):getEnclosure()
+		else
+			for _,v in pairs(self.engine:getEntitiesWithComponent("FieldEnclosureComponent")) do
+				if v:get("AssignmentComponent"):isAssigned(entity) then
+					enclosure = v
+					break
+				end
+			end
+		end
+		enclosure:get("AssignmentComponent"):unassign(entity)
+	end
+
+	adult:setWorkPlace(nil)
 	if entity:has("WorkingComponent") then
 		entity:remove("WorkingComponent")
 	end
@@ -302,7 +316,7 @@ function VillagerSystem:assignedEvent(event)
 			adult:setOccupation(site:get("WorkComponent"):getType())
 		elseif site:has("ProductionComponent") then
 			adult:setOccupation(WorkComponent.BLACKSMITH) -- TODO!
-		elseif site:has("FieldComponent") then
+		elseif site:has("FieldComponent") or site:has("FieldEnclosureComponent") then
 			adult:setOccupation(WorkComponent.FARMER)
 		else
 			error("I give up :(")

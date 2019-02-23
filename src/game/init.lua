@@ -24,7 +24,6 @@
 --    * Either consolidate production/construction components (wrt input), or maybe add an "input" component?
 --    * Either consolidate dwelling/production component (wrt entrance), or maybe add an "entrance" component?
 --    * Calling variables for "entity" in different contexts begs for trouble.
---    * Villagers could work the field differently (working on the patches instead of the field).
 --  - Draw order:
 --    * Update sprites to be square.
 --    * Villagers going diagonally are sometimes draw behind.
@@ -333,12 +332,20 @@ function Game:_handleClick(x, y)
 
 	local selected = state:getSelection()
 	if selected and selected:has("AdultComponent") and clicked:has("AssignmentComponent") then
+		if clicked:has("FieldComponent") then
+			print("Managed to click the field, eh?")
+			clicked = clicked:get("FieldComponent"):getEnclosure()
+		end
+
 		local assignment = clicked:get("AssignmentComponent")
 		local alreadyAdded = assignment:isAssigned(selected)
 		local valid = alreadyAdded or assignment:getNumAssignees() < assignment:getMaxAssignees()
 		local skipWorkPlace = false
 
-		if not valid and clicked:has("WorkComponent") then
+		if clicked:has("FieldEnclosureComponent") then
+			-- Never work the enclosure, only the fields.
+			skipWorkPlace = true
+		elseif not valid and clicked:has("WorkComponent") then
 			-- Assign to work the grid instead of to the specific resource.
 			valid = true
 			skipWorkPlace = true

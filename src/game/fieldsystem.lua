@@ -33,7 +33,7 @@ FieldSystem.static.TIMERS = {
 }
 
 function FieldSystem.requires()
-	return {"FieldComponent"}
+	return {"FieldEnclosureComponent"}
 end
 
 function FieldSystem:initialize(engine, map)
@@ -44,31 +44,28 @@ end
 
 function FieldSystem:update(dt)
 	for _,entity in pairs(self.targets) do
-		local field = entity:get("FieldComponent")
-		local patches = field:getPatches()
-		if not patches then
-			patches = self:_initiate(entity)
-		end
+		self:_update(entity)
+	end
+end
 
-		local state = field:getState()
-		for _,patch in ipairs(patches) do
-			if patch.state == state or patch.state == FieldComponent.IN_PROGRESS then
-				state = nil
-				break
-			end
-		end
+function FieldSystem:_update(entity)
+	local fieldEnclosure = entity:get("FieldEnclosureComponent")
+	local fields = fieldEnclosure:getFields()
+	if not fields then
+		fields = self:_initiate(entity)
+	end
 
-		if state then
-			if state == FieldComponent.HARVESTING then
-				state = FieldComponent.UNCULTIVATED
-			else
-				state = state + 1 -- Lazy
-			end
-			field:setState(state)
-			for _,patch in ipairs(patches) do
-				patch:get("WorkComponent"):reset()
-			end
+	-- Check whether all fields are completed.
+	local state = fields[1]:get("FieldComponent"):getState()
+	for _,field in ipairs(fields) do
+		if not field:get("WorkComponent"):isComplete() or field:get("FieldComponent"):getState() ~= state then
+			return
 		end
+	end
+
+	-- All fields complete, reset them all.
+	for _,field in ipairs(fields) do
+		field:get("WorkComponent"):reset()
 	end
 end
 
@@ -81,101 +78,84 @@ function FieldSystem:workEvent(event)
 		return
 	end
 
-	-- Try to find which patch the villager is working on.
 	local field = workPlace:get("FieldComponent")
-	local patches = assert(field:getPatches(), "Field not set up")
-	local workedPatch
-	for _,patch in ipairs(patches) do
-		if patch:get("AssignmentComponent"):isAssigned(entity) then
-			workedPatch = patch
-			break
-		end
-	end
-	assert(workedPatch, "Could not find patch.")
-
-	workedPatch:get("WorkComponent"):increaseCompletion(10.0) -- TODO: Value!
-	if workedPatch:get("WorkComponent"):isComplete() then
-		local state = workedPatch.state
+	workPlace:get("WorkComponent"):increaseCompletion(10.0) -- TODO: Value!
+	if workPlace:get("WorkComponent"):isComplete() then
+		local state = field:getState()
 		if state == FieldComponent.UNCULTIVATED then
 			state = FieldComponent.PLOWED
 			local stateName = FieldComponent.STATE_NAMES[state]:gsub("^%l", string.upper)
-			workedPatch:get("SpriteComponent"):setSprite(spriteSheet:getSprite("field-single ("..stateName..")"))
+			workPlace:get("SpriteComponent"):setSprite(spriteSheet:getSprite("field-single ("..stateName..")"))
 		elseif state == FieldComponent.PLOWED then
 			state = FieldComponent.IN_PROGRESS
-			workedPatch:add(TimerComponent(FieldSystem.TIMERS.SEED_DELAY, function()
-				workedPatch:remove("TimerComponent")
-				workedPatch.state = FieldComponent.SEEDED
-				local stateName = FieldComponent.STATE_NAMES[workedPatch.state]:gsub("^%l", string.upper)
-				workedPatch:get("SpriteComponent"):setSprite(spriteSheet:getSprite("field-single ("..stateName..")"))
+			workPlace:add(TimerComponent(FieldSystem.TIMERS.SEED_DELAY, function()
+				workPlace:remove("TimerComponent")
+				field:setState(FieldComponent.SEEDED)
+				local stateName = FieldComponent.STATE_NAMES[field:getState()]:gsub("^%l", string.upper)
+				workPlace:get("SpriteComponent"):setSprite(spriteSheet:getSprite("field-single ("..stateName..")"))
 			end))
 		elseif state == FieldComponent.SEEDED then
 			state = FieldComponent.IN_PROGRESS
-			workedPatch:add(TimerComponent(FieldSystem.TIMERS.GROW_DELAY, function()
-				workedPatch:remove("TimerComponent")
-				workedPatch.state = FieldComponent.GROWING
-				local stateName = FieldComponent.STATE_NAMES[workedPatch.state]:gsub("^%l", string.upper)
-				workedPatch:get("SpriteComponent"):setSprite(spriteSheet:getSprite("field-single ("..stateName..")"))
+			workPlace:add(TimerComponent(FieldSystem.TIMERS.GROW_DELAY, function()
+				workPlace:remove("TimerComponent")
+				field:setState(FieldComponent.GROWING)
+				local stateName = FieldComponent.STATE_NAMES[field:getState()]:gsub("^%l", string.upper)
+				workPlace:get("SpriteComponent"):setSprite(spriteSheet:getSprite("field-single ("..stateName..")"))
 			end))
 		elseif state == FieldComponent.GROWING then
 			state = FieldComponent.IN_PROGRESS
-			workedPatch:add(TimerComponent(FieldSystem.TIMERS.HARVEST_DELAY, function()
-				workedPatch:remove("TimerComponent")
-				workedPatch.state = FieldComponent.HARVESTING
-				local stateName = FieldComponent.STATE_NAMES[workedPatch.state]:gsub("^%l", string.upper)
-				workedPatch:get("SpriteComponent"):setSprite(spriteSheet:getSprite("field-single ("..stateName..")"))
+			workPlace:add(TimerComponent(FieldSystem.TIMERS.HARVEST_DELAY, function()
+				workPlace:remove("TimerComponent")
+				field:setState(FieldComponent.HARVESTING)
+				local stateName = FieldComponent.STATE_NAMES[field:getState()]:gsub("^%l", string.upper)
+				workPlace:get("SpriteComponent"):setSprite(spriteSheet:getSprite("field-single ("..stateName..")"))
 			end))
 		elseif state == FieldComponent.HARVESTING then
 			state = FieldComponent.UNCULTIVATED
 			local stateName = FieldComponent.STATE_NAMES[state]:gsub("^%l", string.upper)
-			workedPatch:get("SpriteComponent"):setSprite(spriteSheet:getSprite("field-single ("..stateName..")"))
+			workPlace:get("SpriteComponent"):setSprite(spriteSheet:getSprite("field-single ("..stateName..")"))
 
 			entity:add(CarryingComponent(ResourceComponent.GRAIN, 3))
 		end
 
-		workedPatch.state = state
-		workedPatch:get("AssignmentComponent"):unassign(entity)
+		field:setState(state)
+		workPlace:get("AssignmentComponent"):unassign(entity)
 		entity:remove("WorkingComponent")
+		entity:get("AdultComponent"):setWorkPlace(nil)
 		entity:get("VillagerComponent"):setGoal(VillagerComponent.GOALS.NONE)
 	end
 end
 
 function FieldSystem:_initiate(entity)
 	local grid = entity:get("PositionComponent"):getFromGrid()
-	local endGrid = entity:get("PositionComponent"):getToGrid()
 	local ti, tj = entity:get("PositionComponent"):getTile()
 	local data = spriteSheet:getData("Field")
-	local patches = {}
+	local fields = {}
 	for i=1,9 do
-		local patch = lovetoys.Entity(entity)
+		local field = lovetoys.Entity(entity)
 
 		-- The position of the patch.
 		local fromGrid = self.map:getGrid(grid.gi + FieldSystem.GRID_OFFSETS[i].ogi,
 		                                  grid.gj + FieldSystem.GRID_OFFSETS[i].ogj)
 		local toGrid = self.map:getGrid(fromGrid.gi + 3, fromGrid.gj + 3)
-		patch:add(PositionComponent(fromGrid, toGrid, ti, tj))
+		field:add(PositionComponent(fromGrid, toGrid, ti, tj))
 
-		-- The sprite of the patch.
-		-- The slices telling where the patches are are a bit annoying to use...
+		-- The sprite of the field.
+		-- The slices telling where the fields are are a bit annoying to use...
 		local dx, dy = self.map:gridToWorldCoords(fromGrid.gi + 2, fromGrid.gj + 2)
 		dx, dy = dx - data.pivot.x - 1, dy - data.pivot.y - 1
-		patch:add(SpriteComponent(spriteSheet:getSprite("field-single (Uncultivated)"), dx, dy))
+		field:add(SpriteComponent(spriteSheet:getSprite("field-single (Uncultivated)"), dx, dy))
 
-		patch:add(AssignmentComponent(1))
-		local workGrids = { { rotation = 315, ogi = toGrid.gi - endGrid.gi + 1, ogj = toGrid.gj - endGrid.gj - 2 } }
-		patch:add(WorkComponent(WorkComponent.FARMER, workGrids))
+		field:add(AssignmentComponent(1))
+		field:add(WorkComponent(WorkComponent.FARMER))
+		field:add(FieldComponent(entity))
 
-		self.engine:addEntity(patch)
-		table.insert(patches, patch)
-
-		-- TODO: Hack
-		patch.state = FieldComponent.UNCULTIVATED
+		self.engine:addEntity(field)
+		table.insert(fields, field)
 	end
 
-	local field = entity:get("FieldComponent")
-	field:setPatches(patches)
-	field:setWorkedPatch(1)
-	field:setState(FieldComponent.UNCULTIVATED)
-	return patches
+	entity:get("FieldEnclosureComponent"):setFields(fields)
+	return fields
 end
 
 return FieldSystem

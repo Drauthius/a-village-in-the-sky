@@ -5,7 +5,7 @@ local AssignmentComponent = require "src.game.assignmentcomponent"
 local BuildingComponent = require "src.game.buildingcomponent"
 local CarryingComponent = require "src.game.carryingcomponent"
 local DwellingComponent = require "src.game.dwellingcomponent"
-local FieldComponent = require "src.game.fieldcomponent"
+local FieldEnclosureComponent = require "src.game.fieldenclosurecomponent"
 local PositionComponent = require "src.game.positioncomponent"
 local ProductionComponent = require "src.game.productioncomponent"
 local ResourceComponent = require "src.game.resourcecomponent"
@@ -124,7 +124,7 @@ function WorkSystem:workEvent(event)
 					workPlace:add(ProductionComponent(type))
 					workPlace:add(AssignmentComponent(1))
 				elseif type == BuildingComponent.FIELD then
-					workPlace:add(FieldComponent())
+					workPlace:add(FieldEnclosureComponent())
 					workPlace:add(AssignmentComponent(2))
 				else
 					print("Dunno what to do with "..tostring(BuildingComponent.BUILDING_NAME[type]).." :(")
