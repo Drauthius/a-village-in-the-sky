@@ -319,8 +319,21 @@ function Game:_handleClick(x, y)
 	for _,entity in pairs(self.engine:getEntitiesWithComponent("InteractiveComponent")) do
 		local index = entity:get("SpriteComponent"):getDrawIndex()
 		if index > clickedIndex and entity:get("InteractiveComponent"):isWithin(x, y) then
-			clicked = entity
-			clickedIndex = index
+			local dx, dy = entity:get("SpriteComponent"):getDrawPosition()
+			-- Cast a bit wider net than single pixel.
+			for ox in ipairs({ 0, 1, -1 }) do
+				for oy in ipairs({0, 1, -1}) do
+					if select(4, entity:get("SpriteComponent"):getSprite():getPixel(x - dx + ox, y - dy + oy)) > 0.1 then
+						clicked = entity
+						clickedIndex = index
+						break
+					end
+				end
+
+				if clicked == entity then
+					break
+				end
+			end
 		end
 	end
 

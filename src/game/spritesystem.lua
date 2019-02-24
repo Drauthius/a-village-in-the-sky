@@ -209,8 +209,6 @@ function SpriteSystem:updateVillager(dt, entity)
 		end
 	end
 
-	--local prevDrawX, prevDrawY = entity:get("SpriteComponent"):getDrawPosition()
-
 	sprite:setSprite(targetSprite)
 
 	local data = spriteSheet:getData(slice, sliceFrame)
