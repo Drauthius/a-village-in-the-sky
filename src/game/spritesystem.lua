@@ -113,14 +113,6 @@ function SpriteSystem:updateVillager(dt, entity)
 	local sprite = entity:get("SpriteComponent")
 	local animation = entity:get("AnimationComponent")
 
-	-- Figure out the palette.
-	local palette = villager:getPalette() - 1
-	if palette == 0 then
-		palette = ""
-	else
-		palette = "#" .. palette
-	end
-
 	-- Figure out the cardinal direction.
 	local cardinalDir = villager:getCardinalDirection()
 
@@ -182,14 +174,14 @@ function SpriteSystem:updateVillager(dt, entity)
 	if working then
 		slice = "Working"
 		sliceFrame = animation:getAnimation().from
-		targetSprite, duration = spriteSheet:getSprite("villagers-action "..frame..palette, slice)
+		targetSprite, duration = spriteSheet:getSprite("villagers-action "..frame, slice)
 	else
 		if adult then
 			slice = villager:getGender() .. " - " .. cardinalDir
-			targetSprite, duration = spriteSheet:getSprite("villagers "..frame..palette, slice)
+			targetSprite, duration = spriteSheet:getSprite("villagers "..frame, slice)
 		else
 			slice = (villager:getGender() == "male" and "Boy" or "Girl") .. " - " .. cardinalDir
-			targetSprite, duration = spriteSheet:getSprite("children "..frame..palette, slice)
+			targetSprite, duration = spriteSheet:getSprite("children "..frame, slice)
 		end
 	end
 

@@ -24,6 +24,7 @@ field-single.aseprite
 other=(
 bread-resource.aseprite
 button.aseprite
+children.aseprite
 details-panel.aseprite
 dust-effect.aseprite
 forest-tile.aseprite
@@ -43,6 +44,7 @@ menu-button.aseprite
 mountain-tile.aseprite
 resource-panel.aseprite
 tool-resource.aseprite
+villagers-palette.aseprite
 windmill-blades.aseprite
 wood-resource.aseprite
 year-panel.aseprite
@@ -52,15 +54,6 @@ hairy_layer='Hairy'
 villagers=(
 villagers-action.aseprite
 villagers.aseprite
-)
-
-children=(
-children.aseprite
-)
-
-villager_palettes=(
-human-palette1-new.aseprite
-human-palette2-new.aseprite
 )
 
 cd "$dir"
@@ -82,15 +75,7 @@ for variant in hairy unhairy; do
 			echo "$villager is missing the '$hairy_layer' layer."
 		fi
 
-		for palette in "${villager_palettes[@]}"; do
-			villager_variants+=( "$villager" --palette "$palette")
-		done
-	done
-done
-
-for child in "${children[@]}"; do
-	for palette in "${villager_palettes[@]}"; do
-		villager_variants+=( "$child" --palette "$palette")
+		villager_variants+=( "$villager" )
 	done
 done
 

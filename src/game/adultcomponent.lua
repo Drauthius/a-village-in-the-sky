@@ -5,15 +5,9 @@ local WorkComponent = require "src.game.workcomponent"
 local AdultComponent = class("AdultComponent")
 
 function AdultComponent:initialize()
-	self.hairy = love.math.random(0, 1) == 1
-
 	self:setWorkArea(nil)
 	self:setWorkPlace(nil)
 	self:setOccupation(WorkComponent.UNEMPLOYED)
-end
-
-function AdultComponent:isHairy()
-	return self.hairy
 end
 
 function AdultComponent:setWorkArea(ti, tj)

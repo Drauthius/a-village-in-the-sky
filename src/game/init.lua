@@ -11,7 +11,6 @@
 --      Maybe add a outline that matches the tile, or something?
 --  - Next:
 --    * Field outline (+ outline for the grain sticking out)
---    * Use different palettes for the villagers in the shader.
 --    * Open/close door when going in/out.
 --  - Refactoring:
 --    * There is little reason to have the VillagerComponent be called "VillagerComponent", other than symmetry.

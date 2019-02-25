@@ -14,12 +14,12 @@ VillagerComponent.static.GOALS = {
 function VillagerComponent:initialize(stats)
 	self.name = stats.name or "Uh"
 	self.age = stats.age or 0.0
+	self.hairy = stats.hairy or false
 	self.gender = stats.gender
 	self.strength = stats.strength or 0.5
 	self.craftsmanship = stats.craftsmanship or 0.5
 
 	self.direction = love.math.random(0, 359)
-	self.palette = love.math.random(1, 2)
 
 	self.speedModifier = 1
 	self.goal = VillagerComponent.GOALS.NONE
@@ -38,16 +38,16 @@ function VillagerComponent:getGender()
 	return self.gender
 end
 
+function VillagerComponent:isHairy()
+	return self.hairy
+end
+
 function VillagerComponent:getStrenth()
 	return self.strength
 end
 
 function VillagerComponent:getCraftsmanship()
 	return self.craftsmanship
-end
-
-function VillagerComponent:getPalette()
-	return self.palette
 end
 
 function VillagerComponent:getDirection()

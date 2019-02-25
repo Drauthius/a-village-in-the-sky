@@ -11,12 +11,15 @@ RenderSystem.static.SELECTED_OUTLINE_COLOR = { 0.15, 0.70, 0.15, 1.0 }
 RenderSystem.static.BEHIND_OUTLINE_COLOR = { 0.70, 0.70, 0.70, 1.0 }
 RenderSystem.static.SELECTED_BEHIND_OUTLINE_COLOR = { 0.60, 0.95, 0.60, 1.0 }
 
+RenderSystem.static.MAX_REPLACE_COLORS = 16
+
 RenderSystem.static.COLOR_OUTLINE_SHADER = love.graphics.newShader([[
-extern bool noShadow;
-extern bool shadowOnly;
-extern bool outlineOnly;
-extern vec4 oldOutlineColor;
-extern vec4 newOutlineColor;
+uniform bool noShadow;
+uniform bool shadowOnly;
+uniform bool outlineOnly;
+uniform int numColorReplaces;
+uniform vec4 oldColor[]]..RenderSystem.MAX_REPLACE_COLORS..[[];
+uniform vec4 newColor[]]..RenderSystem.MAX_REPLACE_COLORS..[[];
 
 vec4 effect(vec4 color, Image texture, vec2 texture_coords, vec2 screen_coords)
 {
@@ -26,10 +29,12 @@ vec4 effect(vec4 color, Image texture, vec2 texture_coords, vec2 screen_coords)
 		discard; // Don't count for stencil tests.
 	if(shadowOnly && texturecolor.a > 0.5)
 		discard;
-	if(texturecolor == oldOutlineColor)
-		return newOutlineColor; // * color;
-	if(outlineOnly || (noShadow && texturecolor.a < 0.5))
-		discard;
+	for(int i = 0; i < numColorReplaces; ++i) {
+		if((outlineOnly && i != 0) || (noShadow && texturecolor.a < 0.5))
+			discard;
+		if(texturecolor == oldColor[i])
+			return newColor[i]; // * color; // TODO: Outline is being messed up.
+	}
 
 	return texturecolor * color;
 }
@@ -60,8 +65,10 @@ function RenderSystem:initialize()
 	RenderSystem.COLOR_OUTLINE_SHADER:send("noShadow", false)
 	RenderSystem.COLOR_OUTLINE_SHADER:send("shadowOnly", false)
 	RenderSystem.COLOR_OUTLINE_SHADER:send("outlineOnly", false)
-	RenderSystem.COLOR_OUTLINE_SHADER:send("oldOutlineColor", RenderSystem.OLD_OUTLINE_COLOR)
-	RenderSystem.COLOR_OUTLINE_SHADER:send("newOutlineColor", RenderSystem.NEW_OUTLINE_COLOR)
+	-- NOTE: First colour is reserved for the outline.
+	RenderSystem.COLOR_OUTLINE_SHADER:send("numColorReplaces", 1)
+	RenderSystem.COLOR_OUTLINE_SHADER:send("oldColor", RenderSystem.OLD_OUTLINE_COLOR)
+	RenderSystem.COLOR_OUTLINE_SHADER:send("newColor", RenderSystem.NEW_OUTLINE_COLOR)
 
 	-- NOTE: Global
 	love.graphics.setShader(RenderSystem.COLOR_OUTLINE_SHADER)
@@ -139,10 +146,22 @@ function RenderSystem:draw()
 		sprite:setDrawIndex(i)
 		local dx, dy = sprite:getDrawPosition()
 
+		local newColors
+		if entity:has("ColorSwapComponent") and next(entity:get("ColorSwapComponent"):getReplacedColors()) then
+			local colorSwap = entity:get("ColorSwapComponent")
+			local oldColors = colorSwap:getReplacedColors()
+			newColors = colorSwap:getReplacingColors()
+			assert(#oldColors == #newColors and #newColors + 1 < RenderSystem.MAX_REPLACE_COLORS, "Something's wrong")
+			RenderSystem.COLOR_OUTLINE_SHADER:send("oldColor", RenderSystem.OLD_OUTLINE_COLOR, unpack(oldColors))
+			RenderSystem.COLOR_OUTLINE_SHADER:send("numColorReplaces", #newColors + 1)
+		end
+
 		if state:getSelection() == entity then
-			RenderSystem.COLOR_OUTLINE_SHADER:send("newOutlineColor", RenderSystem.SELECTED_OUTLINE_COLOR)
+			RenderSystem.COLOR_OUTLINE_SHADER:send("newColor", RenderSystem.SELECTED_OUTLINE_COLOR, unpack(newColors or {}))
 		elseif entity:has("BlinkComponent") and entity:get("BlinkComponent"):isActive() then
-			RenderSystem.COLOR_OUTLINE_SHADER:send("newOutlineColor", entity:get("BlinkComponent"):getColor())
+			RenderSystem.COLOR_OUTLINE_SHADER:send("newColor", entity:get("BlinkComponent"):getColor(), unpack(newColors or {}))
+		else
+			RenderSystem.COLOR_OUTLINE_SHADER:send("newColor", RenderSystem.NEW_OUTLINE_COLOR, unpack(newColors or {}))
 		end
 
 		RenderSystem.COLOR_OUTLINE_SHADER:send("noShadow", true)
@@ -191,7 +210,8 @@ function RenderSystem:draw()
 		-- Reset
 		love.graphics.setColorMask()
 		RenderSystem.COLOR_OUTLINE_SHADER:send("shadowOnly", false)
-		RenderSystem.COLOR_OUTLINE_SHADER:send("newOutlineColor", RenderSystem.NEW_OUTLINE_COLOR)
+		RenderSystem.COLOR_OUTLINE_SHADER:send("numColorReplaces", 1)
+		RenderSystem.COLOR_OUTLINE_SHADER:send("newColor", RenderSystem.NEW_OUTLINE_COLOR)
 
 		-- Text overlay
 		if entity:has("ConstructionComponent") then
@@ -225,9 +245,9 @@ function RenderSystem:draw()
 
 		for _,entity in ipairs(objects) do
 			if state:getSelection() == entity then
-				RenderSystem.COLOR_OUTLINE_SHADER:send("newOutlineColor", RenderSystem.SELECTED_BEHIND_OUTLINE_COLOR)
+				RenderSystem.COLOR_OUTLINE_SHADER:send("newColor", RenderSystem.SELECTED_BEHIND_OUTLINE_COLOR)
 			else
-				RenderSystem.COLOR_OUTLINE_SHADER:send("newOutlineColor", RenderSystem.BEHIND_OUTLINE_COLOR)
+				RenderSystem.COLOR_OUTLINE_SHADER:send("newColor", RenderSystem.BEHIND_OUTLINE_COLOR)
 			end
 
 			if entity:has("VillagerComponent") then
@@ -238,7 +258,7 @@ function RenderSystem:draw()
 
 		love.graphics.setStencilTest()
 		RenderSystem.COLOR_OUTLINE_SHADER:send("outlineOnly", false)
-		RenderSystem.COLOR_OUTLINE_SHADER:send("newOutlineColor", RenderSystem.NEW_OUTLINE_COLOR)
+		RenderSystem.COLOR_OUTLINE_SHADER:send("newColor", RenderSystem.NEW_OUTLINE_COLOR)
 	end
 
 	love.graphics.setColor(1, 1, 1, 1)
