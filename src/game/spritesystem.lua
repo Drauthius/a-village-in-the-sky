@@ -171,14 +171,15 @@ function SpriteSystem:updateVillager(dt, entity)
 
 	-- Figure out the sprite.
 	local slice, sliceFrame, targetSprite, duration
+	local hairy = villager:isHairy() and "(Hairy) " or ""
 	if working then
 		slice = "Working"
 		sliceFrame = animation:getAnimation().from
-		targetSprite, duration = spriteSheet:getSprite("villagers-action "..frame, slice)
+		targetSprite, duration = spriteSheet:getSprite("villagers-action "..hairy..frame, slice)
 	else
 		if adult then
 			slice = villager:getGender() .. " - " .. cardinalDir
-			targetSprite, duration = spriteSheet:getSprite("villagers "..frame, slice)
+			targetSprite, duration = spriteSheet:getSprite("villagers "..hairy..frame, slice)
 		else
 			slice = (villager:getGender() == "male" and "Boy" or "Girl") .. " - " .. cardinalDir
 			targetSprite, duration = spriteSheet:getSprite("children "..frame, slice)

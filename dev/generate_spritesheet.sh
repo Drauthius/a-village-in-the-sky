@@ -89,4 +89,23 @@ $aseprite --inner-padding 1 --list-tags --list-slices --ignore-empty \
 	--color-mode rgb \
 	>/dev/null
 
+# Couldn't get aseprite to distinguish the hairy and non-hairy villagers :(
+# The frames are counted starting from zero, and then reset when the non-hairy variant appears.
+gawk -i inplace 'BEGIN { normal=0; action=0; }
+{
+	if(match($0,/villagers ([0-9]+)/,m)) {
+		if(m[1] == normal) {
+			gsub(m[1], "(Hairy) " m[1])
+			normal+=1
+		}
+	}
+	else if(match($0,/villagers-action ([0-9]+)/,m)) {
+		if(m[1] == action) {
+			gsub(m[1], "(Hairy) " m[1])
+			action+=1
+		}
+	}
+	print $0
+}' "${output}.json"
+
 echo "Done. Creation took $(bc <<< "scale=3; ($(date +%s%3N) - $start) / 1000") seconds."
