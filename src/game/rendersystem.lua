@@ -36,6 +36,9 @@ vec4 effect(vec4 color, Image texture, vec2 texture_coords, vec2 screen_coords)
 			return newColor[i]; // * color; // TODO: Outline is being messed up.
 	}
 
+	if(outlineOnly || (noShadow && texturecolor.a < 0.5))
+		discard;
+
 	return texturecolor * color;
 }
 ]])
@@ -136,6 +139,12 @@ function RenderSystem:draw()
 	end
 
 	for _,entity in ipairs(ground) do
+		if entity:has("BlinkComponent") and entity:get("BlinkComponent"):isActive() then
+			RenderSystem.COLOR_OUTLINE_SHADER:send("newColor", entity:get("BlinkComponent"):getColor())
+		else
+			RenderSystem.COLOR_OUTLINE_SHADER:send("newColor", RenderSystem.NEW_OUTLINE_COLOR)
+		end
+
 		local sprite = entity:get("SpriteComponent")
 		love.graphics.setColor(sprite:getColor())
 		spriteSheet:draw(sprite:getSprite(), sprite:getDrawPosition())

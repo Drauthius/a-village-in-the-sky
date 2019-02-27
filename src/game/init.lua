@@ -7,11 +7,15 @@
 --    * Villagers pushing another villager that is pushing another villager will end up with the first villager
 --      abandoning the attempt.
 --    * Removing a villager from a production job can leave resources "locked in limbo".
---    * Fields can't blink green or red.
---      Maybe add a outline that matches the tile, or something?
+--    * Resources can overlap (the "Overlap" assert in map.lua)
+--    * It is possible to starve a construction site by moving villagers at inopportune times.
 --  - Next:
 --    * Field outline (+ outline for the grain sticking out)
+--    * Bakery
 --    * Open/close door when going in/out.
+--    * Chimney smoke
+--    * Sleep cycle
+--    * Birth and death
 --  - Refactoring:
 --    * There is little reason to have the VillagerComponent be called "VillagerComponent", other than symmetry.
 --    * Map:reserve() is a bad name for something that doesn't use COLL_RESERVED

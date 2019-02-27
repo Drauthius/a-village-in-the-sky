@@ -4,7 +4,15 @@ local Sprite = class("Sprite")
 
 function Sprite:initialize(spritesheet, quad, data)
 	self.spritesheet = spritesheet
-	self.quad = quad
+	if type(quad) == "table" then
+		self.spriteBatch = love.graphics.newSpriteBatch(spritesheet:getImage(), #quad, "static")
+		for _,v in ipairs(quad) do
+			self.spriteBatch:add(v)
+		end
+		self.quad = quad[1]
+	else
+		self.quad = quad
+	end
 	self.data = data
 	if self.quad then
 		local _, _, w, h = self.quad:getViewport()
@@ -15,7 +23,9 @@ function Sprite:initialize(spritesheet, quad, data)
 end
 
 function Sprite:draw(image, x, y)
-	if self.quad then
+	if self.spriteBatch then
+		love.graphics.draw(self.spriteBatch, x, y)
+	elseif self.quad then
 		love.graphics.draw(image, self.quad, x, y)
 	else
 		love.graphics.setColor(1, 0, 1)

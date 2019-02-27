@@ -18,36 +18,61 @@ function SpriteSheet:load()
 	self.spriteCache = {}
 end
 
--- @tparam string name The name of the Aseprite source file.
+-- @tparam string/table name The name of the Aseprite source file.
 -- @tparam[opt] string slice The slice to get from the source file.
 function SpriteSheet:getSprite(name, slice, frame)
 	if not self.data then
 		error("No data loaded. Cannot load sprite '" .. name .. "'")
 	end
 
-	local cacheName = name .. (slice and ("|" .. slice) or "")
+	local cacheName = ""
+	if type(name) == "table" then
+		if #name == 1 then
+			name = name[1]
+			cacheName = name
+		else
+			for _,v in ipairs(name) do
+				cacheName = cacheName .. v .. "¦"
+			end
+		end
+	else
+		cacheName = name
+	end
+
+	cacheName = cacheName .. (slice and ("|" .. slice) or "")
 
 	if not self.spriteCache[cacheName] then
-		local def = self.data.frames[name]
-		if not def then
-			print("Failed to find sprite '"..name.."'")
-			return Sprite()
+		if type(name) ~= "table" then
+			name = { name }
 		end
 
-		local x, y, w, h =
-			def.frame.x + self.innerMargin, def.frame.y + self.innerMargin,
-			def.sourceSize.w, def.sourceSize.h
+		local quads = {}
+		local duration
+		for _,v in ipairs(name) do
+			local def = self.data.frames[v]
+			if not def then
+				print("Failed to find sprite '"..v.."'")
+				return Sprite()
+			end
+			duration = def.duration
 
-		if slice then
-			local data = self:getData(slice, frame)
+			local x, y, w, h =
+				def.frame.x + self.innerMargin, def.frame.y + self.innerMargin,
+				def.sourceSize.w, def.sourceSize.h
 
-			x, y = x + data.bounds.x, y + data.bounds.y
-			w, h = data.bounds.w, data.bounds.h
+			if slice then
+				local data = self:getData(slice, frame)
+
+				x, y = x + data.bounds.x, y + data.bounds.y
+				w, h = data.bounds.w, data.bounds.h
+			end
+
+			table.insert(quads, love.graphics.newQuad(x, y, w, h, self.image:getDimensions()))
 		end
 
 		self.spriteCache[cacheName] = {
-			Sprite(self, love.graphics.newQuad(x, y, w, h, self.image:getDimensions())),
-			def.duration
+			Sprite(self, #quads == 1 and quads[1] or quads),
+			duration
 		}
 	end
 

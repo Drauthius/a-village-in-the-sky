@@ -17,9 +17,10 @@ FieldComponent.static.STATE_NAMES = {
 	[FieldComponent.HARVESTING] = "harvesting"
 }
 
-function FieldComponent:initialize(enclosure)
+function FieldComponent:initialize(enclosure, index)
 	self:setState(FieldComponent.UNCULTIVATED)
 	self:setEnclosure(enclosure)
+	self:setIndex(index)
 end
 
 function FieldComponent:getState()
@@ -36,6 +37,14 @@ end
 
 function FieldComponent:setEnclosure(enclosure)
 	self.enclosure = enclosure
+end
+
+function FieldComponent:getIndex()
+	return self.index
+end
+
+function FieldComponent:setIndex(index)
+	self.index = index
 end
 
 return FieldComponent

@@ -100,7 +100,15 @@ function FieldSystem:workEvent(event)
 				workPlace:remove("TimerComponent")
 				field:setState(FieldComponent.GROWING)
 				local stateName = FieldComponent.STATE_NAMES[field:getState()]:gsub("^%l", string.upper)
-				workPlace:get("SpriteComponent"):setSprite(spriteSheet:getSprite("field-single ("..stateName..")"))
+				local spriteName = "field-single ("..stateName..")"
+				local sprites = { spriteName }
+				if field:getIndex() <= 3 then
+					table.insert(sprites, (spriteName:gsub("%)", " Outline W)")))
+				end
+				if (field:getIndex() - 1) % 3 == 0 then
+					table.insert(sprites, (spriteName:gsub("%)", " Outline E)")))
+				end
+				workPlace:get("SpriteComponent"):setSprite(spriteSheet:getSprite(sprites))
 			end))
 		elseif state == FieldComponent.GROWING then
 			state = FieldComponent.IN_PROGRESS
@@ -108,7 +116,15 @@ function FieldSystem:workEvent(event)
 				workPlace:remove("TimerComponent")
 				field:setState(FieldComponent.HARVESTING)
 				local stateName = FieldComponent.STATE_NAMES[field:getState()]:gsub("^%l", string.upper)
-				workPlace:get("SpriteComponent"):setSprite(spriteSheet:getSprite("field-single ("..stateName..")"))
+				local spriteName = "field-single ("..stateName..")"
+				local sprites = { spriteName }
+				--if field:getIndex() <= 3 then
+					--table.insert(sprites, (spriteName:gsub("%)", " Outline W)")))
+				--end
+				--if (field:getIndex() - 1) % 3 == 0 then
+					--table.insert(sprites, (spriteName:gsub("%)", " Outline E)")))
+				--end
+				workPlace:get("SpriteComponent"):setSprite(spriteSheet:getSprite(sprites))
 			end))
 		elseif state == FieldComponent.HARVESTING then
 			state = FieldComponent.UNCULTIVATED
@@ -148,7 +164,7 @@ function FieldSystem:_initiate(entity)
 
 		field:add(AssignmentComponent(1))
 		field:add(WorkComponent(WorkComponent.FARMER))
-		field:add(FieldComponent(entity))
+		field:add(FieldComponent(entity, i))
 
 		self.engine:addEntity(field)
 		table.insert(fields, field)
