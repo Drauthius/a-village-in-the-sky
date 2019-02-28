@@ -2,18 +2,15 @@
 --  - Get the game play in, taking time to fix other things around when the need or fancy arises.
 -- TODO:
 --  - Bugs:
---    * Villagers always reserve two grids when walking. Problem?
 --    * Villagers can get stuck in a four-grid gridlock.
---    * Villagers pushing another villager that is pushing another villager will end up with the first villager
---      abandoning the attempt.
+--    * Villagers heading the exact opposite direction can get stuck in a two-grid gridlock.
 --    * Removing a villager from a production job can leave resources "locked in limbo".
 --    * Resources can overlap (the "Overlap" assert in map.lua)
 --    * It is possible to starve a construction site by moving villagers at inopportune times.
 --  - Next:
---    * Field outline (+ outline for the grain sticking out)
---    * Bakery
---    * Open/close door when going in/out.
 --    * Chimney smoke
+--    * Bakery
+--    * Field shouldn't be placeable on every surface.
 --    * Sleep cycle
 --    * Birth and death
 --  - Refactoring:
@@ -51,8 +48,6 @@
 --    * Limit placement depending on runestones
 --    * Placing runestones
 --    * Placing buildings
---  - Optimization:
---    * Quads are created on demand. Problem?
 --  - Info panel updates:
 --    * Make the info panel title bar thicker, and put the name there + a button to
 --      minimize/maximize.
@@ -65,6 +60,10 @@
 --  - Nice to have:
 --    * Add a delay between actions (before going somewhere, before leaving a worksite, etc.), to make it more natural.
 --    * Don't increase opacity for overlapping shadows.
+--    * Villagers always reserve two grids when walking. Problem?
+--    * Quads are created on demand. Problem?
+--    * Villagers pushing another villager that is pushing another villager will end up with the first villager
+--      abandoning the attempt.
 
 local Camera = require "lib.hump.camera"
 local Timer = require "lib.hump.timer"
@@ -143,8 +142,8 @@ function Game:enter()
 	self.engine:addSystem(workSystem, "update") -- Must be before the sprite system
 	self.engine:addSystem(villagerSystem, "update")
 	self.engine:addSystem(WalkingSystem(self.engine, self.eventManager, self.map), "update")
+	self.engine:addSystem(TimerSystem(), "update") -- Must be before the sprite system...
 	self.engine:addSystem(SpriteSystem(self.eventManager), "update")
-	self.engine:addSystem(TimerSystem(), "update")
 	self.engine:addSystem(RenderSystem(), "draw")
 	self.engine:addSystem(DebugSystem(self.map), "draw")
 

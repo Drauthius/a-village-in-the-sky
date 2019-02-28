@@ -1,6 +1,7 @@
 local lovetoys = require "lib.lovetoys.lovetoys"
 local table = require "lib.table"
 
+local BuildingComponent = require "src.game.buildingcomponent"
 local FieldComponent = require "src.game.fieldcomponent"
 local InteractiveComponent = require "src.game.interactivecomponent"
 local ResourceComponent = require "src.game.resourcecomponent"
@@ -232,8 +233,15 @@ function SpriteSystem:update(dt)
 				local sprite = spriteSheet:getSprite(name.."-resource "..tostring(resource:getResourceAmount() - 1))
 
 				entity:get("SpriteComponent"):setSprite(sprite)
-				entity:get("SpriteComponent"):setNeedsRefresh(false)
 			end
+			if entity:has("BuildingComponent") and entity:has("EntranceComponent") then
+				local name = BuildingComponent.BUILDING_NAME[entity:get("BuildingComponent"):getType()]
+				local sprite = spriteSheet:getSprite(name .. (entity:get("EntranceComponent"):isOpen() and " 1" or " 0"))
+
+				entity:get("SpriteComponent"):setSprite(sprite)
+			end
+
+			entity:get("SpriteComponent"):setNeedsRefresh(false)
 		end
 	end
 end

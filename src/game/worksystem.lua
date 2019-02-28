@@ -11,6 +11,7 @@ local PositionComponent = require "src.game.positioncomponent"
 local ProductionComponent = require "src.game.productioncomponent"
 local ResourceComponent = require "src.game.resourcecomponent"
 local SpriteComponent = require "src.game.spritecomponent"
+local TimerComponent = require "src.game.timercomponent"
 local VillagerComponent = require "src.game.villagercomponent"
 local WorkComponent = require "src.game.workcomponent"
 
@@ -53,6 +54,14 @@ function WorkSystem:update(dt)
 					local entrance = entity:get("EntranceComponent"):getEntranceGrid()
 					local grid = entity:get("PositionComponent"):getGrid()
 					local entranceGrid = self.map:getGrid(grid.gi + entrance.ogi, grid.gj + entrance.ogj)
+
+					-- TODO: Maybe send this away in an event?
+					entity:get("EntranceComponent"):setOpen(true)
+					entity:get("SpriteComponent"):setNeedsRefresh(true)
+					entity:set(TimerComponent(0.5, function() -- TODO: Value
+						entity:get("EntranceComponent"):setOpen(false)
+						entity:get("SpriteComponent"):setNeedsRefresh(true)
+					end))
 
 					-- TODO: Maybe send this away in an event?
 					local villager = villagerEntity:get("VillagerComponent")

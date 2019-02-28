@@ -3,6 +3,7 @@ local table = require "lib.table"
 
 local CarryingComponent = require "src.game.carryingcomponent"
 local PositionComponent = require "src.game.positioncomponent"
+local SpriteComponent = require "src.game.spritecomponent"
 local TimerComponent = require "src.game.timercomponent"
 local VillagerComponent = require "src.game.villagercomponent"
 local WalkingComponent = require "src.game.walkingcomponent"
@@ -430,9 +431,16 @@ function VillagerSystem:targetReachedEvent(event)
 				production:reserveResource(entity, resource, amount)
 
 				if production:getNeededResources(entity) then
-					-- There still are resources needed. Might as well circle back.
-					entity:remove("WorkingComponent")
-					villager:setGoal(VillagerComponent.GOALS.NONE)
+					-- Temporarily enter the building.
+					entity:remove("SpriteComponent")
+
+					entity:add(TimerComponent(0.25, function()
+						entity:add(SpriteComponent())
+
+						-- There still are resources needed. Might as well circle back.
+						entity:remove("WorkingComponent")
+						villager:setGoal(VillagerComponent.GOALS.NONE)
+					end))
 				else
 					-- Enter the building!
 					self.map:unreserve(entity, entity:get("PositionComponent"):getGrid())
@@ -440,6 +448,14 @@ function VillagerSystem:targetReachedEvent(event)
 					entity:remove("PositionComponent")
 					entity:remove("InteractiveComponent")
 				end
+
+				-- TODO: Maybe send this away in an event?
+				workPlace:get("EntranceComponent"):setOpen(true)
+				workPlace:get("SpriteComponent"):setNeedsRefresh(true)
+				workPlace:set(TimerComponent(0.5, function() -- TODO: Value
+					workPlace:get("EntranceComponent"):setOpen(false)
+					workPlace:get("SpriteComponent"):setNeedsRefresh(true)
+				end))
 			else
 				error("Carried resources to unknown workplace.")
 			end
