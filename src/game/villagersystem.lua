@@ -123,7 +123,7 @@ function VillagerSystem:_updateVillager(entity)
 				until state:getNumResources(resource) - state:getNumReservedResources(resource) > 0
 
 				-- The entrance is an offset, so translate it to a real grid coordinate.
-				local entrance = production:getEntrance()
+				local entrance = workPlace:get("EntranceComponent"):getEntranceGrid()
 				local grid = workPlace:get("PositionComponent"):getGrid()
 				local entranceGrid = self.map:getGrid(grid.gi + entrance.ogi, grid.gj + entrance.ogj)
 

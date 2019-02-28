@@ -14,9 +14,6 @@ ProductionComponent.static.SPECS = {
 		},
 		output = {
 			[ResourceComponent.TOOL] = 1
-		},
-		entrance = {
-			rotation = 0, ogi = 0, ogj = -8
 		}
 	}
 }
@@ -61,10 +58,6 @@ end
 
 function ProductionComponent:getMaxWorkers()
 	return self.specs.maxWorkers
-end
-
-function ProductionComponent:getEntrance()
-	return self.specs.entrance
 end
 
 function ProductionComponent:addResource(resource, amount)

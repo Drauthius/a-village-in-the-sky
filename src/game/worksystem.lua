@@ -5,6 +5,7 @@ local AssignmentComponent = require "src.game.assignmentcomponent"
 local BuildingComponent = require "src.game.buildingcomponent"
 local CarryingComponent = require "src.game.carryingcomponent"
 local DwellingComponent = require "src.game.dwellingcomponent"
+local EntranceComponent = require "src.game.entrancecomponent"
 local FieldEnclosureComponent = require "src.game.fieldenclosurecomponent"
 local PositionComponent = require "src.game.positioncomponent"
 local ProductionComponent = require "src.game.productioncomponent"
@@ -49,7 +50,7 @@ function WorkSystem:update(dt)
 				if production:isComplete(villagerEntity) then
 					production:reset(villagerEntity)
 
-					local entrance = production:getEntrance()
+					local entrance = entity:get("EntranceComponent"):getEntranceGrid()
 					local grid = entity:get("PositionComponent"):getGrid()
 					local entranceGrid = self.map:getGrid(grid.gi + entrance.ogi, grid.gj + entrance.ogj)
 
@@ -118,14 +119,16 @@ function WorkSystem:workEvent(event)
 				-- TODO: Maybe send this off in an event.
 				local type = construction:getType()
 				if type == BuildingComponent.DWELLING then
+					workPlace:add(AssignmentComponent(2))
 					workPlace:add(DwellingComponent())
-					workPlace:add(AssignmentComponent(2))
+					workPlace:add(EntranceComponent(type))
 				elseif type == BuildingComponent.BLACKSMITH then
-					workPlace:add(ProductionComponent(type))
 					workPlace:add(AssignmentComponent(1))
+					workPlace:add(EntranceComponent(type))
+					workPlace:add(ProductionComponent(type))
 				elseif type == BuildingComponent.FIELD then
-					workPlace:add(FieldEnclosureComponent())
 					workPlace:add(AssignmentComponent(2))
+					workPlace:add(FieldEnclosureComponent())
 				else
 					print("Dunno what to do with "..tostring(BuildingComponent.BUILDING_NAME[type]).." :(")
 				end

@@ -25,7 +25,6 @@
 --      Maybe it would need to check "how" it is reserved, or we simply split it up further...
 --      reserve() for resources, occupy() for villagers?
 --    * Either consolidate production/construction components (wrt input), or maybe add an "input" component?
---    * Either consolidate dwelling/production component (wrt entrance), or maybe add an "entrance" component?
 --    * Calling variables for "entity" in different contexts begs for trouble.
 --  - Draw order:
 --    * Update sprites to be square.
