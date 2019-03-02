@@ -106,22 +106,23 @@ function Blueprint:createSmokeParticle()
 	if not particleSystem then
 		particleSystem = love.graphics.newParticleSystem(spriteSheet:getImage(), 15)
 		particleSystem:setQuads(sprite:getQuad())
-		particleSystem:setColors(1, 1, 1, 1,
-		                         1, 1, 1, 0.7,
-		                         1, 1, 1, 0)
-		particleSystem:setEmissionRate(1.8)
+		particleSystem:setColors(1, 1, 1, 0.8,
+		                         1, 1, 1, 0.5,
+		                         1, 1, 1, 0.0)
+		particleSystem:setEmissionRate(5)
 		particleSystem:setEmitterLifetime(-1)
 		local _, _, w, h = sprite:getQuad():getViewport()
 		particleSystem:setOffset(w/2, h/2)
 		particleSystem:setInsertMode("random")
-		particleSystem:setLinearAcceleration(-1, -4, 1, -4)
-		particleSystem:setRadialAcceleration(12, 12)
+		particleSystem:setLinearAcceleration(-0.5, -3, 0.5, -3)
+		particleSystem:setRadialAcceleration(10, 10)
 		particleSystem:setParticleLifetime(2, 3)
 		particleSystem:setRotation(math.rad(1), math.rad(360))
 		particleSystem:setSizeVariation(0.2)
-		particleSystem:setSizes(0.5, 1.0, 1.5, 2)
+		particleSystem:setSizes(0.5, 1.0, 2.5)
 		particleSystem:setSpin(math.rad(5), math.rad(15))
 		particleSystem:setSpinVariation(1)
+		particleSystem:pause()
 
 		Blueprint.PARTICLE_SYSTEMS.SMOKE = particleSystem
 	end

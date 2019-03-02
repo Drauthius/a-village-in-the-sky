@@ -1,6 +1,7 @@
 local lovetoys = require "lib.lovetoys.lovetoys"
 local table = require "lib.table"
 
+local BuildingEnteredEvent = require "src.game.buildingenteredevent"
 local CarryingComponent = require "src.game.carryingcomponent"
 local PositionComponent = require "src.game.positioncomponent"
 local SpriteComponent = require "src.game.spritecomponent"
@@ -38,9 +39,10 @@ function VillagerSystem.requires()
 	return {"VillagerComponent"}
 end
 
-function VillagerSystem:initialize(engine, map)
+function VillagerSystem:initialize(engine, eventManager, map)
 	lovetoys.System.initialize(self)
 	self.engine = engine
+	self.eventManager = eventManager
 	self.map = map
 end
 
@@ -325,6 +327,22 @@ function VillagerSystem:assignedEvent(event)
 	end
 end
 
+function VillagerSystem:buildingLeftEvent(event)
+	local entity = event:getVillager()
+	local workPlace = event:getBuilding()
+
+	local entrance = workPlace:get("EntranceComponent"):getEntranceGrid()
+	local grid = workPlace:get("PositionComponent"):getGrid()
+	local entranceGrid = self.map:getGrid(grid.gi + entrance.ogi, grid.gj + entrance.ogj)
+
+	local villager = entity:get("VillagerComponent")
+	entity:remove("WorkingComponent")
+	villager:setGoal(VillagerComponent.GOALS.NONE)
+	entity:add(SpriteComponent())
+	entity:add(PositionComponent(entranceGrid))
+	self.map:reserve(entity, entity:get("PositionComponent"):getGrid())
+end
+
 function VillagerSystem:targetReachedEvent(event)
 	local entity = event:getVillager()
 	local villager = entity:get("VillagerComponent")
@@ -430,8 +448,10 @@ function VillagerSystem:targetReachedEvent(event)
 				production:addResource(resource, amount)
 				production:reserveResource(entity, resource, amount)
 
+				local temporary
 				if production:getNeededResources(entity) then
 					-- Temporarily enter the building.
+					temporary = true
 					entity:remove("SpriteComponent")
 
 					entity:add(TimerComponent(0.25, function()
@@ -443,19 +463,14 @@ function VillagerSystem:targetReachedEvent(event)
 					end))
 				else
 					-- Enter the building!
+					temporary = false
 					self.map:unreserve(entity, entity:get("PositionComponent"):getGrid())
 					entity:remove("SpriteComponent")
 					entity:remove("PositionComponent")
 					entity:remove("InteractiveComponent")
 				end
 
-				-- TODO: Maybe send this away in an event?
-				workPlace:get("EntranceComponent"):setOpen(true)
-				workPlace:get("SpriteComponent"):setNeedsRefresh(true)
-				workPlace:set(TimerComponent(0.5, function() -- TODO: Value
-					workPlace:get("EntranceComponent"):setOpen(false)
-					workPlace:get("SpriteComponent"):setNeedsRefresh(true)
-				end))
+				self.eventManager:fireEvent(BuildingEnteredEvent(workPlace, entity, temporary))
 			else
 				error("Carried resources to unknown workplace.")
 			end

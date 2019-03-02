@@ -1,6 +1,7 @@
 local Timer = require "lib.hump.timer"
 local lovetoys = require "lib.lovetoys.lovetoys"
 
+local BuildingLeftEvent = require "src.game.buildingleftevent"
 local AssignmentComponent = require "src.game.assignmentcomponent"
 local BuildingComponent = require "src.game.buildingcomponent"
 local CarryingComponent = require "src.game.carryingcomponent"
@@ -11,7 +12,6 @@ local PositionComponent = require "src.game.positioncomponent"
 local ProductionComponent = require "src.game.productioncomponent"
 local ResourceComponent = require "src.game.resourcecomponent"
 local SpriteComponent = require "src.game.spritecomponent"
-local TimerComponent = require "src.game.timercomponent"
 local VillagerComponent = require "src.game.villagercomponent"
 local WorkComponent = require "src.game.workcomponent"
 
@@ -35,10 +35,11 @@ function WorkSystem.requires()
 	return {"ProductionComponent"}
 end
 
-function WorkSystem:initialize(engine, map)
+function WorkSystem:initialize(engine, eventManager, map)
 	lovetoys.System.initialize(self)
 
 	self.engine = engine
+	self.eventManager = eventManager
 	self.map = map
 end
 
@@ -50,27 +51,9 @@ function WorkSystem:update(dt)
 				production:increaseCompletion(villagerEntity, 10.0 * dt) -- TODO: Value!
 				if production:isComplete(villagerEntity) then
 					production:reset(villagerEntity)
-
-					local entrance = entity:get("EntranceComponent"):getEntranceGrid()
-					local grid = entity:get("PositionComponent"):getGrid()
-					local entranceGrid = self.map:getGrid(grid.gi + entrance.ogi, grid.gj + entrance.ogj)
-
-					-- TODO: Maybe send this away in an event?
-					entity:get("EntranceComponent"):setOpen(true)
-					entity:get("SpriteComponent"):setNeedsRefresh(true)
-					entity:set(TimerComponent(0.5, function() -- TODO: Value
-						entity:get("EntranceComponent"):setOpen(false)
-						entity:get("SpriteComponent"):setNeedsRefresh(true)
-					end))
-
-					-- TODO: Maybe send this away in an event?
-					local villager = villagerEntity:get("VillagerComponent")
-					villagerEntity:remove("WorkingComponent")
-					villager:setGoal(VillagerComponent.GOALS.NONE)
-					villagerEntity:add(SpriteComponent())
-					villagerEntity:add(PositionComponent(entranceGrid))
-
 					villagerEntity:add(CarryingComponent(next(production:getOutput())))
+
+					self.eventManager:fireEvent(BuildingLeftEvent(entity, villagerEntity))
 				end
 			end
 		end
@@ -135,6 +118,21 @@ function WorkSystem:workEvent(event)
 					workPlace:add(AssignmentComponent(1))
 					workPlace:add(EntranceComponent(type))
 					workPlace:add(ProductionComponent(type))
+
+					local blueprint = require "src.game.blueprint"
+					local spriteSheet = require "src.game.spritesheet"
+					local building = workPlace:get("BuildingComponent")
+					local chimneyData = spriteSheet:getData(BuildingComponent.BUILDING_NAME[type].."-chimney")
+					local chimney = blueprint:createSmokeParticle()
+					chimney:add(AssignmentComponent(1))
+					chimney:add(PositionComponent(workPlace:get("PositionComponent"):getGrid())) -- TODO
+					dx, dy = workPlace:get("SpriteComponent"):getDrawPosition()
+					dx, dy = dx + chimneyData.bounds.x, dy + chimneyData.bounds.y
+					-- Not sure why the offset is needed, but it is.
+					chimney:get("SpriteComponent"):setDrawPosition(dx + math.floor(chimneyData.bounds.w / 2) + 2,
+					                                               dy + math.floor(chimneyData.bounds.h / 2) + 1)
+					self.engine:addEntity(chimney, workPlace)
+					building:addChimney(chimney)
 				elseif type == BuildingComponent.FIELD then
 					workPlace:add(AssignmentComponent(2))
 					workPlace:add(FieldEnclosureComponent())

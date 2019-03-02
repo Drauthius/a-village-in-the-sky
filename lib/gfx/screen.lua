@@ -84,7 +84,10 @@ function Screen:present()
 	self.testx, self.testy = self.testx or 0, self.testy or 0
 	love.graphics.setCanvas()
 	love.graphics.setColor(255, 255, 255)
-	love.graphics.draw(self.canvas, self.offsetX, self.offsetY, 0, self.verticalScale, self.horizontalScale, self.testx, self.testy)
+	love.graphics.setBlendMode("alpha", "premultiplied")
+	love.graphics.draw(self.canvas, self.offsetX, self.offsetY, 0,
+	                   self.verticalScale, self.horizontalScale, self.testx, self.testy)
+	love.graphics.setBlendMode("alpha")
 end
 
 function Screen:getDrawArea()

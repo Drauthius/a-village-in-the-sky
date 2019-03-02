@@ -17,6 +17,7 @@ BuildingComponent.static.BUILDING_NAME = {
 function BuildingComponent:initialize(type, ti, tj)
 	self:setType(type)
 	self:setPosition(ti, tj)
+	self.chimneys = {}
 end
 
 function BuildingComponent:setType(type)
@@ -33,6 +34,14 @@ end
 
 function BuildingComponent:setPosition(ti, tj)
 	self.ti, self.tj = ti, tj
+end
+
+function BuildingComponent:addChimney(chimney)
+	table.insert(self.chimneys, chimney)
+end
+
+function BuildingComponent:getChimneys()
+	return self.chimneys
 end
 
 return BuildingComponent

@@ -7,8 +7,9 @@
 --    * Removing a villager from a production job can leave resources "locked in limbo".
 --    * Resources can overlap (the "Overlap" assert in map.lua)
 --    * It is possible to starve a construction site by moving villagers at inopportune times.
+--    * Villagers can be drawn behind e.g. the blacksmith shed, when there are a lot of things in the scene and they
+--      are directly in front (to the right) of it.
 --  - Next:
---    * Chimney smoke
 --    * Bakery
 --    * Field shouldn't be placeable on every surface.
 --    * Sleep cycle
@@ -81,6 +82,7 @@ local PositionComponent = require "src.game.positioncomponent"
 -- Events
 local AssignedEvent = require "src.game.assignedevent"
 -- Systems
+local BuildingSystem
 local DebugSystem
 local FieldSystem
 local ParticleSystem
@@ -106,6 +108,7 @@ function Game:init()
 	lovetoys.initialize({ debug = true, middleclassPath = "lib.middleclass" })
 
 	-- Needs to be created after initialization.
+	BuildingSystem = require "src.game.buildingsystem"
 	DebugSystem = require "src.game.debugsystem"
 	FieldSystem = require "src.game.fieldsystem"
 	ParticleSystem = require "src.game.particlesystem"
@@ -135,9 +138,10 @@ function Game:enter()
 	self.engine = lovetoys.Engine()
 	self.eventManager = lovetoys.EventManager()
 
+	local buildingSystem = BuildingSystem()
 	local fieldSystem = FieldSystem(self.engine, self.map)
-	local villagerSystem = VillagerSystem(self.engine, self.map)
-	local workSystem = WorkSystem(self.engine, self.map)
+	local villagerSystem = VillagerSystem(self.engine, self.eventManager, self.map)
+	local workSystem = WorkSystem(self.engine, self.eventManager, self.map)
 
 	self.engine:addSystem(fieldSystem, "update")
 	self.engine:addSystem(PlacingSystem(self.map), "update")
@@ -154,10 +158,15 @@ function Game:enter()
 	self.engine:toggleSystem("DebugSystem")
 
 	-- Currently only listens to events.
+	self.engine:addSystem(buildingSystem, "update")
 	self.engine:addSystem(PositionSystem(self.map), "update")
+	self.engine:stopSystem("BuildingSystem")
 	self.engine:stopSystem("PositionSystem")
 
 	self.eventManager:addListener("AssignedEvent", villagerSystem, villagerSystem.assignedEvent)
+	self.eventManager:addListener("BuildingEnteredEvent", buildingSystem, buildingSystem.buildingEnteredEvent)
+	self.eventManager:addListener("BuildingLeftEvent", buildingSystem, buildingSystem.buildingLeftEvent)
+	self.eventManager:addListener("BuildingLeftEvent", villagerSystem, villagerSystem.buildingLeftEvent)
 	self.eventManager:addListener("TargetReachedEvent", villagerSystem, villagerSystem.targetReachedEvent)
 	self.eventManager:addListener("TargetUnreachableEvent", villagerSystem, villagerSystem.targetUnreachableEvent)
 	self.eventManager:addListener("WorkEvent", fieldSystem, fieldSystem.workEvent)
@@ -166,12 +175,6 @@ function Game:enter()
 	self.gui = GUI(self.engine)
 
 	self.level:initiate(self.engine, self.map)
-
-	local apa = blueprint:createSmokeParticle()
-	apa:add(PositionComponent(self.map:getGrid(13, 9)))
-	apa:get("SpriteComponent"):setDrawPosition(self.map:gridToWorldCoords(13, 9))
-	apa:get("ParticleComponent"):getParticleSystem():start()
-	self.engine:addEntity(apa)
 end
 
 function Game:update(dt)
