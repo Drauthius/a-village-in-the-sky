@@ -9,8 +9,9 @@
 --    * It is possible to starve a construction site by moving villagers at inopportune times.
 --    * Villagers can be drawn behind e.g. the blacksmith shed, when there are a lot of things in the scene and they
 --      are directly in front (to the right) of it.
+--    * Villagers that are waiting (for a resource) will not wander.
+--    * Villagers can walk into the bakery's entrance.
 --  - Next:
---    * Bakery
 --    * Field shouldn't be placeable on every surface.
 --    * Sleep cycle
 --    * Birth and death
@@ -24,6 +25,7 @@
 --      reserve() for resources, occupy() for villagers?
 --    * Either consolidate production/construction components (wrt input), or maybe add an "input" component?
 --    * Calling variables for "entity" in different contexts begs for trouble.
+--    * Definition/specification for buildings is split into multiple files, making it hard to add new ones.
 --  - Draw order:
 --    * Update sprites to be square.
 --    * Villagers going diagonally are sometimes draw behind.
@@ -138,10 +140,10 @@ function Game:enter()
 	self.engine = lovetoys.Engine()
 	self.eventManager = lovetoys.EventManager()
 
-	local buildingSystem = BuildingSystem()
+	local buildingSystem = BuildingSystem(self.engine)
 	local fieldSystem = FieldSystem(self.engine, self.map)
 	local villagerSystem = VillagerSystem(self.engine, self.eventManager, self.map)
-	local workSystem = WorkSystem(self.engine, self.eventManager, self.map)
+	local workSystem = WorkSystem(self.engine, self.eventManager)
 
 	self.engine:addSystem(fieldSystem, "update")
 	self.engine:addSystem(PlacingSystem(self.map), "update")
@@ -164,6 +166,7 @@ function Game:enter()
 	self.engine:stopSystem("PositionSystem")
 
 	self.eventManager:addListener("AssignedEvent", villagerSystem, villagerSystem.assignedEvent)
+	self.eventManager:addListener("BuildingCompletedEvent", buildingSystem, buildingSystem.buildingCompletedEvent)
 	self.eventManager:addListener("BuildingEnteredEvent", buildingSystem, buildingSystem.buildingEnteredEvent)
 	self.eventManager:addListener("BuildingLeftEvent", buildingSystem, buildingSystem.buildingLeftEvent)
 	self.eventManager:addListener("BuildingLeftEvent", villagerSystem, villagerSystem.buildingLeftEvent)

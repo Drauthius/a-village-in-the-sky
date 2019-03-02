@@ -6,6 +6,7 @@ function AnimationComponent:initialize()
 	self.updateTimer = 0
 	self.animation = nil
 	self.currentFrame = 0
+	self.frames = {}
 end
 
 function AnimationComponent:advance()
@@ -24,6 +25,18 @@ end
 
 function AnimationComponent:getCurrentFrame()
 	return self.currentFrame
+end
+
+function AnimationComponent:setCurrentFrame(currentFrame)
+	self.currentFrame = currentFrame
+end
+
+function AnimationComponent:getFrames()
+	return self.frames
+end
+
+function AnimationComponent:setFrames(frames)
+	self.frames = frames
 end
 
 function AnimationComponent:getTimer()

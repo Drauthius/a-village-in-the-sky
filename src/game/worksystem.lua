@@ -1,17 +1,10 @@
 local Timer = require "lib.hump.timer"
 local lovetoys = require "lib.lovetoys.lovetoys"
 
+local BuildingCompletedEvent = require "src.game.buildingcompletedevent"
 local BuildingLeftEvent = require "src.game.buildingleftevent"
-local AssignmentComponent = require "src.game.assignmentcomponent"
-local BuildingComponent = require "src.game.buildingcomponent"
 local CarryingComponent = require "src.game.carryingcomponent"
-local DwellingComponent = require "src.game.dwellingcomponent"
-local EntranceComponent = require "src.game.entrancecomponent"
-local FieldEnclosureComponent = require "src.game.fieldenclosurecomponent"
-local PositionComponent = require "src.game.positioncomponent"
-local ProductionComponent = require "src.game.productioncomponent"
 local ResourceComponent = require "src.game.resourcecomponent"
-local SpriteComponent = require "src.game.spritecomponent"
 local VillagerComponent = require "src.game.villagercomponent"
 local WorkComponent = require "src.game.workcomponent"
 
@@ -35,12 +28,11 @@ function WorkSystem.requires()
 	return {"ProductionComponent"}
 end
 
-function WorkSystem:initialize(engine, eventManager, map)
+function WorkSystem:initialize(engine, eventManager)
 	lovetoys.System.initialize(self)
 
 	self.engine = engine
 	self.eventManager = eventManager
-	self.map = map
 end
 
 function WorkSystem:update(dt)
@@ -108,37 +100,7 @@ function WorkSystem:workEvent(event)
 				workPlace:remove("AssignmentComponent")
 				soundManager:playEffect("buildingComplete") -- TODO: Add type
 
-				-- TODO: Maybe send this off in an event.
-				local type = construction:getType()
-				if type == BuildingComponent.DWELLING then
-					workPlace:add(AssignmentComponent(2))
-					workPlace:add(DwellingComponent())
-					workPlace:add(EntranceComponent(type))
-				elseif type == BuildingComponent.BLACKSMITH then
-					workPlace:add(AssignmentComponent(1))
-					workPlace:add(EntranceComponent(type))
-					workPlace:add(ProductionComponent(type))
-
-					local blueprint = require "src.game.blueprint"
-					local spriteSheet = require "src.game.spritesheet"
-					local building = workPlace:get("BuildingComponent")
-					local chimneyData = spriteSheet:getData(BuildingComponent.BUILDING_NAME[type].."-chimney")
-					local chimney = blueprint:createSmokeParticle()
-					chimney:add(AssignmentComponent(1))
-					chimney:add(PositionComponent(workPlace:get("PositionComponent"):getGrid())) -- TODO
-					dx, dy = workPlace:get("SpriteComponent"):getDrawPosition()
-					dx, dy = dx + chimneyData.bounds.x, dy + chimneyData.bounds.y
-					-- Not sure why the offset is needed, but it is.
-					chimney:get("SpriteComponent"):setDrawPosition(dx + math.floor(chimneyData.bounds.w / 2) + 2,
-					                                               dy + math.floor(chimneyData.bounds.h / 2) + 1)
-					self.engine:addEntity(chimney, workPlace)
-					building:addChimney(chimney)
-				elseif type == BuildingComponent.FIELD then
-					workPlace:add(AssignmentComponent(2))
-					workPlace:add(FieldEnclosureComponent())
-				else
-					print("Dunno what to do with "..tostring(BuildingComponent.BUILDING_NAME[type]).." :(")
-				end
+				self.eventManager:fireEvent(BuildingCompletedEvent(workPlace))
 			end
 		end
 	else

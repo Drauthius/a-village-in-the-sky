@@ -15,6 +15,15 @@ ProductionComponent.static.SPECS = {
 		output = {
 			[ResourceComponent.TOOL] = 1
 		}
+	},
+	[BuildingComponent.BAKERY] = {
+		maxWorkers = 3,
+		input = {
+			[ResourceComponent.GRAIN] = 2
+		},
+		output = {
+			[ResourceComponent.BREAD] = 3
+		}
 	}
 }
 

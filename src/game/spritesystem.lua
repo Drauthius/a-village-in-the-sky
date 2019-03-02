@@ -108,6 +108,33 @@ function SpriteSystem:initialize(eventManager)
 	}
 end
 
+function SpriteSystem:update(dt)
+	for _,entity in pairs(self.targets) do
+		if entity:has("VillagerComponent") then
+			self:updateVillager(dt, entity)
+		elseif entity:has("AnimationComponent") then
+			self:updateAnimation(dt, entity)
+		elseif entity:get("SpriteComponent"):needsRefresh() then
+			if entity:has("ResourceComponent") then
+				local resource = entity:get("ResourceComponent")
+				local type = resource:getResource()
+				local name = ResourceComponent.RESOURCE_NAME[type]
+				local sprite = spriteSheet:getSprite(name.."-resource "..tostring(resource:getResourceAmount() - 1))
+
+				entity:get("SpriteComponent"):setSprite(sprite)
+			end
+			if entity:has("BuildingComponent") and entity:has("EntranceComponent") then
+				local name = BuildingComponent.BUILDING_NAME[entity:get("BuildingComponent"):getType()]
+				local sprite = spriteSheet:getSprite(name .. (entity:get("EntranceComponent"):isOpen() and " 1" or " 0"))
+
+				entity:get("SpriteComponent"):setSprite(sprite)
+			end
+
+			entity:get("SpriteComponent"):setNeedsRefresh(false)
+		end
+	end
+end
+
 function SpriteSystem:updateVillager(dt, entity)
 	local villager = entity:get("VillagerComponent")
 	local adult = entity:has("AdultComponent") and entity:get("AdultComponent")
@@ -221,28 +248,28 @@ function SpriteSystem:updateVillager(dt, entity)
 	end
 end
 
-function SpriteSystem:update(dt)
-	for _,entity in pairs(self.targets) do
-		if entity:has("VillagerComponent") then
-			self:updateVillager(dt, entity)
-		elseif entity:get("SpriteComponent"):needsRefresh() then
-			if entity:has("ResourceComponent") then
-				local resource = entity:get("ResourceComponent")
-				local type = resource:getResource()
-				local name = ResourceComponent.RESOURCE_NAME[type]
-				local sprite = spriteSheet:getSprite(name.."-resource "..tostring(resource:getResourceAmount() - 1))
+function SpriteSystem:updateAnimation(dt, entity)
+	local sprite = entity:get("SpriteComponent")
+	local animation = entity:get("AnimationComponent")
 
-				entity:get("SpriteComponent"):setSprite(sprite)
-			end
-			if entity:has("BuildingComponent") and entity:has("EntranceComponent") then
-				local name = BuildingComponent.BUILDING_NAME[entity:get("BuildingComponent"):getType()]
-				local sprite = spriteSheet:getSprite(name .. (entity:get("EntranceComponent"):isOpen() and " 1" or " 0"))
 
-				entity:get("SpriteComponent"):setSprite(sprite)
-			end
+	local newFrame
+	local t = animation:getTimer() - dt
+	if t <= 0 then
+		newFrame = true
+		animation:advance()
+	else
+		animation:setTimer(t)
+	end
 
-			entity:get("SpriteComponent"):setNeedsRefresh(false)
-		end
+	if newFrame then
+		local frame = animation:getCurrentFrame()
+		local targetSprite = animation:getFrames()[frame][1]
+		local duration = animation:getFrames()[frame][2]
+
+		animation:setTimer(duration / 1000)
+
+		sprite:setSprite(targetSprite)
 	end
 end
 

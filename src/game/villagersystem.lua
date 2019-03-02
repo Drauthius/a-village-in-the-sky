@@ -2,6 +2,7 @@ local lovetoys = require "lib.lovetoys.lovetoys"
 local table = require "lib.table"
 
 local BuildingEnteredEvent = require "src.game.buildingenteredevent"
+local BuildingComponent = require "src.game.buildingcomponent"
 local CarryingComponent = require "src.game.carryingcomponent"
 local PositionComponent = require "src.game.positioncomponent"
 local SpriteComponent = require "src.game.spritecomponent"
@@ -256,7 +257,7 @@ function VillagerSystem:_unreserveAll(entity)
 				workPlace:get("ConstructionComponent"):unreserveResource(type, amount)
 			end
 		elseif not workPlace:has("WorkComponent") then
-			error("Unknown work place")
+			error("Unknown work place") -- TODO!!!
 		end
 	end
 
@@ -317,10 +318,17 @@ function VillagerSystem:assignedEvent(event)
 			adult:setOccupation(WorkComponent.BUILDER)
 		elseif site:has("WorkComponent") then
 			adult:setOccupation(site:get("WorkComponent"):getType())
-		elseif site:has("ProductionComponent") then
-			adult:setOccupation(WorkComponent.BLACKSMITH) -- TODO!
-		elseif site:has("FieldComponent") or site:has("FieldEnclosureComponent") then
-			adult:setOccupation(WorkComponent.FARMER)
+		elseif site:has("BuildingComponent") then
+			local type = site:get("BuildingComponent"):getType()
+			if type == BuildingComponent.BLACKSMITH then
+				adult:setOccupation(WorkComponent.BLACKSMITH)
+			elseif type == BuildingComponent.FIELD then
+				adult:setOccupation(WorkComponent.FARMER)
+			elseif type == BuildingComponent.BAKERY then
+				adult:setOccupation(WorkComponent.BAKER)
+			else
+				error("What kind of building is this?")
+			end
 		else
 			error("I give up :(")
 		end
