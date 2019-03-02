@@ -1,10 +1,9 @@
 local class = require "lib.middleclass"
 local lovetoys = require "lib.lovetoys.lovetoys"
 
-local spriteSheet = require "src.game.spritesheet"
-
 local BuildingComponent = require "src.game.buildingcomponent"
 local CollisionComponent = require "src.game.collisioncomponent"
+local ParticleComponent = require "src.game.particlecomponent"
 local PlacingComponent = require "src.game.placingcomponent"
 local ResourceComponent = require "src.game.resourcecomponent"
 local RunestoneComponent = require "src.game.runestonecomponent"
@@ -12,7 +11,11 @@ local SpriteComponent = require "src.game.spritecomponent"
 local TileComponent = require "src.game.tilecomponent"
 local WorkComponent = require "src.game.workcomponent"
 
+local spriteSheet = require "src.game.spritesheet"
+
 local Blueprint = class("Blueprint")
+
+Blueprint.static.PARTICLE_SYSTEMS = {}
 
 function Blueprint:createPlacingTile(type)
 	local tile = lovetoys.Entity()
@@ -93,6 +96,40 @@ function Blueprint:createResourcePile(type, amount)
 	resource:add(SpriteComponent(sprite))
 
 	return resource
+end
+
+function Blueprint:createSmokeParticle()
+	local entity = lovetoys.Entity()
+	local sprite = spriteSheet:getSprite("smoke")
+
+	local particleSystem = Blueprint.PARTICLE_SYSTEMS.SMOKE
+	if not particleSystem then
+		particleSystem = love.graphics.newParticleSystem(spriteSheet:getImage(), 15)
+		particleSystem:setQuads(sprite:getQuad())
+		particleSystem:setColors(1, 1, 1, 1,
+		                         1, 1, 1, 0.7,
+		                         1, 1, 1, 0)
+		particleSystem:setEmissionRate(1.8)
+		particleSystem:setEmitterLifetime(-1)
+		local _, _, w, h = sprite:getQuad():getViewport()
+		particleSystem:setOffset(w/2, h/2)
+		particleSystem:setInsertMode("random")
+		particleSystem:setLinearAcceleration(-1, -4, 1, -4)
+		particleSystem:setRadialAcceleration(12, 12)
+		particleSystem:setParticleLifetime(2, 3)
+		particleSystem:setRotation(math.rad(1), math.rad(360))
+		particleSystem:setSizeVariation(0.2)
+		particleSystem:setSizes(0.5, 1.0, 1.5, 2)
+		particleSystem:setSpin(math.rad(5), math.rad(15))
+		particleSystem:setSpinVariation(1)
+
+		Blueprint.PARTICLE_SYSTEMS.SMOKE = particleSystem
+	end
+
+	entity:add(ParticleComponent(particleSystem:clone(), false))
+	entity:add(SpriteComponent(sprite))
+
+	return entity
 end
 
 return Blueprint()

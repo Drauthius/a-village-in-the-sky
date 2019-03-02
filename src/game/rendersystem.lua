@@ -173,7 +173,12 @@ function RenderSystem:draw()
 			RenderSystem.COLOR_OUTLINE_SHADER:send("newColor", RenderSystem.NEW_OUTLINE_COLOR, unpack(newColors or {}))
 		end
 
-		RenderSystem.COLOR_OUTLINE_SHADER:send("noShadow", true)
+		local includeShadow = false
+		if entity:has("ParticleComponent") then
+			includeShadow = true
+		else
+			RenderSystem.COLOR_OUTLINE_SHADER:send("noShadow", true)
+		end
 
 		-- Transparent background for buildings under construction, and setup for the non-transparent part.
 		if entity:has("ConstructionComponent") then
@@ -201,6 +206,8 @@ function RenderSystem:draw()
 			end, "replace", 0, true)
 		elseif entity:has("ResourceComponent") and entity:get("ResourceComponent"):isUsable() then
 			spriteSheet:draw(sprite:getSprite(), dx, dy)
+		elseif entity:has("ParticleComponent") then
+			love.graphics.draw(entity:get("ParticleComponent"):getParticleSystem(), dx, dy)
 		else
 			-- Increase the stencil value for non-villager, non-resource things.
 			love.graphics.stencil(function()
@@ -209,16 +216,20 @@ function RenderSystem:draw()
 			end, "replace", 1, true)
 		end
 
-		-- Draw the shadow separately
-		RenderSystem.COLOR_OUTLINE_SHADER:send("noShadow", false)
-		RenderSystem.COLOR_OUTLINE_SHADER:send("shadowOnly", true)
-		-- The colour mask makes it so that the shadow doesn't "stick out" from the tiles.
-		love.graphics.setColorMask(true, true, true, false)
-		spriteSheet:draw(sprite:getSprite(), dx, dy)
+		if not includeShadow then
+			-- Draw the shadow separately
+			RenderSystem.COLOR_OUTLINE_SHADER:send("noShadow", false)
+			RenderSystem.COLOR_OUTLINE_SHADER:send("shadowOnly", true)
+			-- The colour mask makes it so that the shadow doesn't "stick out" from the tiles.
+			love.graphics.setColorMask(true, true, true, false)
+			spriteSheet:draw(sprite:getSprite(), dx, dy)
+
+			-- Reset
+			love.graphics.setColorMask()
+			RenderSystem.COLOR_OUTLINE_SHADER:send("shadowOnly", false)
+		end
 
 		-- Reset
-		love.graphics.setColorMask()
-		RenderSystem.COLOR_OUTLINE_SHADER:send("shadowOnly", false)
 		RenderSystem.COLOR_OUTLINE_SHADER:send("numColorReplaces", 1)
 		RenderSystem.COLOR_OUTLINE_SHADER:send("newColor", RenderSystem.NEW_OUTLINE_COLOR)
 

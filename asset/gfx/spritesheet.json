@@ -320,7 +320,7 @@
     "duration": 250
    },
    "dust-effect 4.aseprite": {
-    "frame": { "x": 86, "y": 606, "w": 18, "h": 18 },
+    "frame": { "x": 122, "y": 606, "w": 18, "h": 18 },
     "rotated": false,
     "trimmed": false,
     "spriteSourceSize": { "x": 0, "y": 0, "w": 16, "h": 16 },
@@ -328,7 +328,7 @@
     "duration": 250
    },
    "dust-effect 5.aseprite": {
-    "frame": { "x": 122, "y": 606, "w": 18, "h": 18 },
+    "frame": { "x": 86, "y": 606, "w": 18, "h": 18 },
     "rotated": false,
     "trimmed": false,
     "spriteSourceSize": { "x": 0, "y": 0, "w": 16, "h": 16 },
@@ -525,6 +525,14 @@
     "trimmed": false,
     "spriteSourceSize": { "x": 0, "y": 0, "w": 460, "h": 61 },
     "sourceSize": { "w": 460, "h": 61 },
+    "duration": 100
+   },
+   "smoke.aseprite": {
+    "frame": { "x": 453, "y": 63, "w": 8, "h": 8 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 6, "h": 6 },
+    "sourceSize": { "w": 6, "h": 6 },
     "duration": 100
    },
    "tool-resource 0.aseprite": {
@@ -784,7 +792,7 @@
     "duration": 200
    },
    "villagers-action (Hairy) 21.aseprite": {
-    "frame": { "x": 1909, "y": 251, "w": 20, "h": 21 },
+    "frame": { "x": 2009, "y": 408, "w": 20, "h": 21 },
     "rotated": false,
     "trimmed": false,
     "spriteSourceSize": { "x": 0, "y": 0, "w": 18, "h": 19 },
@@ -792,7 +800,7 @@
     "duration": 200
    },
    "villagers-action (Hairy) 22.aseprite": {
-    "frame": { "x": 2009, "y": 408, "w": 20, "h": 21 },
+    "frame": { "x": 1003, "y": 240, "w": 20, "h": 21 },
     "rotated": false,
     "trimmed": false,
     "spriteSourceSize": { "x": 0, "y": 0, "w": 18, "h": 19 },
@@ -904,7 +912,7 @@
     "duration": 200
    },
    "villagers-action (Hairy) 36.aseprite": {
-    "frame": { "x": 234, "y": 586, "w": 20, "h": 21 },
+    "frame": { "x": 782, "y": 585, "w": 20, "h": 21 },
     "rotated": false,
     "trimmed": false,
     "spriteSourceSize": { "x": 0, "y": 0, "w": 18, "h": 19 },
@@ -912,7 +920,7 @@
     "duration": 200
    },
    "villagers-action (Hairy) 37.aseprite": {
-    "frame": { "x": 802, "y": 585, "w": 20, "h": 21 },
+    "frame": { "x": 234, "y": 586, "w": 20, "h": 21 },
     "rotated": false,
     "trimmed": false,
     "spriteSourceSize": { "x": 0, "y": 0, "w": 18, "h": 19 },
@@ -1160,7 +1168,7 @@
     "duration": 200
    },
    "villagers (Hairy) 24.aseprite": {
-    "frame": { "x": 321, "y": 573, "w": 107, "h": 37 },
+    "frame": { "x": 107, "y": 569, "w": 107, "h": 37 },
     "rotated": false,
     "trimmed": false,
     "spriteSourceSize": { "x": 0, "y": 0, "w": 105, "h": 35 },
@@ -1232,7 +1240,7 @@
     "duration": 200
    },
    "villagers (Hairy) 33.aseprite": {
-    "frame": { "x": 963, "y": 543, "w": 107, "h": 37 },
+    "frame": { "x": 321, "y": 573, "w": 107, "h": 37 },
     "rotated": false,
     "trimmed": false,
     "spriteSourceSize": { "x": 0, "y": 0, "w": 105, "h": 35 },
@@ -1240,7 +1248,7 @@
     "duration": 200
    },
    "villagers (Hairy) 34.aseprite": {
-    "frame": { "x": 1819, "y": 546, "w": 107, "h": 37 },
+    "frame": { "x": 963, "y": 543, "w": 107, "h": 37 },
     "rotated": false,
     "trimmed": false,
     "spriteSourceSize": { "x": 0, "y": 0, "w": 105, "h": 35 },
@@ -1248,7 +1256,7 @@
     "duration": 200
    },
    "villagers (Hairy) 35.aseprite": {
-    "frame": { "x": 1926, "y": 546, "w": 107, "h": 37 },
+    "frame": { "x": 1819, "y": 546, "w": 107, "h": 37 },
     "rotated": false,
     "trimmed": false,
     "spriteSourceSize": { "x": 0, "y": 0, "w": 105, "h": 35 },
@@ -1256,7 +1264,7 @@
     "duration": 200
    },
    "villagers (Hairy) 36.aseprite": {
-    "frame": { "x": 1070, "y": 547, "w": 107, "h": 37 },
+    "frame": { "x": 1926, "y": 546, "w": 107, "h": 37 },
     "rotated": false,
     "trimmed": false,
     "spriteSourceSize": { "x": 0, "y": 0, "w": 105, "h": 35 },
@@ -1264,7 +1272,7 @@
     "duration": 200
    },
    "villagers (Hairy) 37.aseprite": {
-    "frame": { "x": 1712, "y": 547, "w": 107, "h": 37 },
+    "frame": { "x": 1070, "y": 547, "w": 107, "h": 37 },
     "rotated": false,
     "trimmed": false,
     "spriteSourceSize": { "x": 0, "y": 0, "w": 105, "h": 35 },
@@ -1272,7 +1280,7 @@
     "duration": 200
    },
    "villagers (Hairy) 38.aseprite": {
-    "frame": { "x": 642, "y": 548, "w": 107, "h": 37 },
+    "frame": { "x": 1712, "y": 547, "w": 107, "h": 37 },
     "rotated": false,
     "trimmed": false,
     "spriteSourceSize": { "x": 0, "y": 0, "w": 105, "h": 35 },
@@ -1280,7 +1288,7 @@
     "duration": 200
    },
    "villagers (Hairy) 39.aseprite": {
-    "frame": { "x": 749, "y": 548, "w": 107, "h": 37 },
+    "frame": { "x": 642, "y": 548, "w": 107, "h": 37 },
     "rotated": false,
     "trimmed": false,
     "spriteSourceSize": { "x": 0, "y": 0, "w": 105, "h": 35 },
@@ -1288,7 +1296,7 @@
     "duration": 200
    },
    "villagers (Hairy) 40.aseprite": {
-    "frame": { "x": 1498, "y": 548, "w": 107, "h": 37 },
+    "frame": { "x": 749, "y": 548, "w": 107, "h": 37 },
     "rotated": false,
     "trimmed": false,
     "spriteSourceSize": { "x": 0, "y": 0, "w": 105, "h": 35 },
@@ -1296,7 +1304,7 @@
     "duration": 200
    },
    "villagers (Hairy) 41.aseprite": {
-    "frame": { "x": 1605, "y": 548, "w": 107, "h": 37 },
+    "frame": { "x": 1498, "y": 548, "w": 107, "h": 37 },
     "rotated": false,
     "trimmed": false,
     "spriteSourceSize": { "x": 0, "y": 0, "w": 105, "h": 35 },
@@ -1304,7 +1312,7 @@
     "duration": 200
    },
    "villagers (Hairy) 42.aseprite": {
-    "frame": { "x": 214, "y": 549, "w": 107, "h": 37 },
+    "frame": { "x": 1605, "y": 548, "w": 107, "h": 37 },
     "rotated": false,
     "trimmed": false,
     "spriteSourceSize": { "x": 0, "y": 0, "w": 105, "h": 35 },
@@ -1312,7 +1320,7 @@
     "duration": 200
    },
    "villagers (Hairy) 43.aseprite": {
-    "frame": { "x": 1177, "y": 549, "w": 107, "h": 37 },
+    "frame": { "x": 214, "y": 549, "w": 107, "h": 37 },
     "rotated": false,
     "trimmed": false,
     "spriteSourceSize": { "x": 0, "y": 0, "w": 105, "h": 35 },
@@ -1320,7 +1328,7 @@
     "duration": 200
    },
    "villagers (Hairy) 44.aseprite": {
-    "frame": { "x": 1284, "y": 560, "w": 107, "h": 37 },
+    "frame": { "x": 1177, "y": 549, "w": 107, "h": 37 },
     "rotated": false,
     "trimmed": false,
     "spriteSourceSize": { "x": 0, "y": 0, "w": 105, "h": 35 },
@@ -1328,7 +1336,7 @@
     "duration": 200
    },
    "villagers (Hairy) 45.aseprite": {
-    "frame": { "x": 1391, "y": 560, "w": 107, "h": 37 },
+    "frame": { "x": 1284, "y": 560, "w": 107, "h": 37 },
     "rotated": false,
     "trimmed": false,
     "spriteSourceSize": { "x": 0, "y": 0, "w": 105, "h": 35 },
@@ -1336,7 +1344,7 @@
     "duration": 200
    },
    "villagers (Hairy) 46.aseprite": {
-    "frame": { "x": 535, "y": 539, "w": 107, "h": 37 },
+    "frame": { "x": 1391, "y": 560, "w": 107, "h": 37 },
     "rotated": false,
     "trimmed": false,
     "spriteSourceSize": { "x": 0, "y": 0, "w": 105, "h": 35 },
@@ -1344,7 +1352,7 @@
     "duration": 200
    },
    "villagers (Hairy) 47.aseprite": {
-    "frame": { "x": 0, "y": 569, "w": 107, "h": 37 },
+    "frame": { "x": 535, "y": 539, "w": 107, "h": 37 },
     "rotated": false,
     "trimmed": false,
     "spriteSourceSize": { "x": 0, "y": 0, "w": 105, "h": 35 },
@@ -1360,7 +1368,7 @@
     "duration": 200
    },
    "villagers (Hairy) 49.aseprite": {
-    "frame": { "x": 107, "y": 569, "w": 107, "h": 37 },
+    "frame": { "x": 0, "y": 569, "w": 107, "h": 37 },
     "rotated": false,
     "trimmed": false,
     "spriteSourceSize": { "x": 0, "y": 0, "w": 105, "h": 35 },
@@ -1392,7 +1400,7 @@
     "duration": 200
    },
    "villagers (Hairy) 53.aseprite": {
-    "frame": { "x": 1909, "y": 324, "w": 107, "h": 37 },
+    "frame": { "x": 749, "y": 326, "w": 107, "h": 37 },
     "rotated": false,
     "trimmed": false,
     "spriteSourceSize": { "x": 0, "y": 0, "w": 105, "h": 35 },
@@ -1400,7 +1408,7 @@
     "duration": 200
    },
    "villagers (Hairy) 54.aseprite": {
-    "frame": { "x": 749, "y": 326, "w": 107, "h": 37 },
+    "frame": { "x": 1909, "y": 324, "w": 107, "h": 37 },
     "rotated": false,
     "trimmed": false,
     "spriteSourceSize": { "x": 0, "y": 0, "w": 105, "h": 35 },
@@ -1776,7 +1784,7 @@
     "duration": 200
    },
    "villagers-action 17.aseprite": {
-    "frame": { "x": 214, "y": 586, "w": 20, "h": 21 },
+    "frame": { "x": 1909, "y": 251, "w": 20, "h": 21 },
     "rotated": false,
     "trimmed": false,
     "spriteSourceSize": { "x": 0, "y": 0, "w": 18, "h": 19 },
@@ -1784,14 +1792,6 @@
     "duration": 200
    },
    "villagers-action 18.aseprite": {
-    "frame": { "x": 1003, "y": 240, "w": 20, "h": 21 },
-    "rotated": false,
-    "trimmed": false,
-    "spriteSourceSize": { "x": 0, "y": 0, "w": 18, "h": 19 },
-    "sourceSize": { "w": 18, "h": 19 },
-    "duration": 200
-   },
-   "villagers-action 19.aseprite": {
     "frame": { "x": 1678, "y": 585, "w": 20, "h": 21 },
     "rotated": false,
     "trimmed": false,
@@ -1799,7 +1799,7 @@
     "sourceSize": { "w": 18, "h": 19 },
     "duration": 200
    },
-   "villagers-action 20.aseprite": {
+   "villagers-action 19.aseprite": {
     "frame": { "x": 1658, "y": 585, "w": 20, "h": 21 },
     "rotated": false,
     "trimmed": false,
@@ -1807,7 +1807,7 @@
     "sourceSize": { "w": 18, "h": 19 },
     "duration": 200
    },
-   "villagers-action 21.aseprite": {
+   "villagers-action 20.aseprite": {
     "frame": { "x": 1638, "y": 585, "w": 20, "h": 21 },
     "rotated": false,
     "trimmed": false,
@@ -1815,7 +1815,7 @@
     "sourceSize": { "w": 18, "h": 19 },
     "duration": 200
    },
-   "villagers-action 22.aseprite": {
+   "villagers-action 21.aseprite": {
     "frame": { "x": 1618, "y": 585, "w": 20, "h": 21 },
     "rotated": false,
     "trimmed": false,
@@ -1823,7 +1823,7 @@
     "sourceSize": { "w": 18, "h": 19 },
     "duration": 200
    },
-   "villagers-action 23.aseprite": {
+   "villagers-action 22.aseprite": {
     "frame": { "x": 1598, "y": 585, "w": 20, "h": 21 },
     "rotated": false,
     "trimmed": false,
@@ -1831,7 +1831,7 @@
     "sourceSize": { "w": 18, "h": 19 },
     "duration": 200
    },
-   "villagers-action 24.aseprite": {
+   "villagers-action 23.aseprite": {
     "frame": { "x": 1578, "y": 585, "w": 20, "h": 21 },
     "rotated": false,
     "trimmed": false,
@@ -1839,7 +1839,7 @@
     "sourceSize": { "w": 18, "h": 19 },
     "duration": 200
    },
-   "villagers-action 25.aseprite": {
+   "villagers-action 24.aseprite": {
     "frame": { "x": 1558, "y": 585, "w": 20, "h": 21 },
     "rotated": false,
     "trimmed": false,
@@ -1847,7 +1847,7 @@
     "sourceSize": { "w": 18, "h": 19 },
     "duration": 200
    },
-   "villagers-action 26.aseprite": {
+   "villagers-action 25.aseprite": {
     "frame": { "x": 1538, "y": 585, "w": 20, "h": 21 },
     "rotated": false,
     "trimmed": false,
@@ -1855,7 +1855,7 @@
     "sourceSize": { "w": 18, "h": 19 },
     "duration": 200
    },
-   "villagers-action 27.aseprite": {
+   "villagers-action 26.aseprite": {
     "frame": { "x": 1518, "y": 585, "w": 20, "h": 21 },
     "rotated": false,
     "trimmed": false,
@@ -1863,7 +1863,7 @@
     "sourceSize": { "w": 18, "h": 19 },
     "duration": 200
    },
-   "villagers-action 28.aseprite": {
+   "villagers-action 27.aseprite": {
     "frame": { "x": 1498, "y": 585, "w": 20, "h": 21 },
     "rotated": false,
     "trimmed": false,
@@ -1871,7 +1871,7 @@
     "sourceSize": { "w": 18, "h": 19 },
     "duration": 200
    },
-   "villagers-action 29.aseprite": {
+   "villagers-action 28.aseprite": {
     "frame": { "x": 822, "y": 585, "w": 20, "h": 21 },
     "rotated": false,
     "trimmed": false,
@@ -1879,7 +1879,7 @@
     "sourceSize": { "w": 18, "h": 19 },
     "duration": 200
    },
-   "villagers-action 30.aseprite": {
+   "villagers-action 29.aseprite": {
     "frame": { "x": 1819, "y": 436, "w": 20, "h": 21 },
     "rotated": false,
     "trimmed": false,
@@ -1887,15 +1887,15 @@
     "sourceSize": { "w": 18, "h": 19 },
     "duration": 200
    },
-   "villagers-action 31.aseprite": {
-    "frame": { "x": 782, "y": 585, "w": 20, "h": 21 },
+   "villagers-action 30.aseprite": {
+    "frame": { "x": 802, "y": 585, "w": 20, "h": 21 },
     "rotated": false,
     "trimmed": false,
     "spriteSourceSize": { "x": 0, "y": 0, "w": 18, "h": 19 },
     "sourceSize": { "w": 18, "h": 19 },
     "duration": 200
    },
-   "villagers-action 32.aseprite": {
+   "villagers-action 31.aseprite": {
     "frame": { "x": 762, "y": 585, "w": 20, "h": 21 },
     "rotated": false,
     "trimmed": false,
@@ -1903,7 +1903,7 @@
     "sourceSize": { "w": 18, "h": 19 },
     "duration": 200
    },
-   "villagers-action 33.aseprite": {
+   "villagers-action 32.aseprite": {
     "frame": { "x": 742, "y": 585, "w": 20, "h": 21 },
     "rotated": false,
     "trimmed": false,
@@ -1911,7 +1911,7 @@
     "sourceSize": { "w": 18, "h": 19 },
     "duration": 200
    },
-   "villagers-action 34.aseprite": {
+   "villagers-action 33.aseprite": {
     "frame": { "x": 722, "y": 585, "w": 20, "h": 21 },
     "rotated": false,
     "trimmed": false,
@@ -1919,7 +1919,7 @@
     "sourceSize": { "w": 18, "h": 19 },
     "duration": 200
    },
-   "villagers-action 35.aseprite": {
+   "villagers-action 34.aseprite": {
     "frame": { "x": 702, "y": 585, "w": 20, "h": 21 },
     "rotated": false,
     "trimmed": false,
@@ -1927,7 +1927,7 @@
     "sourceSize": { "w": 18, "h": 19 },
     "duration": 200
    },
-   "villagers-action 36.aseprite": {
+   "villagers-action 35.aseprite": {
     "frame": { "x": 682, "y": 585, "w": 20, "h": 21 },
     "rotated": false,
     "trimmed": false,
@@ -1935,7 +1935,7 @@
     "sourceSize": { "w": 18, "h": 19 },
     "duration": 200
    },
-   "villagers-action 37.aseprite": {
+   "villagers-action 36.aseprite": {
     "frame": { "x": 662, "y": 585, "w": 20, "h": 21 },
     "rotated": false,
     "trimmed": false,
@@ -1943,7 +1943,7 @@
     "sourceSize": { "w": 18, "h": 19 },
     "duration": 200
    },
-   "villagers-action 38.aseprite": {
+   "villagers-action 37.aseprite": {
     "frame": { "x": 642, "y": 585, "w": 20, "h": 21 },
     "rotated": false,
     "trimmed": false,
@@ -1951,7 +1951,7 @@
     "sourceSize": { "w": 18, "h": 19 },
     "duration": 200
    },
-   "villagers-action 39.aseprite": {
+   "villagers-action 38.aseprite": {
     "frame": { "x": 2026, "y": 450, "w": 20, "h": 21 },
     "rotated": false,
     "trimmed": false,
@@ -1959,7 +1959,7 @@
     "sourceSize": { "w": 18, "h": 19 },
     "duration": 200
    },
-   "villagers-action 40.aseprite": {
+   "villagers-action 39.aseprite": {
     "frame": { "x": 2006, "y": 450, "w": 20, "h": 21 },
     "rotated": false,
     "trimmed": false,
@@ -1967,7 +1967,7 @@
     "sourceSize": { "w": 18, "h": 19 },
     "duration": 200
    },
-   "villagers-action 41.aseprite": {
+   "villagers-action 40.aseprite": {
     "frame": { "x": 1986, "y": 440, "w": 20, "h": 21 },
     "rotated": false,
     "trimmed": false,
@@ -1975,7 +1975,7 @@
     "sourceSize": { "w": 18, "h": 19 },
     "duration": 200
    },
-   "villagers-action 42.aseprite": {
+   "villagers-action 41.aseprite": {
     "frame": { "x": 1966, "y": 440, "w": 20, "h": 21 },
     "rotated": false,
     "trimmed": false,
@@ -1983,8 +1983,16 @@
     "sourceSize": { "w": 18, "h": 19 },
     "duration": 200
    },
-   "villagers-action 43.aseprite": {
+   "villagers-action 42.aseprite": {
     "frame": { "x": 1357, "y": 597, "w": 20, "h": 21 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 18, "h": 19 },
+    "sourceSize": { "w": 18, "h": 19 },
+    "duration": 200
+   },
+   "villagers-action 43.aseprite": {
+    "frame": { "x": 214, "y": 586, "w": 20, "h": 21 },
     "rotated": false,
     "trimmed": false,
     "spriteSourceSize": { "x": 0, "y": 0, "w": 18, "h": 19 },

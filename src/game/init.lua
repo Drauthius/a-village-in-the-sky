@@ -83,6 +83,7 @@ local AssignedEvent = require "src.game.assignedevent"
 -- Systems
 local DebugSystem
 local FieldSystem
+local ParticleSystem
 local PlacingSystem
 local PositionSystem
 local RenderSystem
@@ -107,6 +108,7 @@ function Game:init()
 	-- Needs to be created after initialization.
 	DebugSystem = require "src.game.debugsystem"
 	FieldSystem = require "src.game.fieldsystem"
+	ParticleSystem = require "src.game.particlesystem"
 	PlacingSystem = require "src.game.placingsystem"
 	PositionSystem = require "src.game.positionsystem"
 	RenderSystem = require "src.game.rendersystem"
@@ -144,6 +146,7 @@ function Game:enter()
 	self.engine:addSystem(WalkingSystem(self.engine, self.eventManager, self.map), "update")
 	self.engine:addSystem(TimerSystem(), "update") -- Must be before the sprite system...
 	self.engine:addSystem(SpriteSystem(self.eventManager), "update")
+	self.engine:addSystem(ParticleSystem(self.engine), "update")
 	self.engine:addSystem(RenderSystem(), "draw")
 	self.engine:addSystem(DebugSystem(self.map), "draw")
 
@@ -163,6 +166,12 @@ function Game:enter()
 	self.gui = GUI(self.engine)
 
 	self.level:initiate(self.engine, self.map)
+
+	local apa = blueprint:createSmokeParticle()
+	apa:add(PositionComponent(self.map:getGrid(13, 9)))
+	apa:get("SpriteComponent"):setDrawPosition(self.map:gridToWorldCoords(13, 9))
+	apa:get("ParticleComponent"):getParticleSystem():start()
+	self.engine:addEntity(apa)
 end
 
 function Game:update(dt)
