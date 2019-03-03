@@ -4,10 +4,12 @@ local lovetoys = require "lib.lovetoys.lovetoys"
 local BuildingCompletedEvent = require "src.game.buildingcompletedevent"
 local BuildingLeftEvent = require "src.game.buildingleftevent"
 local CarryingComponent = require "src.game.carryingcomponent"
+local PositionComponent = require "src.game.positioncomponent"
 local ResourceComponent = require "src.game.resourcecomponent"
 local VillagerComponent = require "src.game.villagercomponent"
 local WorkComponent = require "src.game.workcomponent"
 
+local blueprint = require "src.game.blueprint"
 local soundManager = require "src.soundmanager"
 
 local WorkSystem = lovetoys.System:subclass("WorkSystem")
@@ -106,6 +108,18 @@ function WorkSystem:workEvent(event)
 	else
 		local work = workPlace:get("WorkComponent")
 		work:increaseCompletion(10.0) -- TODO: Value!
+
+		if work:getType() == WorkComponent.WOODCUTTER then
+			local spark = blueprint:createWoodSparksParticle()
+			spark:add(PositionComponent(workPlace:get("PositionComponent"):getGrid()))
+			spark:get("SpriteComponent"):setDrawPosition(dx + 14, dy + 55) -- XXX
+			self.engine:addEntity(spark)
+		elseif work:getType() == WorkComponent.MINER then
+			local spark = blueprint:createIronSparksParticle()
+			spark:add(PositionComponent(workPlace:get("PositionComponent"):getGrid()))
+			spark:get("SpriteComponent"):setDrawPosition(dx + 12, dy + 5) -- XXX
+			self.engine:addEntity(spark)
+		end
 
 		-- TODO: Maybe send this off in an event.
 		if work:isComplete() then

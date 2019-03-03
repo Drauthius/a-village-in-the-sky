@@ -44,6 +44,7 @@ menu-button.aseprite
 mountain-tile.aseprite
 resource-panel.aseprite
 smoke.aseprite
+spark.aseprite
 tool-resource.aseprite
 villagers-palette.aseprite
 windmill-blades.aseprite

@@ -35,7 +35,8 @@ SpriteSystem.static.ANIMATIONS = {
 	working = {
 		[WorkComponent.WOODCUTTER] = {},
 		[WorkComponent.MINER] = {},
-		[WorkComponent.BUILDER] = {}
+		[WorkComponent.BUILDER] = {},
+		[WorkComponent.FARMER] = {}
 	}
 }
 
@@ -91,20 +92,22 @@ function SpriteSystem:initialize(eventManager)
 		NE = spriteSheet:getFrameTag("Builder left"),
 		NW = spriteSheet:getFrameTag("Builder right")
 	}
-	working[FieldComponent.UNCULTIVATED] = {
-		NW = spriteSheet:getFrameTag("Plowing")
-	}
-	working[FieldComponent.PLOWED] = {
-		NW = spriteSheet:getFrameTag("Seeding")
-	}
-	working[FieldComponent.SEEDED] = {
-		NW = spriteSheet:getFrameTag("Watering")
-	}
-	working[FieldComponent.GROWING] = {
-		NW = spriteSheet:getFrameTag("Watering")
-	}
-	working[FieldComponent.HARVESTING] = {
-		NW = spriteSheet:getFrameTag("Reaping")
+	working[WorkComponent.FARMER] = {
+		[FieldComponent.UNCULTIVATED] = {
+			NW = spriteSheet:getFrameTag("Plowing")
+		},
+		[FieldComponent.PLOWED] = {
+			NW = spriteSheet:getFrameTag("Seeding")
+		},
+		[FieldComponent.SEEDED] = {
+			NW = spriteSheet:getFrameTag("Watering")
+		},
+		[FieldComponent.GROWING] = {
+			NW = spriteSheet:getFrameTag("Watering")
+		},
+		[FieldComponent.HARVESTING] = {
+			NW = spriteSheet:getFrameTag("Reaping")
+		}
 	}
 end
 
@@ -163,16 +166,17 @@ function SpriteSystem:updateVillager(dt, entity)
 				animated = false
 			end
 		else
-			local key = adult:getOccupation()
-			if key == WorkComponent.FARMER then
+			local occupation = adult:getOccupation()
+			local animations = assert(SpriteSystem.ANIMATIONS.working[occupation],
+			                          "No animation for "..adult:getOccupationName())
+			if occupation == WorkComponent.FARMER then
 				-- Train-wreck anti-pattern?
-				key = entity:get("AdultComponent"):getWorkPlace():get("FieldComponent"):getState()
+				animations = animations[entity:get("AdultComponent"):getWorkPlace():get("FieldComponent"):getState()]
 			end
-			assert(SpriteSystem.ANIMATIONS.working[key], "No animation for "..adult:getOccupationName())
-			targetAnimation = SpriteSystem.ANIMATIONS.working[key][cardinalDir]
+			targetAnimation = animations[cardinalDir]
 			working = true
 			assert(targetAnimation, "Missing working animation. " ..
-			       "Occupation: "..adult:getOccupationName()..", Direction: "..cardinalDir..", Key: "..key)
+			       "Occupation: "..adult:getOccupationName()..", Direction: "..cardinalDir)
 		end
 	elseif entity:has("WalkingComponent") then
 		targetAnimation = SpriteSystem.ANIMATIONS.walking.nothing

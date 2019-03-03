@@ -98,13 +98,85 @@ function Blueprint:createResourcePile(type, amount)
 	return resource
 end
 
+function Blueprint:createWoodSparksParticle()
+	local entity = lovetoys.Entity()
+	local sprite = spriteSheet:getSprite("spark")
+
+	local particleSystem = Blueprint.PARTICLE_SYSTEMS.WOOD_SPARK
+	if not particleSystem then
+		particleSystem = love.graphics.newParticleSystem(spriteSheet:getImage(), 32)
+		particleSystem:setQuads(sprite:getQuad())
+		particleSystem:setColors(0.388, 0.326, 0.263, 0.9)
+		particleSystem:setEmissionRate(69)
+		particleSystem:setEmitterLifetime(0.1)
+		local _, _, w, h = sprite:getQuad():getViewport()
+		particleSystem:setOffset(w/2, h/2)
+		particleSystem:setInsertMode("random")
+		particleSystem:setLinearAcceleration(0, 50, 0, 80)
+		particleSystem:setRadialAcceleration(-2, -10)
+		particleSystem:setEmissionArea("uniform", 2, 2)
+		particleSystem:setParticleLifetime(0.3)
+		particleSystem:setRotation(-math.pi, math.pi)
+		particleSystem:setSpeed(30, 30)
+		particleSystem:setSpread(2*math.pi)
+		particleSystem:setSizeVariation(0.5)
+		particleSystem:setSizes(1.0, 0.5)
+		particleSystem:setSpin(-math.pi, math.pi)
+		particleSystem:setSpinVariation(1)
+		particleSystem:emit(1)
+
+		Blueprint.PARTICLE_SYSTEMS.WOOD_SPARK = particleSystem
+	end
+
+	entity:add(ParticleComponent(particleSystem:clone(), true))
+	entity:add(SpriteComponent(sprite))
+
+	return entity
+end
+
+function Blueprint:createIronSparksParticle()
+	local entity = lovetoys.Entity()
+	local sprite = spriteSheet:getSprite("spark")
+
+	local particleSystem = Blueprint.PARTICLE_SYSTEMS.IRON_SPARK
+	if not particleSystem then
+		particleSystem = love.graphics.newParticleSystem(spriteSheet:getImage(), 32)
+		particleSystem:setQuads(sprite:getQuad())
+		particleSystem:setColors(0.665, 0.680, 0.645, 0.9)
+		particleSystem:setEmissionRate(69)
+		particleSystem:setEmitterLifetime(0.1)
+		local _, _, w, h = sprite:getQuad():getViewport()
+		particleSystem:setOffset(w/2, h/2)
+		particleSystem:setInsertMode("random")
+		particleSystem:setLinearAcceleration(0, 50, 0, 80)
+		particleSystem:setRadialAcceleration(-2, -10)
+		particleSystem:setEmissionArea("uniform", 2, 2)
+		particleSystem:setParticleLifetime(0.3)
+		particleSystem:setRotation(-math.pi, math.pi)
+		particleSystem:setSpeed(30, 30)
+		particleSystem:setSpread(2*math.pi)
+		particleSystem:setSizeVariation(0.5)
+		particleSystem:setSizes(1.0, 0.5)
+		particleSystem:setSpin(-math.pi, math.pi)
+		particleSystem:setSpinVariation(1)
+		particleSystem:emit(1)
+
+		Blueprint.PARTICLE_SYSTEMS.IRON_SPARK = particleSystem
+	end
+
+	entity:add(ParticleComponent(particleSystem:clone(), true))
+	entity:add(SpriteComponent(sprite))
+
+	return entity
+end
+
 function Blueprint:createSmokeParticle()
 	local entity = lovetoys.Entity()
 	local sprite = spriteSheet:getSprite("smoke")
 
 	local particleSystem = Blueprint.PARTICLE_SYSTEMS.SMOKE
 	if not particleSystem then
-		particleSystem = love.graphics.newParticleSystem(spriteSheet:getImage(), 15)
+		particleSystem = love.graphics.newParticleSystem(spriteSheet:getImage(), 32)
 		particleSystem:setQuads(sprite:getQuad())
 		particleSystem:setColors(1, 1, 1, 0.8,
 		                         1, 1, 1, 0.5,
