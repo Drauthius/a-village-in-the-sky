@@ -11,6 +11,7 @@
 --      are directly in front (to the right) of it.
 --    * Villagers that are waiting (for a resource) will not wander.
 --    * Villagers can walk into the bakery's entrance.
+--    * Mining villager is cut off (smaller quad than sprite)
 --  - Next:
 --    * Field shouldn't be placeable on every surface.
 --    * Sleep cycle
@@ -50,7 +51,6 @@
 --    * Effects ((small drop) + dust clouds + (screen shake))
 --    * Limit placement depending on runestones
 --    * Placing runestones
---    * Placing buildings
 --  - Info panel updates:
 --    * Make the info panel title bar thicker, and put the name there + a button to
 --      minimize/maximize.

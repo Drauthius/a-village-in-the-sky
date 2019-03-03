@@ -106,6 +106,7 @@ function BuildingSystem:buildingEnteredEvent(event)
 
 		-- Propeller!
 		if building:getType() == BuildingComponent.BAKERY and not building.propeller:has("AnimationComponent") then
+			local propeller = building.propeller
 			local animation = AnimationComponent()
 			local frames = {}
 			for i=0,2 do
@@ -121,7 +122,23 @@ function BuildingSystem:buildingEnteredEvent(event)
 				end
 			end
 			animation:setCurrentFrame(assert(currentFrame, "Uh-oh"))
-			building.propeller:add(animation)
+
+			-- Wind up.
+			local frame1, frame2 = math.max(1, (currentFrame + 1) % (#frames + 1)),
+			                       math.max(1, (currentFrame + 2) % (#frames + 1))
+			print(frame1, frame2)
+			local oldDur, oldDur1, oldDur2 = frames[currentFrame][2], frames[frame1][2], frames[frame2][2]
+			local newDur, newDur1, newDur2 = oldDur * 1.5, oldDur1 * 3.5, oldDur2 * 2.5
+			frames[currentFrame][2], frames[frame1][2], frames[frame2][2] = newDur, newDur1, newDur2
+			animation:setTimer(oldDur * 4 / 1000.0)
+			propeller:set(TimerComponent((newDur + newDur1 + newDur2 + 10) / 1000, function()
+				frames[currentFrame][2] = oldDur
+				frames[frame1][2] = oldDur1
+				frames[frame2][2] = oldDur2
+				propeller:remove("TimerComponent")
+			end))
+
+			propeller:add(animation)
 		end
 
 		for _,chimney in ipairs(building:getChimneys()) do
@@ -156,7 +173,24 @@ function BuildingSystem:buildingLeftEvent(event)
 	assert(found, "Villager not assigned to chimney?")
 
 	if building:getType() == BuildingComponent.BAKERY and numWorkers < 1 then
-		building.propeller:remove("AnimationComponent")
+		local propeller = building.propeller
+
+		local frames = propeller:get("AnimationComponent"):getFrames()
+		local currentFrame = propeller:get("AnimationComponent"):getCurrentFrame()
+
+		-- Wind down.
+		local frame1, frame2 = math.max(1, (currentFrame + 1) % (#frames + 1)),
+							   math.max(1, (currentFrame + 2) % (#frames + 1))
+		local oldDur, oldDur1, oldDur2 = frames[currentFrame][2], frames[frame1][2], frames[frame2][2]
+		local newDur, newDur1, newDur2 = oldDur * 3.5, oldDur1 * 1.5, oldDur2 * 2.5
+		frames[currentFrame][2], frames[frame1][2], frames[frame2][2] = newDur, newDur1, newDur2
+		propeller:set(TimerComponent((newDur + newDur1 + newDur2 + 10) / 1000.0, function()
+			frames[currentFrame][2] = oldDur
+			frames[frame1][2] = oldDur1
+			frames[frame2][2] = oldDur2
+			propeller:remove("TimerComponent")
+			propeller:remove("AnimationComponent")
+		end))
 	end
 end
 

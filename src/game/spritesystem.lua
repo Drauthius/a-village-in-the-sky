@@ -256,7 +256,6 @@ function SpriteSystem:updateAnimation(dt, entity)
 	local sprite = entity:get("SpriteComponent")
 	local animation = entity:get("AnimationComponent")
 
-
 	local newFrame
 	local t = animation:getTimer() - dt
 	if t <= 0 then
