@@ -36,7 +36,6 @@
 --    * When villager hits tree/stone/building
 --  - More sprites:
 --    * Event button has a new event (maybe just want to add a text number?).
---    * Clouds
 --    * Woman animations
 --    * Investigate and fix (or work around) aseprite sprite sheet bug
 --  - Controls
@@ -67,11 +66,13 @@
 --    * Quads are created on demand. Problem?
 --    * Villagers pushing another villager that is pushing another villager will end up with the first villager
 --      abandoning the attempt.
+--    * Clouds are a bit rough (sprites and particle system can remove sprites instantly).
 
 local Camera = require "lib.hump.camera"
 local Timer = require "lib.hump.timer"
 local lovetoys = require "lib.lovetoys.lovetoys"
 
+local Background = require "src.game.background"
 local GUI = require "src.game.gui"
 local Map = require "src.game.map"
 local DefaultLevel = require "src.game.level.default"
@@ -105,6 +106,10 @@ local state = require "src.game.state"
 local Game = {}
 
 Game.CAMERA_EPSILON = 0.025
+-- Zoom level before the foreground is visible
+Game.FOREGROUND_VISIBLE_ZOOM = 2
+-- How transparent the foreground is based on the zoom level.
+Game.FOREGROUND_VISIBLE_FACTOR = 1.0
 
 function Game:init()
 	lovetoys.initialize({ debug = true, middleclassPath = "lib.middleclass" })
@@ -129,13 +134,18 @@ function Game:enter()
 
 	self.speed = 1
 
-	self.map = Map()
-	self.level = DefaultLevel()
-
 	-- Set up the camera.
 	self.camera = Camera()
 	self.camera:lookAt(0, 0)
 	self.camera:zoom(3)
+
+	self.map = Map()
+	self.level = DefaultLevel()
+	self.backgrounds = {
+		Background(self.camera, 0.1, 3),
+		Background(self.camera, 0.05, 2)
+	}
+	self.foreground = Background(self.camera, 10, 1)
 
 	self.engine = lovetoys.Engine()
 	self.eventManager = lovetoys.EventManager()
@@ -198,14 +208,28 @@ function Game:update(dt)
 		end
 	end
 
+	self.foreground:setZoom(self.camera.scale)
+	self.foreground:setColor({
+		1, 1, 1,
+		math.max(0.0, math.min(0.9, (Game.FOREGROUND_VISIBLE_ZOOM - self.camera.scale) / Game.FOREGROUND_VISIBLE_FACTOR))
+	})
+
 	for _=1,self.speed do
 		Timer.update(dt)
+		for _,background in ipairs(self.backgrounds) do
+			background:update(dt)
+		end
+		self.foreground:update(dt)
 		self.gui:update(dt)
 		self.engine:update(dt)
 	end
 end
 
 function Game:draw()
+	for _,background in ipairs(self.backgrounds) do
+		background:draw()
+	end
+
 	local drawArea = screen:getDrawArea()
 	self.camera:draw(drawArea.x, drawArea.y, drawArea.width, drawArea.height, function()
 		self.engine:draw()
@@ -219,6 +243,8 @@ function Game:draw()
 			love.graphics.setColor(1, 1, 1, 1)
 		end
 	end)
+
+	self.foreground:draw()
 
 	self.gui:draw()
 end
@@ -246,6 +272,8 @@ function Game:keyreleased(key, scancode)
 		self.speed = 10
 	elseif scancode == "5" then
 		self.speed = 50
+	elseif scancode == "a" then
+		print(self.camera.scale)
 	end
 end
 

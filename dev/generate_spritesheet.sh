@@ -25,6 +25,7 @@ other=(
 bread-resource.aseprite
 button.aseprite
 children.aseprite
+clouds.aseprite
 details-panel.aseprite
 dust-effect.aseprite
 forest-tile.aseprite
