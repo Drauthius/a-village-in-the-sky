@@ -18,7 +18,7 @@ function ParticleSystem:update(dt)
 
 		particleSystem:update(dt)
 
-		if particle:getDestroyWhenDone() and particleSystem:getCount() < 1 then
+		if particle:getDestroyWhenDone() and not particleSystem:isActive() and particleSystem:getCount() < 1 then
 			self.engine:removeEntity(entity)
 		end
 	end

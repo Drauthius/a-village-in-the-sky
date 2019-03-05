@@ -46,8 +46,6 @@
 --      that villagers can be easily deselected.
 --  - Placing:
 --    * Indicators of valid positions (blue)
---    * Draw tiles behind other tiles? (Not really a requirement though)
---    * Effects ((small drop) + dust clouds + (screen shake))
 --    * Limit placement depending on runestones
 --    * Placing runestones
 --  - Info panel updates:
@@ -67,6 +65,7 @@
 --    * Villagers pushing another villager that is pushing another villager will end up with the first villager
 --      abandoning the attempt.
 --    * Clouds are a bit rough (sprites and particle system can remove sprites instantly).
+--    * Draw placing tile behind other tiles?
 
 local Camera = require "lib.hump.camera"
 local Timer = require "lib.hump.timer"
@@ -272,8 +271,6 @@ function Game:keyreleased(key, scancode)
 		self.speed = 10
 	elseif scancode == "5" then
 		self.speed = 50
-	elseif scancode == "a" then
-		print(self.camera.scale)
 	end
 end
 
@@ -498,6 +495,31 @@ function Game:_placeTile(placing)
 		Timer.tween(0.15, sprite, { y = dest }, "in-bounce")
 	end
 
+	-- DUST
+	local halfgi, halfgj = sgi + self.map.gridsPerTile/2, sgj + self.map.gridsPerTile/2
+	for _,dir in ipairs({ "SE", "SW", "NE", "NW" }) do
+		local dust = blueprint:createDustParticle(dir)
+
+		local gi, gj, dx, dy
+		if dir == "SE" then
+			gi, gj = egi - 1, halfgj
+			dx, dy = 1, 1
+		elseif dir == "SW" then
+			gi, gj = halfgi, egj - 1
+			dx, dy = -1, 1
+		elseif dir == "NE" then
+			gi, gj = halfgi, sgj
+			dx, dy = 1, -1
+		elseif dir == "NW" then
+			gi, gj = sgi, halfgj
+			dx, dy = -1, -1
+		end
+
+		dust:set(PositionComponent(self.map:getGrid(gi, gj)))
+		dust:get("SpriteComponent"):setDrawPosition(self.map:gridToWorldCoords(gi + dx * 2, gj + dy * 2))
+		self.engine:addEntity(dust)
+	end
+
 	local sprite = placing:get("SpriteComponent")
 	sprite:resetColor()
 	local dest = sprite.y
@@ -538,6 +560,28 @@ function Game:_placeBuilding(placing)
 	local dest = sprite.y
 	sprite.y = sprite.y - 4
 	Timer.tween(0.11, sprite, { y = dest }, "in-back")
+
+	-- DUST
+	local halfgi = minGrid.gi + math.floor((maxGrid.gi - minGrid.gi)/2)
+	local halfgj = minGrid.gj + math.floor((maxGrid.gj - minGrid.gj)/2)
+	for _,dir in ipairs({ "SE", "SW", "NE", "NW" }) do
+		local dust = blueprint:createDustParticle(dir, true)
+
+		local gi, gj
+		if dir == "SE" then
+			gi, gj = maxGrid.gi, halfgj
+		elseif dir == "SW" then
+			gi, gj = halfgi, maxGrid.gj
+		elseif dir == "NE" then
+			gi, gj = halfgi, minGrid.gj
+		elseif dir == "NW" then
+			gi, gj = minGrid.gi, halfgj
+		end
+
+		dust:set(PositionComponent((assert(self.map:getGrid(gi, gj), ("(%d,%d) is outside of the map"):format(gi, gj)))))
+		dust:get("SpriteComponent"):setDrawPosition(self.map:gridToWorldCoords(gi, gj))
+		self.engine:addEntity(dust)
+	end
 
 	-- Notify GUI to update its state.
 	self.gui:placed()

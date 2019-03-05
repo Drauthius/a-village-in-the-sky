@@ -205,4 +205,53 @@ function Blueprint:createSmokeParticle()
 	return entity
 end
 
+function Blueprint:createDustParticle(direction, small)
+	local entity = lovetoys.Entity()
+	local frames = spriteSheet:getFrameTag("Dust "..direction)
+	local firstSprite, duration = spriteSheet:getSprite("dust-effect "..frames.from)
+
+	local particleSystem = Blueprint.PARTICLE_SYSTEMS[(small and "SMALL_" or "").."DUST_"..direction]
+	if not particleSystem then
+		local quads = { firstSprite:getQuad() }
+		for i=frames.from + 1, frames.to do
+			table.insert(quads, spriteSheet:getSprite("dust-effect "..i):getQuad())
+		end
+
+		particleSystem = love.graphics.newParticleSystem(spriteSheet:getImage(), 32)
+		particleSystem:setQuads(quads)
+		particleSystem:setEmitterLifetime(0.1)
+		local _, _, w, h = firstSprite:getQuad():getViewport()
+		particleSystem:setOffset(w/2, h/2)
+		particleSystem:setSpeed(15)
+		local dir
+		if direction == "SE" then
+			dir = math.pi/4
+		elseif direction == "SW" then
+			dir = 3*math.pi/4
+		elseif direction == "NE" then
+			dir = -math.pi/4
+		elseif direction == "NW" then
+			dir = -3*math.pi/4
+		end
+		particleSystem:setDirection(dir)
+		particleSystem:setEmissionArea("ellipse", 3, 20, dir)
+		particleSystem:setParticleLifetime(duration * #quads / 1000 / 2)
+		if small then
+			particleSystem:setEmissionRate(20)
+			particleSystem:setSizes(0.4)
+		else
+			particleSystem:setEmissionRate(30)
+			particleSystem:setSizes(0.6)
+		end
+		particleSystem:emit(1)
+
+		Blueprint.PARTICLE_SYSTEMS[(small and "SMALL_" or "").."DUST_"..direction] = particleSystem
+	end
+
+	entity:add(ParticleComponent(particleSystem:clone(), true))
+	entity:add(SpriteComponent(firstSprite))
+
+	return entity
+end
+
 return Blueprint()
