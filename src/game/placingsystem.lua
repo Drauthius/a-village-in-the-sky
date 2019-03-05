@@ -26,7 +26,7 @@ function PlacingSystem:update(dt)
 		local ti, tj = self.map:worldToTileCoords(mx, my)
 		ti, tj = math.floor(ti), math.floor(tj)
 
-		local snap = self.map:isValidPosition(entity, entity:get("PlacingComponent"):isTile(), ti, tj)
+		local snap = self.map:isValidPosition(entity, ti, tj)
 
 		if entity:get("PlacingComponent"):isTile() then
 			if snap then

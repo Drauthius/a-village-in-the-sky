@@ -25,7 +25,7 @@ function DefaultLevel:initiate(engine, map)
 		tile:add(TileComponent(TileComponent.GRASS, 0, 0))
 		tile:add(SpriteComponent(spriteSheet:getSprite("grass-tile"), -map.halfTileWidth))
 		engine:addEntity(tile)
-		map:addTile(0, 0)
+		map:addTile(TileComponent.GRASS, 0, 0)
 	end
 
 	do -- Initial runestone.

@@ -26,7 +26,7 @@ function HallwayLevel:initiate(engine, map)
 	tile:add(TileComponent(TileComponent.GRASS, 0, 0))
 	tile:add(SpriteComponent(spriteSheet:getSprite("grass-tile"), -map.halfTileWidth))
 	engine:addEntity(tile)
-	map:addTile(0, 0)
+	map:addTile(TileComponent.GRASS, 0, 0)
 
 	for gi=0,map.gridsPerTile - 1 do
 		for gj=0,map.gridsPerTile - 1 do
@@ -70,7 +70,7 @@ function HallwayLevel:initiate(engine, map)
 	tile:add(TileComponent(TileComponent.GRASS, 0, -1))
 	tile:add(SpriteComponent(spriteSheet:getSprite("grass-tile"), 0, -map.halfTileHeight))
 	engine:addEntity(tile)
-	map:addTile(0, -1)
+	map:addTile(TileComponent.GRASS, 0, -1)
 
 	local dwelling = blueprint:createPlacingBuilding(BuildingComponent.DWELLING)
 	local ax, ay, minGrid, maxGrid = map:addObject(dwelling, 0, -1)

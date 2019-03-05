@@ -1,7 +1,10 @@
 local class = require "lib.middleclass"
 
 local bit = require "bit"
+
+local BuildingComponent = require "src.game.buildingcomponent"
 local ResourceComponent = require "src.game.resourcecomponent"
+local TileComponent = require "src.game.tilecomponent"
 
 -- Throughout this class, "grid" refers to the collision isometric squares, and "tile"
 -- refers to the bigger isometric squares (sprites). That being said, "gi" and "gj"
@@ -44,13 +47,13 @@ function Map:initialize()
 	self.halfGridHeight = self.gridHeight / 2
 end
 
-function Map:addTile(ti, tj)
+function Map:addTile(type, ti, tj)
 	if not self.tile[ti] then
 		self.tile[ti] = {}
 	end
 
 	assert(not self.tile[ti][tj], "Tile already existed")
-	self.tile[ti][tj] = {}
+	self.tile[ti][tj] = { type = type }
 
 	if self.firstTile[1] > ti then
 		self.firstTile[1] = ti
@@ -202,8 +205,9 @@ function Map:gridToTileCoords(gi, gj)
 	       math.floor(gj / self.gridsPerTile)
 end
 
-function Map:isValidPosition(entity, isTile, ti, tj)
-	if isTile then
+function Map:isValidPosition(entity, ti, tj)
+	local placing = entity:get("PlacingComponent")
+	if placing:isTile() then
 		if self.tile[ti] and self.tile[ti][tj] then
 			return false
 		end
@@ -221,6 +225,12 @@ function Map:isValidPosition(entity, isTile, ti, tj)
 		return false
 	else
 		if self.tile[ti] and self.tile[ti][tj] then
+			-- Special rules.
+			if placing:getType() == BuildingComponent.FIELD and
+			   self.tile[ti][tj].type ~= TileComponent.GRASS then
+				return false
+			end
+
 			return self:_placeFullWidthObject(entity, ti, tj, true) ~= nil
 		end
 

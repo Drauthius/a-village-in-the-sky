@@ -12,8 +12,8 @@
 --    * Villagers that are waiting (for a resource) will not wander.
 --    * Villagers can walk into the bakery's entrance.
 --    * Mining villager is cut off (smaller quad than sprite)
+--    * Shadow from buildings can be cast on the clouds.
 --  - Next:
---    * Field shouldn't be placeable on every surface.
 --    * Sleep cycle
 --    * Birth and death
 --  - Refactoring:
@@ -440,7 +440,7 @@ function Game:_placeTile(placing)
 
 	placing:remove("PlacingComponent")
 	local ti, tj = placing:get("TileComponent"):getPosition()
-	self.map:addTile(ti, tj)
+	self.map:addTile(placing:get("TileComponent"):getType(), ti, tj)
 
 	local trees, iron = self.level:getResources(placing:get("TileComponent"):getType())
 
