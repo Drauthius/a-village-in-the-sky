@@ -7,6 +7,7 @@ local state = require "src.game.state"
 local Map = require "src.game.map"
 local TargetReachedEvent = require "src.game.targetreachedevent"
 local TargetUnreachableEvent = require "src.game.targetunreachableevent"
+local ResourceComponent = require "src.game.resourcecomponent"
 local TimerComponent = require "src.game.timercomponent"
 local WalkingComponent = require "src.game.walkingcomponent"
 
@@ -231,7 +232,7 @@ function WalkingSystem:_createPath(entity)
 
 			-- Don't count that resource again, in case we go round again.
 			blacklist[resource] = true
-		until state:getNumResources(resource) - state:getNumReservedResources(resource) > 0
+		until state:getNumAvailableResources(resource) > 0
 		assert(count > 0, "No "..tostring(resource).." resource needed?!")
 
 		local resourceNearest, resourcePath = self:_createClosestPath(
@@ -295,7 +296,7 @@ function WalkingSystem:_createPath(entity)
 
 			-- Don't count that resource again, in case we go round again.
 			blacklist[resource] = true
-		until state:getNumResources(resource) - state:getNumReservedResources(resource) > 0
+		until state:getNumAvailableResources(resource) > 0
 		assert(count > 0, "No "..tostring(resource).." resource needed?!")
 
 		local resourceNearest, resourcePath = self:_createClosestPath(
@@ -327,12 +328,48 @@ function WalkingSystem:_createPath(entity)
 		targetEntity = resourceNearest
 		targetRotation = self:_getRotation(resourcePath[1] or start, resourceNearest:get("PositionComponent"):getGrid())
 		nextStop = walking:getTargetGrids()
+	elseif instruction == WalkingComponent.INSTRUCTIONS.GET_FOOD then
+		--
+		-- When getting food, we want to pick up a piece of bread and walk it to our home.
+		-- This part takes care of finding the shortest Manhattan distance to a resource and then to the work
+		-- site, and creating a path to the resource.
+		--
+		local home = assert(entity:get("VillagerComponent"):getHome(), "No home to bring the food back to.")
+		local resource = ResourceComponent.BREAD
+
+		local resourceNearest, resourcePath = self:_createClosestPath(
+			"entity",
+			self.engine:getEntitiesWithComponent("ResourceComponent"),
+			start,
+			home:get("PositionComponent"):getGrid(),
+			function(resourceEntity)
+				local resourceComponent = resourceEntity:get("ResourceComponent")
+				return resourceComponent:getResource() == resource and resourceComponent:isUsable()
+			end)
+
+		if not resourceNearest then
+			return nil
+		end
+
+		-- Remove the last grid, which is the location of the resource.
+		table.remove(resourcePath, 1)
+
+		-- Reserve the resources.
+		local pickupAmount = 1
+		resourceNearest:get("ResourceComponent"):setReserved(entity, pickupAmount)
+		state:reserveResource(resource, pickupAmount)
+
+		path = resourcePath
+		targetEntity = resourceNearest
+		targetRotation = self:_getRotation(resourcePath[1] or start, resourceNearest:get("PositionComponent"):getGrid())
+		nextStop = walking:getTargetGrids()[1]
 	elseif instruction == WalkingComponent.INSTRUCTIONS.WANDER or
+	       instruction == WalkingComponent.INSTRUCTIONS.GO_HOME or
 	       instruction == WalkingComponent.INSTRUCTIONS.GET_OUT_THE_WAY then
 		local target = walking:getTargetGrids()[1]
 		path = self:_calculatePath(start, target)
 	else
-		error("Don't know how to walk.")
+		error("Don't know how to walk: "..tostring(instruction))
 	end
 
 	return path, targetEntity, targetRotation, nextStop

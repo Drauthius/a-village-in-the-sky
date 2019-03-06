@@ -5,10 +5,12 @@ local VillagerComponent = class("VillagerComponent")
 VillagerComponent.static.GOALS = {
 	NONE = 0,
 	DROPOFF = 1,
-	WORK_PICKUP = 2,
-	WORK = 3,
-	WAIT = 4,
-	MOVING = 5
+	FOOD_PICKUP = 2,
+	FOOD_DROPOFF = 3,
+	WORK_PICKUP = 4,
+	WORK = 5,
+	WAIT = 6,
+	MOVING = 7
 }
 
 function VillagerComponent:initialize(stats)

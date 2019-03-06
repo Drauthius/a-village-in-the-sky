@@ -9,7 +9,9 @@ WalkingComponent.static.INSTRUCTIONS = {
 	BUILD = 3,
 	PRODUCE = 4,
 	WANDER = 5,
-	GET_OUT_THE_WAY = 6
+	GET_FOOD = 6,
+	GO_HOME = 7,
+	GET_OUT_THE_WAY = 8
 }
 
 function WalkingComponent:initialize(ti, tj, grids, instructions)

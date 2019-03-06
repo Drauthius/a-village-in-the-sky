@@ -144,7 +144,7 @@ function Game:enter()
 		Background(self.camera, 0.05, 2),
 		Background(self.camera, 0.2, 3)
 	}
-	self.backgrounds[1]:setColor({ 0.8, 0.8, 1, 1 })
+	self.backgrounds[1]:setColor({ 0.8, 0.8, 0.95, 1 })
 	self.backgrounds[2]:setColor({ 0.9, 0.9, 1, 1 })
 	self.foreground = Background(self.camera, 10, 2)
 

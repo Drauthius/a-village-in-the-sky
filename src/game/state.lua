@@ -95,6 +95,10 @@ function State:getNumReservedResources(resource)
 	return assert(self.reservedResources[resource], "Resource " .. tostring(resource) .. " doesn't exist.")
 end
 
+function State:getNumAvailableResources(resource)
+	return math.max(0, self:getNumResources(resource) - self:getNumReservedResources(resource))
+end
+
 function State:reserveResource(resource, amount)
 	self.reservedResources[resource] = self.reservedResources[resource] + (amount or 1)
 end

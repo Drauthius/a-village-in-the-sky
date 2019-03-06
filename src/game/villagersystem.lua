@@ -8,6 +8,7 @@ local PositionComponent = require "src.game.positioncomponent"
 local SpriteComponent = require "src.game.spritecomponent"
 local TimerComponent = require "src.game.timercomponent"
 local VillagerComponent = require "src.game.villagercomponent"
+local ResourceComponent = require "src.game.resourcecomponent"
 local WalkingComponent = require "src.game.walkingcomponent"
 local WorkComponent = require "src.game.workcomponent"
 local WorkingComponent = require "src.game.workingcomponent"
@@ -36,6 +37,10 @@ VillagerSystem.static.RAND = {
 	MOVE_DOUBLE_FORWARD_CHANCE = 0.8
 }
 
+VillagerSystem.static.FOOD = {
+	GATHER_WHEN_BELOW = 0.5
+}
+
 function VillagerSystem.requires()
 	return {"VillagerComponent"}
 end
@@ -58,157 +63,199 @@ function VillagerSystem:_updateVillager(entity)
 	local adult = entity:has("AdultComponent") and entity:get("AdultComponent")
 	local goal = villager:getGoal()
 
-	if goal == VillagerComponent.GOALS.NONE then
-		if entity:has("CarryingComponent") then
-			local home = villager:getHome()
-			local ti, tj
+	if goal ~= VillagerComponent.GOALS.NONE then
+		-- Doing something.
+		return
+	end
 
-			self:_prepare(entity)
+	-- If carrying something, drop it off first.
+	if entity:has("CarryingComponent") then
+		local home = villager:getHome()
+		local ti, tj
 
-			if home then
-				-- Drop off at home.
-				ti, tj = home:get("PositionComponent"):getTile()
-			else
-				-- Drop off somewhere around here.
-				local grid = entity:get("PositionComponent"):getGrid()
-				ti, tj = self.map:gridToTileCoords(grid.gi, grid.gj)
-			end
+		self:_prepare(entity)
 
-			entity:add(WalkingComponent(ti, tj, nil, WalkingComponent.INSTRUCTIONS.DROPOFF))
-			villager:setGoal(VillagerComponent.GOALS.DROPOFF)
-		elseif adult and adult:getWorkPlace() then
-			local workPlace = adult:getWorkPlace()
-			local ti, tj = workPlace:get("PositionComponent"):getTile()
-
-			self:_prepare(entity)
-
-			if workPlace:has("ConstructionComponent") then
-				local construction = workPlace:get("ConstructionComponent")
-
-				-- Make a first pass to determine if any work can be carried out.
-				-- TODO: Builders should work on buildings that can be completed.
-				local blacklist, resource = {}
-				repeat
-					resource = construction:getRemainingResources(blacklist)
-					if not resource then
-						adult:setWorkPlace(nil)
-						return
-					end
-
-					-- Don't count that resource again, in case we go round again.
-					blacklist[resource] = true
-				until state:getNumResources(resource) - state:getNumReservedResources(resource) > 0
-
-				-- For things being built, update the places where builders can stand, so that rubbish can
-				-- be cleared around the build site after placing the building.
-				construction:updateWorkGrids(self.map:getAdjacentGrids(workPlace))
-
-				entity:add(WalkingComponent(ti, tj, construction:getFreeWorkGrids(), WalkingComponent.INSTRUCTIONS.BUILD))
-				villager:setGoal(VillagerComponent.GOALS.WORK_PICKUP)
-			elseif workPlace:has("ProductionComponent") then
-				local production = workPlace:get("ProductionComponent")
-
-				-- Make a first pass to determine if any work can be carried out.
-				local blacklist, resource = {}
-				repeat
-					resource = production:getNeededResources(entity, blacklist)
-					if not resource then
-						villager:setGoal(VillagerComponent.GOALS.WAIT)
-						print(entity, "Timer: NO RESOURCE")
-						entity:add(TimerComponent(VillagerSystem.TIMERS.NO_RESOURCE_DELAY, function()
-							villager:setGoal(VillagerComponent.GOALS.NONE)
-							entity:remove("TimerComponent")
-						end))
-						return
-					end
-
-					-- Don't count that resource again, in case we go round again.
-					blacklist[resource] = true
-				until state:getNumResources(resource) - state:getNumReservedResources(resource) > 0
-
-				-- The entrance is an offset, so translate it to a real grid coordinate.
-				local entrance = workPlace:get("EntranceComponent"):getEntranceGrid()
-				local grid = workPlace:get("PositionComponent"):getGrid()
-				local entranceGrid = self.map:getGrid(grid.gi + entrance.ogi, grid.gj + entrance.ogj)
-
-				entity:add(WalkingComponent(ti, tj, { entranceGrid }, WalkingComponent.INSTRUCTIONS.PRODUCE))
-				villager:setGoal(VillagerComponent.GOALS.WORK_PICKUP)
-			else
-				local workGrids = workPlace:get("WorkComponent"):getWorkGrids()
-				assert(workGrids, "No grid information for workplace "..workPlace:get("WorkComponent"):getTypeName())
-
-				-- The work grids are an offset, so translate them to real grid coordinates.
-				local grid = workPlace:get("PositionComponent"):getGrid()
-				local grids = {}
-				for _,workGrid in ipairs(workGrids) do
-					table.insert(grids, { self.map:getGrid(grid.gi + workGrid.ogi, grid.gj + workGrid.ogj), workGrid.rotation })
-				end
-
-				entity:add(WalkingComponent(ti, tj, grids, WalkingComponent.INSTRUCTIONS.WORK))
-				villager:setGoal(VillagerComponent.GOALS.WORK)
-			end
-
-			entity:add(WorkingComponent())
-		elseif adult and adult:getWorkArea() and
-		       (adult:getOccupation() == WorkComponent.WOODCUTTER or
-		        adult:getOccupation() == WorkComponent.MINER or
-		        adult:getOccupation() == WorkComponent.FARMER) then
-			-- This could be optimized through the map or something, but eh.
-			local ti, tj = adult:getWorkArea()
-			-- TODO: The order is somewhat random, but static. Do we want to randomise further, or calculate the
-			-- closest one? (Mostly relevant for fields.)
-			for _,workEntity in pairs(self.engine:getEntitiesWithComponent("WorkComponent")) do
-				local assignment = workEntity:get("AssignmentComponent")
-				local eti, etj = workEntity:get("PositionComponent"):getTile()
-				if ti == eti and tj == etj and workEntity:get("WorkComponent"):getType() == adult:getOccupation() and
-				   not workEntity:get("WorkComponent"):isComplete() and
-				   assignment:getNumAssignees() < assignment:getMaxAssignees() then
-					assignment:assign(entity)
-					adult:setWorkPlace(workEntity)
-					return -- Start working the next round.
-				end
-			end
-
-			-- No such entity found. No work able to be carried out.
-			if adult:getOccupation() == WorkComponent.FARMER then
-				-- For farms, try again later.
-				villager:setGoal(VillagerComponent.GOALS.WAIT)
-				print(entity, "Timer: FARM WAIT")
-				entity:add(TimerComponent(VillagerSystem.TIMERS.FARM_WAIT, function()
-					villager:setGoal(VillagerComponent.GOALS.NONE)
-					entity:remove("TimerComponent")
-				end))
-			else
-				adult:setWorkArea(nil)
-			end
+		if home then
+			-- Drop off at home.
+			ti, tj = home:get("PositionComponent"):getTile()
 		else
-			if not entity:has("TimerComponent") and not entity:has("WalkingComponent") then
-				-- Fidget a little by rotating the villager.
-				entity:add(TimerComponent(
-					love.math.random() *
-					(VillagerSystem.TIMERS.IDLE_ROTATE_MAX - VillagerSystem.TIMERS.IDLE_ROTATE_MIN) +
-					VillagerSystem.TIMERS.IDLE_ROTATE_MIN, function()
-						local dir = villager:getDirection()
-						villager:setDirection((dir + 45 * love.math.random(-1, 1)) % 360)
-						entity:remove("TimerComponent")
+			-- Drop off somewhere around here.
+			local grid = entity:get("PositionComponent"):getGrid()
+			ti, tj = self.map:gridToTileCoords(grid.gi, grid.gj)
+		end
 
-						if love.math.random() < VillagerSystem.RAND.WANDER_FORWARD_CHANCE then
-							-- XXX:
-							local WorkSystem = require "src.game.worksystem"
-							local dirConv = WorkSystem.DIR_CONV[villager:getCardinalDirection()]
-							local grid = entity:get("PositionComponent"):getGrid()
-							local target = self.map:getGrid(grid.gi + dirConv[1], grid.gj + dirConv[2])
-							if target then
-								if not adult and love.math.random() < VillagerSystem.RAND.CHILD_DOUBLE_FORWARD_CHANCE then
-									target = self.map:getGrid(target.gi + dirConv[1], target.gj + dirConv[2]) or target
-								end
-								entity:add(WalkingComponent(nil, nil, { target }, WalkingComponent.INSTRUCTIONS.WANDER))
-							end
-						end
-					end)
-				)
+		entity:add(WalkingComponent(ti, tj, nil, WalkingComponent.INSTRUCTIONS.DROPOFF))
+		villager:setGoal(VillagerComponent.GOALS.DROPOFF)
+
+		return
+	end
+
+	-- If adult with a work place, start working.
+	if adult and adult:getWorkPlace() then
+		local workPlace = adult:getWorkPlace()
+		local ti, tj = workPlace:get("PositionComponent"):getTile()
+
+		self:_prepare(entity)
+
+		if workPlace:has("ConstructionComponent") then
+			local construction = workPlace:get("ConstructionComponent")
+
+			-- Make a first pass to determine if any work can be carried out.
+			-- TODO: Builders should work on buildings that can be completed.
+			local blacklist, resource = {}
+			repeat
+				resource = construction:getRemainingResources(blacklist)
+				if not resource then
+					adult:setWorkPlace(nil)
+					return
+				end
+
+				-- Don't count that resource again, in case we go round again.
+				blacklist[resource] = true
+			until state:getNumAvailableResources(resource) > 0
+
+			-- For things being built, update the places where builders can stand, so that rubbish can
+			-- be cleared around the build site after placing the building.
+			construction:updateWorkGrids(self.map:getAdjacentGrids(workPlace))
+
+			entity:add(WalkingComponent(ti, tj, construction:getFreeWorkGrids(), WalkingComponent.INSTRUCTIONS.BUILD))
+			villager:setGoal(VillagerComponent.GOALS.WORK_PICKUP)
+		elseif workPlace:has("ProductionComponent") then
+			local production = workPlace:get("ProductionComponent")
+
+			-- Make a first pass to determine if any work can be carried out.
+			local blacklist, resource = {}
+			repeat
+				resource = production:getNeededResources(entity, blacklist)
+				if not resource then
+					villager:setGoal(VillagerComponent.GOALS.WAIT)
+					print(entity, "Timer: NO RESOURCE")
+					entity:add(TimerComponent(VillagerSystem.TIMERS.NO_RESOURCE_DELAY, function()
+						villager:setGoal(VillagerComponent.GOALS.NONE)
+						entity:remove("TimerComponent")
+					end))
+					return
+				end
+
+				-- Don't count that resource again, in case we go round again.
+				blacklist[resource] = true
+			until state:getNumAvailableResources(resource) > 0
+
+			-- The entrance is an offset, so translate it to a real grid coordinate.
+			local entrance = workPlace:get("EntranceComponent"):getEntranceGrid()
+			local grid = workPlace:get("PositionComponent"):getGrid()
+			local entranceGrid = self.map:getGrid(grid.gi + entrance.ogi, grid.gj + entrance.ogj)
+
+			entity:add(WalkingComponent(ti, tj, { entranceGrid }, WalkingComponent.INSTRUCTIONS.PRODUCE))
+			villager:setGoal(VillagerComponent.GOALS.WORK_PICKUP)
+		else
+			local workGrids = workPlace:get("WorkComponent"):getWorkGrids()
+			assert(workGrids, "No grid information for workplace "..workPlace:get("WorkComponent"):getTypeName())
+
+			-- The work grids are an offset, so translate them to real grid coordinates.
+			local grid = workPlace:get("PositionComponent"):getGrid()
+			local grids = {}
+			for _,workGrid in ipairs(workGrids) do
+				table.insert(grids, { self.map:getGrid(grid.gi + workGrid.ogi, grid.gj + workGrid.ogj), workGrid.rotation })
+			end
+
+			entity:add(WalkingComponent(ti, tj, grids, WalkingComponent.INSTRUCTIONS.WORK))
+			villager:setGoal(VillagerComponent.GOALS.WORK)
+		end
+
+		entity:add(WorkingComponent())
+
+		return
+	end
+
+	-- If adult with a special work area, get a place to work there.
+	if adult and adult:getWorkArea() and
+	       (adult:getOccupation() == WorkComponent.WOODCUTTER or
+	        adult:getOccupation() == WorkComponent.MINER or
+	        adult:getOccupation() == WorkComponent.FARMER) then
+		-- This could be optimized through the map or something, but eh.
+		local ti, tj = adult:getWorkArea()
+		-- TODO: The order is somewhat random, but static. Do we want to randomise further, or calculate the
+		-- closest one? (Mostly relevant for fields.)
+		for _,workEntity in pairs(self.engine:getEntitiesWithComponent("WorkComponent")) do
+			local assignment = workEntity:get("AssignmentComponent")
+			local eti, etj = workEntity:get("PositionComponent"):getTile()
+			if ti == eti and tj == etj and workEntity:get("WorkComponent"):getType() == adult:getOccupation() and
+			   not workEntity:get("WorkComponent"):isComplete() and
+			   assignment:getNumAssignees() < assignment:getMaxAssignees() then
+				assignment:assign(entity)
+				adult:setWorkPlace(workEntity)
+				return -- Start working the next round.
 			end
 		end
+
+		-- No such entity found. No work able to be carried out.
+		if adult:getOccupation() == WorkComponent.FARMER then
+			-- For farms, try again later.
+			villager:setGoal(VillagerComponent.GOALS.WAIT)
+			print(entity, "Timer: FARM WAIT")
+			entity:add(TimerComponent(VillagerSystem.TIMERS.FARM_WAIT, function()
+				villager:setGoal(VillagerComponent.GOALS.NONE)
+				entity:remove("TimerComponent")
+			end))
+		else
+			adult:setWorkArea(nil)
+		end
+
+		return
+	end
+
+	-- If the entity is waiting or walking around, let them do that.
+	if entity:has("TimerComponent") or entity:has("WalkingComponent") then
+		return
+	end
+
+	-- If the villager has a home, fill it up with food and stay close to it.
+	if villager:getHome() then
+		local home = villager:getHome()
+		local dwelling = home:get("DwellingComponent")
+		-- Get some food if available.
+		if not dwelling:isGettingFood() and
+		   dwelling:getFood() < VillagerSystem.FOOD.GATHER_WHEN_BELOW and
+		   state:getNumAvailableResources(ResourceComponent.BREAD) > 1 then
+			dwelling:setGettingFood(true)
+
+			-- The entrance is an offset, so translate it to a real grid coordinate.
+			local entrance = home:get("EntranceComponent"):getEntranceGrid()
+			local grid = home:get("PositionComponent"):getGrid()
+			local entranceGrid = self.map:getGrid(grid.gi + entrance.ogi, grid.gj + entrance.ogj)
+			local ti, tj = home:get("PositionComponent"):getTile()
+
+			entity:add(WalkingComponent(ti, tj, { entranceGrid }, WalkingComponent.INSTRUCTIONS.GET_FOOD))
+			villager:setGoal(VillagerComponent.GOALS.FOOD_PICKUP)
+		end
+	end
+
+	-- Fidget a little by rotating the villager.
+	if not entity:has("TimerComponent") and not entity:has("WalkingComponent") then
+		entity:add(TimerComponent(
+			love.math.random() *
+			(VillagerSystem.TIMERS.IDLE_ROTATE_MAX - VillagerSystem.TIMERS.IDLE_ROTATE_MIN) +
+			VillagerSystem.TIMERS.IDLE_ROTATE_MIN, function()
+				local dir = villager:getDirection()
+				villager:setDirection((dir + 45 * love.math.random(-1, 1)) % 360)
+				entity:remove("TimerComponent")
+
+				if love.math.random() < VillagerSystem.RAND.WANDER_FORWARD_CHANCE then
+					-- XXX:
+					local WorkSystem = require "src.game.worksystem"
+					local dirConv = WorkSystem.DIR_CONV[villager:getCardinalDirection()]
+					local grid = entity:get("PositionComponent"):getGrid()
+					local target = self.map:getGrid(grid.gi + dirConv[1], grid.gj + dirConv[2])
+					if target then
+						if not adult and love.math.random() < VillagerSystem.RAND.CHILD_DOUBLE_FORWARD_CHANCE then
+							target = self.map:getGrid(target.gi + dirConv[1], target.gj + dirConv[2]) or target
+						end
+						entity:add(WalkingComponent(nil, nil, { target }, WalkingComponent.INSTRUCTIONS.WANDER))
+					end
+				end
+			end)
+		)
 	end
 end
 
@@ -228,6 +275,7 @@ function VillagerSystem:_prepare(entity)
 end
 
 function VillagerSystem:_unreserveAll(entity)
+	local villager = entity:get("VillagerComponent")
 	local adult = entity:get("AdultComponent")
 	local workPlace = adult:getWorkPlace()
 
@@ -257,7 +305,7 @@ function VillagerSystem:_unreserveAll(entity)
 				workPlace:get("ConstructionComponent"):unreserveResource(type, amount)
 			end
 		elseif not workPlace:has("WorkComponent") then
-			error("Unknown work place") -- TODO!!!
+			error("Unhandled work place") -- TODO!!!
 		end
 	end
 
@@ -279,6 +327,10 @@ function VillagerSystem:_unreserveAll(entity)
 	adult:setWorkPlace(nil)
 	if entity:has("WorkingComponent") then
 		entity:remove("WorkingComponent")
+	end
+
+	if villager:getGoal() == VillagerComponent.GOALS.FOOD_DROPOFF then
+		villager:getHome():get("DwellingComponent"):setGettingFood(false)
 	end
 end
 
@@ -405,7 +457,8 @@ function VillagerSystem:targetReachedEvent(event)
 			end)
 		end)
 		entity:add(timer)
-	elseif goal == VillagerComponent.GOALS.WORK_PICKUP then
+	elseif goal == VillagerComponent.GOALS.WORK_PICKUP or
+	       goal == VillagerComponent.GOALS.FOOD_PICKUP then
 		local timer = TimerComponent()
 		print(entity, "Timer: PICKUP")
 		timer:getTimer():after(VillagerSystem.TIMERS.PICKUP_BEFORE, function()
@@ -433,13 +486,41 @@ function VillagerSystem:targetReachedEvent(event)
 
 			timer:getTimer():after(VillagerSystem.TIMERS.PICKUP_AFTER, function()
 				-- Go next.
-				entity:add(WalkingComponent(ti, tj, { event:getNextStop() }, WalkingComponent.INSTRUCTIONS.WORK))
-				villager:setGoal(VillagerComponent.GOALS.WORK)
+				if goal == VillagerComponent.GOALS.WORK_PICKUP then
+					entity:add(WalkingComponent(ti, tj, { event:getNextStop() }, WalkingComponent.INSTRUCTIONS.WORK))
+					villager:setGoal(VillagerComponent.GOALS.WORK)
+				else
+					entity:add(WalkingComponent(ti, tj, { event:getNextStop() }, WalkingComponent.INSTRUCTIONS.GO_HOME))
+					villager:setGoal(VillagerComponent.GOALS.FOOD_DROPOFF)
+				end
 
 				entity:remove("TimerComponent")
 			end)
 		end)
 		entity:add(timer)
+	elseif goal == VillagerComponent.GOALS.FOOD_DROPOFF then
+		local resource = entity:get("CarryingComponent"):getResource()
+		local amount = entity:get("CarryingComponent"):getAmount()
+		local home = villager:getHome()
+		local dwelling = home:get("DwellingComponent")
+
+		assert(resource == ResourceComponent.BREAD, "Is this even edible?")
+		dwelling:addFood(amount)
+		dwelling:setGettingFood(false)
+
+		-- Temporarily enter the building.
+		entity:remove("SpriteComponent")
+
+		entity:add(TimerComponent(0.25, function()
+			entity:add(SpriteComponent())
+
+			villager:setGoal(VillagerComponent.GOALS.NONE)
+			entity:remove("TimerComponent")
+		end))
+
+		self.eventManager:fireEvent(BuildingEnteredEvent(home, entity, true))
+
+		entity:remove("CarryingComponent")
 	elseif goal == VillagerComponent.GOALS.WORK then
 		-- Start working
 		entity:get("WorkingComponent"):setWorking(true)
@@ -466,8 +547,9 @@ function VillagerSystem:targetReachedEvent(event)
 						entity:add(SpriteComponent())
 
 						-- There still are resources needed. Might as well circle back.
-						entity:remove("WorkingComponent")
 						villager:setGoal(VillagerComponent.GOALS.NONE)
+						entity:remove("WorkingComponent")
+						entity:remove("TimerComponent")
 					end))
 				else
 					-- Enter the building!

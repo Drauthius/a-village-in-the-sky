@@ -347,8 +347,10 @@ function RenderSystem:draw()
 				local data = spriteSheet:getData(type .. "-count")
 				local Fx, Fy = x + data.bounds.x - headerData.bounds.x, y + data.bounds.y - headerData.bounds.y
 
+				local amount = 0
 				if type == "food" then
 					love.graphics.setFont(love.graphics.newFont("asset/font/Norse.otf", data.bounds.h))
+					amount = entity:get("DwellingComponent"):getFood()
 				else
 					love.graphics.setFont(love.graphics.newFont(data.bounds.h))
 				end
@@ -356,10 +358,10 @@ function RenderSystem:draw()
 				-- Drop shadow
 				--love.graphics.setColor(0, 0, 0, 0.5)
 				love.graphics.setColor(RenderSystem.NEW_OUTLINE_COLOR)
-				love.graphics.print("0", Fx + 1, Fy + 1)
+				love.graphics.print(tostring(amount), Fx + 1, Fy + 1)
 				-- Text
 				love.graphics.setColor(RenderSystem.BEHIND_OUTLINE_COLOR)
-				love.graphics.print("0", Fx, Fy)
+				love.graphics.print(tostring(amount), Fx, Fy)
 			end
 			love.graphics.setColor(1, 1, 1, 1)
 
