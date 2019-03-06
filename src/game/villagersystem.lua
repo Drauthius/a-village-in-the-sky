@@ -321,7 +321,9 @@ function VillagerSystem:_unreserveAll(entity)
 				end
 			end
 		end
-		enclosure:get("AssignmentComponent"):unassign(entity)
+		if enclosure then
+			enclosure:get("AssignmentComponent"):unassign(entity)
+		end
 	end
 
 	adult:setWorkPlace(nil)
@@ -431,6 +433,14 @@ function VillagerSystem:targetReachedEvent(event)
 		local timer = TimerComponent()
 		print(entity, "Timer: DROPOFF")
 		timer:getTimer():after(VillagerSystem.TIMERS.DROPOFF_BEFORE, function()
+			-- Second take that the grid is still empty...
+			if not self.map:isGridEmpty(grid) then
+				-- The default action will make sure we drop it somewhere else.
+				villager:setGoal(VillagerComponent.GOALS.NONE)
+				entity:remove("TimerComponent")
+				return
+			end
+
 			-- Stop carrying the stuff.
 			local resource = entity:get("CarryingComponent"):getResource()
 			local amount = entity:get("CarryingComponent"):getAmount()

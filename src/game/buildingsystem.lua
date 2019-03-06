@@ -126,7 +126,6 @@ function BuildingSystem:buildingEnteredEvent(event)
 			-- Wind up.
 			local frame1, frame2 = math.max(1, (currentFrame + 1) % (#frames + 1)),
 			                       math.max(1, (currentFrame + 2) % (#frames + 1))
-			print(frame1, frame2)
 			local oldDur, oldDur1, oldDur2 = frames[currentFrame][2], frames[frame1][2], frames[frame2][2]
 			local newDur, newDur1, newDur2 = oldDur * 1.5, oldDur1 * 3.5, oldDur2 * 2.5
 			frames[currentFrame][2], frames[frame1][2], frames[frame2][2] = newDur, newDur1, newDur2
