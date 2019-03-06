@@ -141,10 +141,12 @@ function Game:enter()
 	self.map = Map()
 	self.level = DefaultLevel()
 	self.backgrounds = {
-		Background(self.camera, 0.1, 3),
-		Background(self.camera, 0.05, 2)
+		Background(self.camera, 0.05, 2),
+		Background(self.camera, 0.2, 3)
 	}
-	self.foreground = Background(self.camera, 10, 1)
+	self.backgrounds[1]:setColor({ 0.8, 0.8, 1, 1 })
+	self.backgrounds[2]:setColor({ 0.9, 0.9, 1, 1 })
+	self.foreground = Background(self.camera, 10, 2)
 
 	self.engine = lovetoys.Engine()
 	self.eventManager = lovetoys.EventManager()

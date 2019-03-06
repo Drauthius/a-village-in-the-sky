@@ -234,13 +234,14 @@ function Blueprint:createDustParticle(direction, small)
 			dir = -3*math.pi/4
 		end
 		particleSystem:setDirection(dir)
-		particleSystem:setEmissionArea("ellipse", 3, 20, dir)
 		particleSystem:setParticleLifetime(duration * #quads / 1000 / 2)
 		if small then
 			particleSystem:setEmissionRate(20)
+			particleSystem:setEmissionArea("ellipse", 3, 15, dir)
 			particleSystem:setSizes(0.4)
 		else
 			particleSystem:setEmissionRate(30)
+			particleSystem:setEmissionArea("ellipse", 3, 25, dir)
 			particleSystem:setSizes(0.6)
 		end
 		particleSystem:emit(1)
