@@ -31,7 +31,7 @@
 --      Maybe because the position is updated fairly late?
 --  - Particles:
 --    * "Button is next" for the tutorial.
---    * When villager hits tree/stone/building
+--    * When people die. (Probably easiest to do with a new sprite.)
 --  - More sprites:
 --    * Event button has a new event (maybe just want to add a text number?).
 --    * Woman animations
@@ -271,6 +271,12 @@ function Game:keyreleased(key, scancode)
 		self.speed = 10
 	elseif scancode == "5" then
 		self.speed = 50
+	elseif scancode == "a" then
+		local particle = blueprint:createDeathParticle()
+		particle:set(PositionComponent(self.map:getGrid(13, 9)))
+		particle:get("SpriteComponent"):setDrawPosition(self.map:gridToWorldCoords(13, 9))
+		particle:get("ParticleComponent"):getParticleSystem():start()
+		self.engine:addEntity(particle)
 	end
 end
 

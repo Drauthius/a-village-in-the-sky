@@ -33,7 +33,7 @@ vec4 effect(vec4 color, Image texture, vec2 texture_coords, vec2 screen_coords)
 		if((outlineOnly && i != 0) || (noShadow && texturecolor.a < 0.5))
 			discard;
 		if(texturecolor == oldColor[i])
-			return newColor[i]; // * color; // TODO: Outline is being messed up.
+			return newColor[i] * color;
 	}
 
 	if(outlineOnly || (noShadow && texturecolor.a < 0.5))
@@ -42,23 +42,6 @@ vec4 effect(vec4 color, Image texture, vec2 texture_coords, vec2 screen_coords)
 	return texturecolor * color;
 }
 ]])
-
---[[
-RenderSystem.static.CREATE_OUTLINE_SHADER = love.graphics.newShader([-[
-extern vec2 stepSize;
-extern vec4 outlineColor;
-
-vec4 effect(vec4 color, Image texture, vec2 texture_coords, vec2 screen_coords)
-{
-	number alpha = 4 * Texel(texture, texture_coords).a;
-	alpha -= Texel(texture, texture_coords + vec2( stepSize.x, 0.0f)).a;
-	alpha -= Texel(texture, texture_coords + vec2(-stepSize.x, 0.0f)).a;
-	alpha -= Texel(texture, texture_coords + vec2(0.0f,  stepSize.y)).a;
-	alpha -= Texel(texture, texture_coords + vec2(0.0f, -stepSize.y)).a;
-	return vec4(outlineColor.r, outlineColor.g, outlineColor.b, outlineColor.a * alpha);
-}
-]-])
---]]
 
 function RenderSystem:initialize()
 	lovetoys.System.initialize(self)
@@ -184,6 +167,12 @@ function RenderSystem:draw()
 		if entity:has("ConstructionComponent") then
 			love.graphics.setColor(1, 1, 1, 0.5)
 			spriteSheet:draw(sprite:getSprite(), dx, dy)
+
+			-- Draw the outline in full technicolor...
+			love.graphics.setColor(1, 1, 1, 1)
+			RenderSystem.COLOR_OUTLINE_SHADER:send("outlineOnly", true)
+			spriteSheet:draw(sprite:getSprite(), dx, dy)
+			RenderSystem.COLOR_OUTLINE_SHADER:send("outlineOnly", false)
 
 			local percent = entity:get("ConstructionComponent"):getPercentDone()
 			local quad = sprite:getSprite():getQuad()

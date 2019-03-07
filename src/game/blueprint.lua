@@ -255,4 +255,34 @@ function Blueprint:createDustParticle(direction, small)
 	return entity
 end
 
+function Blueprint:createDeathParticle()
+	local entity = lovetoys.Entity()
+	local sprite = spriteSheet:getSprite("villagers 1", "male - SW")
+
+	local particleSystem = Blueprint.PARTICLE_SYSTEMS.DEATH
+	if not particleSystem then
+		particleSystem = love.graphics.newParticleSystem(spriteSheet:getImage(), 1)
+		particleSystem:setQuads(sprite:getQuad())
+		particleSystem:setColors(0.2, 0.2, 0.9, 0.8,
+		                         0.2, 0.2, 0.9, 0.5,
+								 0.2, 0.2, 0.9, 0.0)
+		particleSystem:setEmissionRate(10)
+		particleSystem:setEmitterLifetime(0.1)
+		local _, _, w, h = sprite:getQuad():getViewport()
+		particleSystem:setOffset(w/2, h/2)
+		particleSystem:setLinearAcceleration(-0.5, -3, 0.5, -3)
+		particleSystem:setRadialAcceleration(10)
+		particleSystem:setParticleLifetime(3)
+		particleSystem:emit(1)
+
+		Blueprint.PARTICLE_SYSTEMS.DEATH = particleSystem
+	end
+
+	entity:add(ParticleComponent(particleSystem:clone(), true))
+	entity:add(SpriteComponent(sprite))
+	-- TODO: Either color swap to more phantasmal colours, or create new sprites.
+
+	return entity
+end
+
 return Blueprint()
