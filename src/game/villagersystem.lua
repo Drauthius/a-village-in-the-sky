@@ -23,12 +23,15 @@ VillagerSystem.static.TIMERS = {
 	PICKUP_AFTER = 0.5,
 	DROPOFF_BEFORE = 0.25,
 	DROPOFF_AFTER = 0.5,
-	IDLE_ROTATE_MIN = 1,
-	IDLE_ROTATE_MAX = 4,
+	IDLE_FIDGET_MIN = 1,
+	IDLE_FIDGET_MAX = 4,
 	PATH_FAILED_DELAY = 3,
 	PATH_WAIT_DELAY = 2,
 	NO_RESOURCE_DELAY = 5,
-	FARM_WAIT = 5
+	FARM_WAIT = 5,
+	ASSIGNED_DELAY = 0.4,
+	BUILDING_LEFT_DELAY = 0.2,
+	WORK_COMPLETED_DELAY = 1.0
 }
 
 VillagerSystem.static.RAND = {
@@ -54,17 +57,27 @@ end
 
 function VillagerSystem:update(dt)
 	for _,entity in pairs(self.targets) do
-		self:_updateVillager(entity)
+		self:_updateVillager(entity, dt)
 	end
 end
 
-function VillagerSystem:_updateVillager(entity)
+function VillagerSystem:_updateVillager(entity, dt)
 	local villager = entity:get("VillagerComponent")
 	local adult = entity:has("AdultComponent") and entity:get("AdultComponent")
 	local goal = villager:getGoal()
 
 	if goal ~= VillagerComponent.GOALS.NONE then
 		-- Doing something.
+		return
+	end
+
+	if villager:getDelay() > 0.0 then
+		villager:decreaseDelay(dt)
+
+		if(villager:getDelay() > VillagerSystem.static.TIMERS.IDLE_FIDGET_MIN) then
+			self:_fidget(entity)
+		end
+
 		return
 	end
 
@@ -128,12 +141,8 @@ function VillagerSystem:_updateVillager(entity)
 			repeat
 				resource = production:getNeededResources(entity, blacklist)
 				if not resource then
-					villager:setGoal(VillagerComponent.GOALS.WAIT)
-					print(entity, "Timer: NO RESOURCE")
-					entity:add(TimerComponent(VillagerSystem.TIMERS.NO_RESOURCE_DELAY, function()
-						villager:setGoal(VillagerComponent.GOALS.NONE)
-						entity:remove("TimerComponent")
-					end))
+					villager:setDelay(VillagerSystem.TIMERS.NO_RESOURCE_DELAY)
+					villager:setGoal(VillagerComponent.GOALS.NONE)
 					return
 				end
 
@@ -192,12 +201,8 @@ function VillagerSystem:_updateVillager(entity)
 		-- No such entity found. No work able to be carried out.
 		if adult:getOccupation() == WorkComponent.FARMER then
 			-- For farms, try again later.
-			villager:setGoal(VillagerComponent.GOALS.WAIT)
-			print(entity, "Timer: FARM WAIT")
-			entity:add(TimerComponent(VillagerSystem.TIMERS.FARM_WAIT, function()
-				villager:setGoal(VillagerComponent.GOALS.NONE)
-				entity:remove("TimerComponent")
-			end))
+			villager:setDelay(VillagerSystem.TIMERS.FARM_WAIT)
+			villager:setGoal(VillagerComponent.GOALS.NONE)
 		else
 			adult:setWorkArea(nil)
 		end
@@ -231,12 +236,19 @@ function VillagerSystem:_updateVillager(entity)
 		end
 	end
 
-	-- Fidget a little by rotating the villager.
+	self:_fidget(entity)
+end
+
+function VillagerSystem:_fidget(entity)
+	-- Wander around and fidget a little by rotating the villager.
 	if not entity:has("TimerComponent") and not entity:has("WalkingComponent") then
+		local villager = entity:get("VillagerComponent")
+		local isAdult = entity:has("AdultComponent")
+
 		entity:add(TimerComponent(
 			love.math.random() *
-			(VillagerSystem.TIMERS.IDLE_ROTATE_MAX - VillagerSystem.TIMERS.IDLE_ROTATE_MIN) +
-			VillagerSystem.TIMERS.IDLE_ROTATE_MIN, function()
+			(VillagerSystem.TIMERS.IDLE_FIDGET_MAX - VillagerSystem.TIMERS.IDLE_FIDGET_MIN) +
+			VillagerSystem.TIMERS.IDLE_FIDGET_MIN, function()
 				local dir = villager:getDirection()
 				villager:setDirection((dir + 45 * love.math.random(-1, 1)) % 360)
 				entity:remove("TimerComponent")
@@ -248,7 +260,7 @@ function VillagerSystem:_updateVillager(entity)
 					local grid = entity:get("PositionComponent"):getGrid()
 					local target = self.map:getGrid(grid.gi + dirConv[1], grid.gj + dirConv[2])
 					if target then
-						if not adult and love.math.random() < VillagerSystem.RAND.CHILD_DOUBLE_FORWARD_CHANCE then
+						if not isAdult and love.math.random() < VillagerSystem.RAND.CHILD_DOUBLE_FORWARD_CHANCE then
 							target = self.map:getGrid(target.gi + dirConv[1], target.gj + dirConv[2]) or target
 						end
 						entity:add(WalkingComponent(nil, nil, { target }, WalkingComponent.INSTRUCTIONS.WANDER))
@@ -387,6 +399,8 @@ function VillagerSystem:assignedEvent(event)
 			error("I give up :(")
 		end
 	end
+
+	villager:setDelay(VillagerSystem.TIMERS.ASSIGNED_DELAY)
 end
 
 function VillagerSystem:buildingLeftEvent(event)
@@ -403,6 +417,8 @@ function VillagerSystem:buildingLeftEvent(event)
 	entity:add(SpriteComponent())
 	entity:add(PositionComponent(entranceGrid))
 	self.map:reserve(entity, entity:get("PositionComponent"):getGrid())
+
+	villager:setDelay(VillagerSystem.TIMERS.BUILDING_LEFT_DELAY)
 end
 
 function VillagerSystem:targetReachedEvent(event)
@@ -578,11 +594,8 @@ function VillagerSystem:targetReachedEvent(event)
 			entity:remove("CarryingComponent")
 		end
 	elseif goal == VillagerComponent.GOALS.MOVING then
-		villager:setGoal(VillagerComponent.GOALS.WAIT)
-		entity:add(TimerComponent(VillagerSystem.TIMERS.PATH_WAIT_DELAY, function()
-			villager:setGoal(VillagerComponent.GOALS.NONE)
-			entity:remove("TimerComponent")
-		end))
+		villager:setDelay(VillagerSystem.TIMERS.PATH_WAIT_DELAY)
+		villager:setGoal(VillagerComponent.GOALS.NONE)
 	end
 end
 
@@ -697,23 +710,23 @@ function VillagerSystem:targetUnreachableEvent(event)
 	-- Start by unreserving everything
 	self:_unreserveAll(entity)
 
-	villager:setGoal(VillagerComponent.GOALS.WAIT)
-	print(entity, "Timer: PATH FAILED")
-	entity:set(TimerComponent(VillagerSystem.TIMERS.PATH_FAILED_DELAY, function()
-		villager:setGoal(VillagerComponent.GOALS.NONE)
-		entity:remove("TimerComponent")
-	end))
+	villager:setDelay(VillagerSystem.TIMERS.PATH_FAILED_DELAY)
+	villager:setGoal(VillagerComponent.GOALS.NONE)
 end
 
 function VillagerSystem:workCompletedEvent(event)
 	local entity = event:getVillager()
+	local villager = entity:get("VillagerComponent")
 
 	if not event:isTemporary() then
 		entity:get("AdultComponent"):setWorkPlace(nil)
 	end
 
-	entity:remove("WorkingComponent")
-	entity:get("VillagerComponent"):setGoal(VillagerComponent.GOALS.NONE)
+	if entity:has("WorkingComponent") then -- Might not be actively working on the site (e.g. resource already covered)
+		entity:remove("WorkingComponent")
+	end
+	villager:setDelay(VillagerSystem.TIMERS.WORK_COMPLETED_DELAY)
+	villager:setGoal(VillagerComponent.GOALS.NONE)
 end
 
 return VillagerSystem

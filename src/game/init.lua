@@ -8,7 +8,6 @@
 --    * It is possible to starve a construction site by moving villagers at inopportune times.
 --    * Villagers can be drawn behind e.g. the blacksmith shed, when there are a lot of things in the scene and they
 --      are directly in front (to the right) of it.
---    * Villagers that are waiting (for a resource) will not wander.
 --    * Mining villager is cut off (smaller quad than sprite)
 --    * Shadow from buildings can be cast on the clouds.
 --  - Next:
@@ -59,7 +58,6 @@
 --    * Refrain from using hardcoded strings, and consult a library instead.
 --      https://github.com/martin-damien/babel
 --  - Nice to have:
---    * Add a delay between actions (before going somewhere, before leaving a worksite, etc.), to make it more natural.
 --    * Don't increase opacity for overlapping shadows.
 --    * Villagers always reserve two grids when walking. Problem?
 --    * Quads are created on demand. Problem?

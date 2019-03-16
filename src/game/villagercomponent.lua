@@ -23,8 +23,9 @@ function VillagerComponent:initialize(stats)
 
 	self.direction = love.math.random(0, 359)
 
-	self.speedModifier = 1
+	self.speedModifier = 1.0
 	self.goal = VillagerComponent.GOALS.NONE
+	self.delay = 0.0
 	self.home = nil
 end
 
@@ -91,6 +92,18 @@ end
 
 function VillagerComponent:setGoal(goal)
 	self.goal = goal
+end
+
+function VillagerComponent:getDelay()
+	return self.delay
+end
+
+function VillagerComponent:setDelay(delay)
+	self.delay = delay
+end
+
+function VillagerComponent:decreaseDelay(dt)
+	self.delay = self.delay - dt
 end
 
 function VillagerComponent:getHome()
