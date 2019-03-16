@@ -2,11 +2,11 @@ local Timer = require "lib.hump.timer"
 local lovetoys = require "lib.lovetoys.lovetoys"
 
 local BuildingCompletedEvent = require "src.game.buildingcompletedevent"
+local WorkCompletedEvent = require "src.game.workcompletedevent"
 local BuildingLeftEvent = require "src.game.buildingleftevent"
 local CarryingComponent = require "src.game.carryingcomponent"
 local PositionComponent = require "src.game.positioncomponent"
 local ResourceComponent = require "src.game.resourcecomponent"
-local VillagerComponent = require "src.game.villagercomponent"
 local WorkComponent = require "src.game.workcomponent"
 
 local blueprint = require "src.game.blueprint"
@@ -23,6 +23,11 @@ WorkSystem.static.DIR_CONV = {
 	SW = { -1,  1 },
 	W  = { -1,  0 },
 	NW = { -1, -1 }
+}
+
+WorkSystem.static.COMPLETION = {
+	-- How many animation frames to require before the resource is completed.
+	RESOURCE = 100 / 55
 }
 
 -- TODO: Currently handles both Work, Construction, and Production
@@ -79,20 +84,14 @@ function WorkSystem:workEvent(event)
 
 		soundManager:playEffect("building")
 
-		-- TODO: Maybe send this off in an event.
 		if not construction:canBuild() then
 			for _,worker in ipairs(workPlace:get("AssignmentComponent"):getAssignees()) do
 				if construction:isComplete() then
-					if worker:has("WorkingComponent") then
-						worker:remove("WorkingComponent")
-					end
-					worker:get("AdultComponent"):setWorkPlace(nil)
-					worker:get("VillagerComponent"):setGoal(VillagerComponent.GOALS.NONE)
+					self.eventManager:fireEvent(WorkCompletedEvent(workPlace, entity))
 				else
 					if worker:has("WorkingComponent") and worker:get("WorkingComponent"):getWorking() then
 						construction:unreserveGrid(worker)
-						worker:remove("WorkingComponent")
-						worker:get("VillagerComponent"):setGoal(VillagerComponent.GOALS.NONE)
+						self.eventManager:fireEvent(WorkCompletedEvent(workPlace, entity, true))
 					end
 				end
 			end
@@ -107,7 +106,11 @@ function WorkSystem:workEvent(event)
 		end
 	else
 		local work = workPlace:get("WorkComponent")
-		work:increaseCompletion(10.0) -- TODO: Value!
+		assert(work:getType() == WorkComponent.WOODCUTTER or
+		       work:getType() == WorkComponent.MINER,
+		       "Unhandled work done.")
+
+		work:increaseCompletion(WorkSystem.COMPLETION.RESOURCE)
 
 		if work:getType() == WorkComponent.WOODCUTTER then
 			local spark = blueprint:createWoodSparksParticle()
@@ -121,29 +124,20 @@ function WorkSystem:workEvent(event)
 			self.engine:addEntity(spark)
 		end
 
-		-- TODO: Maybe send this off in an event.
 		if work:isComplete() then
 			local workers = workPlace:get("AssignmentComponent"):getAssignees()
 			local numWorkers = workPlace:get("AssignmentComponent"):getNumAssignees()
+			assert(numWorkers == 1, "Too many or too few workers on a resource.")
+			assert(workers[1] == entity, "The villager that did the work was not assigned?")
 
-			if work:getType() == WorkComponent.WOODCUTTER or
-			   work:getType() == WorkComponent.MINER then
-				for _,worker in ipairs(workers) do
-					worker:remove("WorkingComponent")
-					worker:get("AdultComponent"):setWorkPlace(nil)
-					worker:get("VillagerComponent"):setGoal(VillagerComponent.GOALS.NONE)
-				end
+			local resource = workPlace:get("ResourceComponent")
+			entity:add(CarryingComponent(resource:getResource(), resource:getResourceAmount()))
 
-				local resource = workPlace:get("ResourceComponent")
-				assert(numWorkers == 1, "Too many or too few workers on a resource.")
-				workers[1]:add(CarryingComponent(resource:getResource(), resource:getResourceAmount()))
+			soundManager:playEffect(ResourceComponent.RESOURCE_NAME[resource:getResource()].."Gathered")
 
-				soundManager:playEffect(ResourceComponent.RESOURCE_NAME[resource:getResource()].."Gathered")
+			self.eventManager:fireEvent(WorkCompletedEvent(workPlace, entity))
 
-				self.engine:removeEntity(workPlace, true)
-			else
-				error("Unknown work complete.")
-			end
+			self.engine:removeEntity(workPlace, true)
 		else
 			soundManager:playEffect(WorkComponent.WORK_NAME[work:getType()].."Working")
 		end

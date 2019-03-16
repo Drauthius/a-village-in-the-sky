@@ -1,5 +1,6 @@
 local lovetoys = require "lib.lovetoys.lovetoys"
 
+local WorkCompletedEvent = require "src.game.workcompletedevent"
 local AssignmentComponent = require "src.game.assignmentcomponent"
 local CarryingComponent = require "src.game.carryingcomponent"
 local FieldComponent = require "src.game.fieldcomponent"
@@ -7,7 +8,6 @@ local PositionComponent = require "src.game.positioncomponent"
 local ResourceComponent = require "src.game.resourcecomponent"
 local SpriteComponent = require "src.game.spritecomponent"
 local TimerComponent = require "src.game.timercomponent"
-local VillagerComponent = require "src.game.villagercomponent"
 local WorkComponent = require "src.game.workcomponent"
 
 local spriteSheet = require "src.game.spritesheet"
@@ -36,9 +36,10 @@ function FieldSystem.requires()
 	return {"FieldEnclosureComponent"}
 end
 
-function FieldSystem:initialize(engine, map)
+function FieldSystem:initialize(engine, eventManager, map)
 	lovetoys.System.initialize(self)
 	self.engine = engine
+	self.eventManager = eventManager
 	self.map = map
 end
 
@@ -136,9 +137,8 @@ function FieldSystem:workEvent(event)
 
 		field:setState(state)
 		workPlace:get("AssignmentComponent"):unassign(entity)
-		entity:remove("WorkingComponent")
-		entity:get("AdultComponent"):setWorkPlace(nil)
-		entity:get("VillagerComponent"):setGoal(VillagerComponent.GOALS.NONE)
+
+		self.eventManager:fireEvent(WorkCompletedEvent(workPlace, entity))
 	end
 end
 

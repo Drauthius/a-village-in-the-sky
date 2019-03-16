@@ -44,7 +44,7 @@ function VillagerComponent:isHairy()
 	return self.hairy
 end
 
-function VillagerComponent:getStrenth()
+function VillagerComponent:getStrength()
 	return self.strength
 end
 

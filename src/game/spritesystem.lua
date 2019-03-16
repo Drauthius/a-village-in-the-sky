@@ -151,6 +151,7 @@ function SpriteSystem:updateVillager(dt, entity)
 	local targetAnimation
 	local animated = true
 	local working = false
+	local durationModifier = 1.0
 	if entity:has("CarryingComponent") then
 		local carrying = entity:get("CarryingComponent")
 		targetAnimation = SpriteSystem.ANIMATIONS.walking[carrying:getResource()][carrying:getAmount()]
@@ -177,6 +178,16 @@ function SpriteSystem:updateVillager(dt, entity)
 			working = true
 			assert(targetAnimation, "Missing working animation. " ..
 			       "Occupation: "..adult:getOccupationName()..", Direction: "..cardinalDir)
+			-- t(0.0) = 20
+			-- t(0.5) = 10
+			-- t(1.0) = 5
+			-- t = 2^(2 - x) * 5
+			--
+			-- x = 2^(2 - y) / 2
+			--
+			-- TODO: Is this really what I want?
+			local strength = villager:getStrength()
+			durationModifier = 2^(2 - strength) / 2
 		end
 	elseif entity:has("WalkingComponent") then
 		targetAnimation = SpriteSystem.ANIMATIONS.walking.nothing
@@ -219,17 +230,18 @@ function SpriteSystem:updateVillager(dt, entity)
 	end
 
 	if newFrame then
-		animation:setTimer(duration / 1000)
+		animation:setTimer(duration / 1000 * durationModifier)
 	end
 
 	-- TODO: Improve?
 	if working and newFrame then
+		-- Note: Zero indexed
 		local frameNum = frame - animation:getAnimation().from
 		if adult:getOccupation() == WorkComponent.BUILDER then
-			if frameNum == 2 then
+			if frameNum == 1 then
 				self.eventManager:fireEvent(WorkEvent(entity, adult:getWorkPlace()))
 			end
-		elseif frameNum == 3 then
+		elseif frameNum == 2 then
 			self.eventManager:fireEvent(WorkEvent(entity, adult:getWorkPlace()))
 		end
 	end

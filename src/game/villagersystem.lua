@@ -705,4 +705,15 @@ function VillagerSystem:targetUnreachableEvent(event)
 	end))
 end
 
+function VillagerSystem:workCompletedEvent(event)
+	local entity = event:getVillager()
+
+	if not event:isTemporary() then
+		entity:get("AdultComponent"):setWorkPlace(nil)
+	end
+
+	entity:remove("WorkingComponent")
+	entity:get("VillagerComponent"):setGoal(VillagerComponent.GOALS.NONE)
+end
+
 return VillagerSystem

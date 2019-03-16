@@ -150,7 +150,7 @@ function Game:enter()
 	self.eventManager = lovetoys.EventManager()
 
 	local buildingSystem = BuildingSystem(self.engine)
-	local fieldSystem = FieldSystem(self.engine, self.map)
+	local fieldSystem = FieldSystem(self.engine, self.eventManager, self.map)
 	local villagerSystem = VillagerSystem(self.engine, self.eventManager, self.map)
 	local workSystem = WorkSystem(self.engine, self.eventManager)
 
@@ -183,6 +183,7 @@ function Game:enter()
 	self.eventManager:addListener("TargetUnreachableEvent", villagerSystem, villagerSystem.targetUnreachableEvent)
 	self.eventManager:addListener("WorkEvent", fieldSystem, fieldSystem.workEvent)
 	self.eventManager:addListener("WorkEvent", workSystem, workSystem.workEvent)
+	self.eventManager:addListener("WorkCompletedEvent", villagerSystem, villagerSystem.workCompletedEvent)
 
 	self.gui = GUI(self.engine)
 
