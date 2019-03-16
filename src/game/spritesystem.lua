@@ -150,11 +150,12 @@ function SpriteSystem:updateVillager(dt, entity)
 	-- Figure out the animation.
 	local targetAnimation
 	local animated = true
+	local walking = false
 	local working = false
-	local durationModifier = 1.0
 	if entity:has("CarryingComponent") then
 		local carrying = entity:get("CarryingComponent")
 		targetAnimation = SpriteSystem.ANIMATIONS.walking[carrying:getResource()][carrying:getAmount()]
+		walking = true
 		assert(targetAnimation, "Missing carrying animation for villager")
 	elseif entity:has("WorkingComponent") then
 		if entity:has("WalkingComponent") or not entity:get("WorkingComponent"):getWorking() then
@@ -165,6 +166,8 @@ function SpriteSystem:updateVillager(dt, entity)
 			   villager:getGoal() ~= VillagerComponent.GOALS.DROPOFF
 			   and villager:getGoal() ~= VillagerComponent.GOALS.WORK_PICKUP then
 				animated = false
+			else
+				walking = true
 			end
 		else
 			local occupation = adult:getOccupation()
@@ -178,22 +181,30 @@ function SpriteSystem:updateVillager(dt, entity)
 			working = true
 			assert(targetAnimation, "Missing working animation. " ..
 			       "Occupation: "..adult:getOccupationName()..", Direction: "..cardinalDir)
-			-- t(0.0) = 20
-			-- t(0.5) = 10
-			-- t(1.0) = 5
-			-- t = 2^(2 - x) * 5
-			--
-			-- x = 2^(2 - y) / 2
-			--
-			-- TODO: Is this really what I want?
-			local strength = villager:getStrength()
-			durationModifier = 2^(2 - strength) / 2
 		end
 	elseif entity:has("WalkingComponent") then
 		targetAnimation = SpriteSystem.ANIMATIONS.walking.nothing
+		walking = true
 	else
 		targetAnimation = SpriteSystem.ANIMATIONS.idle
 		animated = false
+	end
+
+	-- Modify the animation speed based on certain criteria.
+	local durationModifier = 1.0
+	if working then
+		-- t(0.0) = 20
+		-- t(0.5) = 10
+		-- t(1.0) = 5
+		-- t = 2^(2 - x) * 5
+		--
+		-- x = 2^(2 - y) / 2
+		--
+		-- TODO: Is this really what I want?
+		local strength = villager:getStrength()
+		durationModifier = 2^(2 - strength) / 2
+	elseif walking then
+		durationModifier = 1 / villager:getSpeedModifier()
 	end
 
 	-- Figure out the animation frame.
@@ -256,7 +267,7 @@ function SpriteSystem:updateVillager(dt, entity)
 
 	if not entity:has("InteractiveComponent") then
 		InteractiveComponent:makeInteractive(entity, dx, dy)
-	else
+	elseif newFrame then
 		-- TODO: Moving doesn't work (sprite size changes drastically) :(
 		--entity:get("InteractiveComponent"):move(dx - prevDrawX, dy - prevDrawY)
 		entity:remove("InteractiveComponent")

@@ -12,6 +12,8 @@
 --    * Mining villager is cut off (smaller quad than sprite)
 --    * Shadow from buildings can be cast on the clouds.
 --  - Next:
+--  　* Walking speed modifier based on tile/age
+--    * Work speed for building/farming/baking/blacksmithing
 --    * Sleep cycle
 --    * Birth and death
 --  - Refactoring:
@@ -36,6 +38,7 @@
 --    * Event button has a new event (maybe just want to add a text number?).
 --    * Woman animations
 --    * Investigate and fix (or work around) aseprite sprite sheet bug
+--    * New blacksmith building.
 --  - Controls
 --    * Zoom (less smooth, to avoid uneven pixels)
 --    * Drag (with min/max, to avoid getting lost in space)
