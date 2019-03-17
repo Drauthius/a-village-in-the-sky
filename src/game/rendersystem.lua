@@ -181,6 +181,7 @@ function RenderSystem:draw()
 			local _, ty, _, th = sprite:getSprite():getTrimmedDimensions()
 
 			local deficit = th - th * percent / 100
+			deficit = math.floor(deficit) -- Looks a bit weird with fractions.
 			quad:setViewport(x, y + ty + deficit, w, th - deficit)
 			dy = dy + ty + deficit
 		end

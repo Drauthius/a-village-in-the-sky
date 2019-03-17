@@ -48,8 +48,6 @@ function Sprite:getData()
 end
 
 function Sprite:getTrimmedDimensions()
-	local unpack = _G["unpack"] or table.unpack
-
 	if self.trimmed then
 		return unpack(self.trimmed)
 	end
@@ -57,25 +55,25 @@ function Sprite:getTrimmedDimensions()
 	local topx, topy = math.huge, math.huge
 	local bottomx, bottomy = -math.huge, -math.huge
 
-	-- Increase by one to avoid not calculate the outline
-	local ox, oy = 1, 1
+	-- Can be increase by one to avoid including the outline, but why would you?
+	local ox, oy = 0, 0
 
 	for x=0,self.w - 1 do
 		for y=0,self.h - 1 do
 			local _, _, _, a = self:getPixel(x, y)
 			if a >= 1 then
 				if x < topx then
-					topx = x + ox
+					topx = x
 				end
 				if x > bottomx then
-					bottomx = x -- - ox -- Already added, somehow
+					bottomx = x
 				end
 
 				if y < topy then
-					topy = y + oy
+					topy = y
 				end
 				if y > bottomy then
-					bottomy = y -- - oy -- Already added, somehow
+					bottomy = y
 				end
 			end
 		end
@@ -84,7 +82,7 @@ function Sprite:getTrimmedDimensions()
 	assert(topx < bottomx, "No width")
 	assert(topy < bottomy, "No height")
 
-	self.trimmed = { topx, topy, bottomx - topx, bottomy - topy }
+	self.trimmed = { topx + ox, topy + oy, bottomx - topx - ox * 2 + 1, bottomy - topy - oy * 2 + 1}
 	return unpack(self.trimmed)
 end
 
