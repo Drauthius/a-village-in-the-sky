@@ -32,6 +32,13 @@ FieldSystem.static.TIMERS = {
 	HARVEST_DELAY = 5
 }
 
+FieldSystem.static.COMPLETION = {
+	-- How many animation frames to require before the plot is completed.
+	-- Same for all plot states, at the moment.
+	-- (2 minutes for all 9 plots using 4 animations (1 cycle) with default 0.2 seconds for each animation)
+	100 / ((120 / (0.2 * 4)) / 9)
+}
+
 function FieldSystem.requires()
 	return {"FieldEnclosureComponent"}
 end
@@ -80,7 +87,7 @@ function FieldSystem:workEvent(event)
 	end
 
 	local field = workPlace:get("FieldComponent")
-	workPlace:get("WorkComponent"):increaseCompletion(10.0) -- TODO: Value!
+	workPlace:get("WorkComponent"):increaseCompletion(FieldSystem.COMPLETION[1])
 	if workPlace:get("WorkComponent"):isComplete() then
 		local state = field:getState()
 		if state == FieldComponent.UNCULTIVATED then

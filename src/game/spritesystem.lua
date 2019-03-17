@@ -199,10 +199,15 @@ function SpriteSystem:updateVillager(dt, entity)
 		-- t = 2^(2 - x) * 5
 		--
 		-- x = 2^(2 - y) / 2
-		--
 		-- TODO: Is this really what I want?
-		local strength = villager:getStrength()
-		durationModifier = 2^(2 - strength) / 2
+		local attribute
+		if adult and adult:getOccupation () == WorkComponent.BUILDER then
+			-- Builders use craftsmanship instead.
+			attribute = villager:getCraftsmanship()
+		else
+			attribute = villager:getStrength()
+		end
+		durationModifier = 2^(2 - attribute) / 2
 	elseif walking then
 		durationModifier = 1 / villager:getSpeedModifierTotal()
 	end

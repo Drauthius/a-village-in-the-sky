@@ -4,6 +4,7 @@ local lovetoys = require "lib.lovetoys.lovetoys"
 local BuildingCompletedEvent = require "src.game.buildingcompletedevent"
 local WorkCompletedEvent = require "src.game.workcompletedevent"
 local BuildingLeftEvent = require "src.game.buildingleftevent"
+local BuildingComponent = require "src.game.buildingcomponent"
 local CarryingComponent = require "src.game.carryingcomponent"
 local PositionComponent = require "src.game.positioncomponent"
 local ResourceComponent = require "src.game.resourcecomponent"
@@ -27,7 +28,24 @@ WorkSystem.static.DIR_CONV = {
 
 WorkSystem.static.COMPLETION = {
 	-- How many animation frames to require before the resource is completed.
-	RESOURCE = 100 / 55
+	-- Applies to both trees and rocks, at the moment.
+	-- (45 seconds for 4 animations (1 cycle) with default 0.2 seconds for each animation)
+	RESOURCE = 100 / (45 / (0.2 * 4)),
+	BUILDING = {
+		-- (2 minutes for 4 animations (1 cycle) with default 0.2 seconds for each animation)
+		[BuildingComponent.DWELLING] = 100 / (120 / (0.2 * 4)),
+		[BuildingComponent.BLACKSMITH] = 100 / (120 / (0.2 * 4)),
+		-- (1 minute)
+		[BuildingComponent.FIELD] = 100 / (60 / (0.2 * 4)),
+		-- (4 minutes)
+		[BuildingComponent.BAKERY] = 100 / (240 / (0.2 * 4))
+	},
+	PRODUCING = {
+		-- Numbers are completion per second.
+		-- (2 minutes)
+		[BuildingComponent.BLACKSMITH] = 120 / 100,
+		[BuildingComponent.BAKERY] = 120 / 100
+	}
 }
 
 -- TODO: Currently handles both Work, Construction, and Production
@@ -47,7 +65,10 @@ function WorkSystem:update(dt)
 		local production = entity:get("ProductionComponent")
 		for _,villagerEntity in ipairs(entity:get("AssignmentComponent"):getAssignees()) do
 			if villagerEntity:has("WorkingComponent") and villagerEntity:get("WorkingComponent"):getWorking() then
-				production:increaseCompletion(villagerEntity, 10.0 * dt) -- TODO: Value!
+				local craftsmanship = villagerEntity:get("VillagerComponent"):getCraftsmanship()
+				local durationModifier = 2^(2 - craftsmanship) / 2 -- TODO: Is this really what I want?
+				production:increaseCompletion(villagerEntity,
+					WorkSystem.COMPLETION.PRODUCING[entity:get("BuildingComponent"):getType()] * durationModifier * dt)
 				if production:isComplete(villagerEntity) then
 					production:reset(villagerEntity)
 					villagerEntity:add(CarryingComponent(next(production:getOutput())))
@@ -77,21 +98,19 @@ function WorkSystem:workEvent(event)
 	Timer.tween(0.12, workSprite, { x = dx, y = dy }, "in-bounce")
 
 	if workPlace:has("ConstructionComponent") then
-		local crafts = entity:get("VillagerComponent"):getCraftsmanship()
-
 		local construction = workPlace:get("ConstructionComponent")
-		construction:commitResources(crafts * 1) -- TODO: Value
+		construction:commitResources(WorkSystem.COMPLETION.BUILDING[construction:getType()])
 
 		soundManager:playEffect("building")
 
 		if not construction:canBuild() then
 			for _,worker in ipairs(workPlace:get("AssignmentComponent"):getAssignees()) do
 				if construction:isComplete() then
-					self.eventManager:fireEvent(WorkCompletedEvent(workPlace, entity))
+					self.eventManager:fireEvent(WorkCompletedEvent(workPlace, worker))
 				else
 					if worker:has("WorkingComponent") and worker:get("WorkingComponent"):getWorking() then
 						construction:unreserveGrid(worker)
-						self.eventManager:fireEvent(WorkCompletedEvent(workPlace, entity, true))
+						self.eventManager:fireEvent(WorkCompletedEvent(workPlace, worker, true))
 					end
 				end
 			end

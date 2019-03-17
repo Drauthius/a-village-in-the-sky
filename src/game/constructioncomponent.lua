@@ -131,6 +131,8 @@ function ConstructionComponent:addResources(resource, amount)
 end
 
 function ConstructionComponent:commitResources(amount)
+	-- The amount is in percent completion. Convert it to number of resources.
+	amount = self.numTotalResources * (amount / 100)
 	self.numCommittedResources = math.min(self.numCommittedResources + amount, self.numAvailableResources)
 end
 
