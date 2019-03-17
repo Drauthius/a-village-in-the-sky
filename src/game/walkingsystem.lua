@@ -21,7 +21,12 @@ WalkingSystem.static.RECALC_DELAY = 5
 WalkingSystem.static.SPEED_MODIFIER = {
 	[TileComponent.GRASS] = 1.0,
 	[TileComponent.FOREST] = 0.6,
-	[TileComponent.MOUNTAIN] = 0.8
+	[TileComponent.MOUNTAIN] = 0.8,
+	carrying = {
+		[1] = 0.9,
+		[2] = 0.8,
+		[3] = 0.7
+	}
 }
 
 function WalkingSystem.requires()
@@ -49,34 +54,35 @@ function WalkingSystem:_walkTheWalk(entity, dt)
 
 	if not path then
 		-- Initialise the path
-		if self:_initiatePath(entity) then
-			path = walking:getPath()
-
-			-- Add a timer to recalculate the path regularly, to be more up to date with ones surroundings.
-			if walking:getInstructions() ~= WalkingComponent.INSTRUCTIONS.WANDER and
-			   walking:getInstructions() ~= WalkingComponent.INSTRUCTIONS.GET_OUT_THE_WAY then
-				if not entity:has("TimerComponent") then
-					local timer = TimerComponent()
-					timer:getTimer():every(WalkingSystem.RECALC_DELAY, function()
-						local oldPath = walking:getPath()
-						if oldPath and oldPath[1] then
-							local start = walking:getNextGrid() or entity:get("PositionComponent"):getGrid()
-							local newPath = self:_calculatePath(start, path[1])
-							if newPath then
-								walking:setPath(newPath)
-							end
-						end
-					end)
-					entity:add(timer)
-				else
-					print("Timer for instruction "..walking:getInstructions())
-				end
-			end
-		else
+		if not self:_initiatePath(entity) then
 			--print("No path to thing")
 			self.eventManager:fireEvent(TargetUnreachableEvent(entity, nil, false, walking:getInstructions()))
 			entity:remove("WalkingComponent")
 			return
+		end
+
+		path = walking:getPath()
+		self:_updateWalkingSpeed(entity) -- In case they're carrying something.
+
+		-- Add a timer to recalculate the path regularly, to be more up to date with ones surroundings.
+		if walking:getInstructions() ~= WalkingComponent.INSTRUCTIONS.WANDER and
+		   walking:getInstructions() ~= WalkingComponent.INSTRUCTIONS.GET_OUT_THE_WAY then
+			if not entity:has("TimerComponent") then
+				local timer = TimerComponent()
+				timer:getTimer():every(WalkingSystem.RECALC_DELAY, function()
+					local oldPath = walking:getPath()
+					if oldPath and oldPath[1] then
+						local start = walking:getNextGrid() or entity:get("PositionComponent"):getGrid()
+						local newPath = self:_calculatePath(start, path[1])
+						if newPath then
+							walking:setPath(newPath)
+						end
+					end
+				end)
+				entity:add(timer)
+			else
+				print("Timer for instruction "..walking:getInstructions())
+			end
 		end
 	end
 
@@ -155,8 +161,7 @@ function WalkingSystem:_walkTheWalk(entity, dt)
 		walking:setNextGrid(nil)
 
 		-- New terrain?
-		local ti, tj = self.map:gridToTileCoords(nextGrid.gi, nextGrid.gj)
-		villager:setSpeedModifierTerrain(WalkingSystem.SPEED_MODIFIER[self.map:getTile(ti, tj).type])
+		self:_updateWalkingSpeed(entity)
 	end
 end
 
@@ -451,6 +456,19 @@ function WalkingSystem:_getRotation(last, target)
 	-- simply add 45 degrees to the angle (and make sure it is
 	-- between 0-359).
 	return (math.deg(r) + 360 + 45) % 360
+end
+
+function WalkingSystem:_updateWalkingSpeed(entity)
+	local villager = entity:get("VillagerComponent")
+	local grid = entity:get("PositionComponent"):getGrid()
+
+	local ti, tj = self.map:gridToTileCoords(grid.gi, grid.gj)
+	local speedModifier = WalkingSystem.SPEED_MODIFIER[self.map:getTile(ti, tj).type]
+	if entity:has("CarryingComponent") then
+		speedModifier = speedModifier * WalkingSystem.SPEED_MODIFIER.carrying[entity:get("CarryingComponent"):getAmount()]
+	end
+	-- XXX: Not only terrain...
+	villager:setSpeedModifierTerrain(speedModifier)
 end
 
 return WalkingSystem
