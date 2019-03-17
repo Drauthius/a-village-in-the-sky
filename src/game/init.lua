@@ -9,7 +9,6 @@
 --    * Villagers can be drawn behind e.g. the blacksmith shed, when there are a lot of things in the scene and they
 --      are directly in front (to the right) of it.
 --  - Next:
---  　* Walking speed modifier based on tile/age
 --    * Work speed for building/farming/baking/blacksmithing
 --    * Sleep cycle
 --    * Birth and death

@@ -8,6 +8,7 @@ local Map = require "src.game.map"
 local TargetReachedEvent = require "src.game.targetreachedevent"
 local TargetUnreachableEvent = require "src.game.targetunreachableevent"
 local ResourceComponent = require "src.game.resourcecomponent"
+local TileComponent = require "src.game.tilecomponent"
 local TimerComponent = require "src.game.timercomponent"
 local WalkingComponent = require "src.game.walkingcomponent"
 
@@ -16,6 +17,12 @@ local WalkingSystem = lovetoys.System:subclass("WalkingSystem")
 WalkingSystem.static.BASE_SPEED = 15
 WalkingSystem.static.MIN_DISTANCE_SQUARED = 0.05
 WalkingSystem.static.RECALC_DELAY = 5
+
+WalkingSystem.static.SPEED_MODIFIER = {
+	[TileComponent.GRASS] = 1.0,
+	[TileComponent.FOREST] = 0.6,
+	[TileComponent.MOUNTAIN] = 0.8
+}
 
 function WalkingSystem.requires()
 	return {"WalkingComponent"}
@@ -133,7 +140,7 @@ function WalkingSystem:_walkTheWalk(entity, dt)
 	local tgx, tgy = self.map:gridToGroundCoords(nextGrid.gi + 0.5, nextGrid.gj + 0.5)
 
 	local diff = vector(tgx - cgx, tgy - cgy)
-	local delta = diff:normalized() * WalkingSystem.BASE_SPEED * villager:getSpeedModifier() * dt
+	local delta = diff:normalized() * WalkingSystem.BASE_SPEED * villager:getSpeedModifierTotal() * dt
 
 	entity:get("GroundComponent"):setPosition(cgx + delta.x, cgy + delta.y)
 
@@ -146,6 +153,10 @@ function WalkingSystem:_walkTheWalk(entity, dt)
 		self.map:unreserve(entity, entity:get("PositionComponent"):getGrid())
 		entity:get("PositionComponent"):setGrid(nextGrid)
 		walking:setNextGrid(nil)
+
+		-- New terrain?
+		local ti, tj = self.map:gridToTileCoords(nextGrid.gi, nextGrid.gj)
+		villager:setSpeedModifierTerrain(WalkingSystem.SPEED_MODIFIER[self.map:getTile(ti, tj).type])
 	end
 end
 

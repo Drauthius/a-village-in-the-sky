@@ -160,6 +160,8 @@ function DefaultLevel:initiate(engine, map)
 			villager:add(AnimationComponent())
 			if not type:match("Child$") then
 				villager:add(AdultComponent())
+			else
+				villager:get("VillagerComponent"):setSpeedModifierAge(1.5)
 			end
 
 			engine:addEntity(villager)

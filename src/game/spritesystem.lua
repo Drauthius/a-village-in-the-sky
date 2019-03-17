@@ -204,7 +204,7 @@ function SpriteSystem:updateVillager(dt, entity)
 		local strength = villager:getStrength()
 		durationModifier = 2^(2 - strength) / 2
 	elseif walking then
-		durationModifier = 1 / villager:getSpeedModifier()
+		durationModifier = 1 / villager:getSpeedModifierTotal()
 	end
 
 	-- Figure out the animation frame.

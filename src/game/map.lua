@@ -296,6 +296,14 @@ function Map:getFreeGrid(ti, tj, resource)
 	error("No free grid")
 end
 
+function Map:getTile(ti, tj)
+	if self.tile[ti] then
+		return self.tile[ti][tj]
+	end
+
+	return nil
+end
+
 function Map:getGrid(gi, gj)
 	if self.grid[gi] then
 		return self.grid[gi][gj]
