@@ -9,7 +9,6 @@
 --    * Villagers can be drawn behind e.g. the blacksmith shed, when there are a lot of things in the scene and they
 --      are directly in front (to the right) of it.
 --    * Mining villager is cut off (smaller quad than sprite)
---    * Shadow from buildings can be cast on the clouds.
 --  - Next:
 --  　* Walking speed modifier based on tile/age
 --    * Work speed for building/farming/baking/blacksmithing
@@ -186,6 +185,7 @@ function Game:enter()
 	self.eventManager:addListener("WorkEvent", workSystem, workSystem.workEvent)
 	self.eventManager:addListener("WorkCompletedEvent", villagerSystem, villagerSystem.workCompletedEvent)
 
+	self.worldCanvas = love.graphics.newCanvas()
 	self.gui = GUI(self.engine)
 
 	self.level:initiate(self.engine, self.map)
@@ -231,6 +231,11 @@ function Game:draw()
 		background:draw()
 	end
 
+	-- This canvas helps us to differentiate between the backgrounds and the world, making certain alpha tests easier.
+	local oldCanvas = love.graphics.getCanvas()
+	love.graphics.setCanvas({self.worldCanvas, stencil = true})
+	love.graphics.clear(0, 0, 0, 0, true)
+
 	local drawArea = screen:getDrawArea()
 	self.camera:draw(drawArea.x, drawArea.y, drawArea.width, drawArea.height, function()
 		self.engine:draw()
@@ -244,6 +249,12 @@ function Game:draw()
 			love.graphics.setColor(1, 1, 1, 1)
 		end
 	end)
+
+	love.graphics.setCanvas(oldCanvas)
+	love.graphics.setColor(255, 255, 255)
+	love.graphics.setBlendMode("alpha", "premultiplied")
+	love.graphics.draw(self.worldCanvas)
+	love.graphics.setBlendMode("alpha")
 
 	self.foreground:draw()
 
