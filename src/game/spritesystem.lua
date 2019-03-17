@@ -229,7 +229,7 @@ function SpriteSystem:updateVillager(dt, entity)
 	if working then
 		slice = "Working"
 		sliceFrame = animation:getAnimation().from
-		targetSprite, duration = spriteSheet:getSprite("villagers-action "..hairy..frame, slice)
+		targetSprite, duration = spriteSheet:getSprite("villagers-action "..hairy..frame, slice, targetAnimation.from)
 	else
 		if adult then
 			slice = villager:getGender() .. " - " .. cardinalDir

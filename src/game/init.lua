@@ -8,7 +8,6 @@
 --    * It is possible to starve a construction site by moving villagers at inopportune times.
 --    * Villagers can be drawn behind e.g. the blacksmith shed, when there are a lot of things in the scene and they
 --      are directly in front (to the right) of it.
---    * Mining villager is cut off (smaller quad than sprite)
 --  - Next:
 --  　* Walking speed modifier based on tile/age
 --    * Work speed for building/farming/baking/blacksmithing
