@@ -272,21 +272,29 @@ function VillagerSystem:_takeAction(entity, dt)
 	self:_fidget(entity)
 end
 
-function VillagerSystem:_fidget(entity)
+function VillagerSystem:_fidget(entity, force)
+	if force then
+		self:_prepare(entity)
+	end
+
 	-- Wander around and fidget a little by rotating the villager.
 	if not entity:has("TimerComponent") and not entity:has("WalkingComponent") then
 		local villager = entity:get("VillagerComponent")
 		local isAdult = entity:has("AdultComponent")
 
-		entity:add(TimerComponent(
-			love.math.random() *
-			(VillagerSystem.TIMERS.IDLE_FIDGET_MAX - VillagerSystem.TIMERS.IDLE_FIDGET_MIN) +
-			VillagerSystem.TIMERS.IDLE_FIDGET_MIN, function()
+		local timer = love.math.random() *
+		              (VillagerSystem.TIMERS.IDLE_FIDGET_MAX - VillagerSystem.TIMERS.IDLE_FIDGET_MIN) +
+		              VillagerSystem.TIMERS.IDLE_FIDGET_MIN
+		if force then
+			timer = 0
+		end
+
+		entity:add(TimerComponent(timer, function()
 				local dir = villager:getDirection()
 				villager:setDirection((dir + 45 * love.math.random(-1, 1)) % 360)
 				entity:remove("TimerComponent")
 
-				if love.math.random() < VillagerSystem.RAND.WANDER_FORWARD_CHANCE then
+				if force or love.math.random() < VillagerSystem.RAND.WANDER_FORWARD_CHANCE then
 					-- XXX:
 					local WorkSystem = require "src.game.worksystem"
 					local dirConv = WorkSystem.DIR_CONV[villager:getCardinalDirection()]
@@ -470,17 +478,21 @@ function VillagerSystem:buildingLeftEvent(event)
 
 	local villager = entity:get("VillagerComponent")
 
-	if not building:has("DwellingComponent") then
-		-- Left a work place
-		entity:remove("WorkingComponent")
-	end
-
 	villager:setGoal(VillagerComponent.GOALS.NONE)
 	entity:add(SpriteComponent())
 	entity:add(PositionComponent(entranceGrid))
 	self.map:reserve(entity, entity:get("PositionComponent"):getGrid())
 
 	villager:setDelay(VillagerSystem.TIMERS.BUILDING_LEFT_DELAY)
+
+	if building:has("DwellingComponent") then
+		-- Left a house
+		-- Make sure to move a bit away from the door.
+		self:_fidget(entity, true)
+	else
+		-- Left a work place
+		entity:remove("WorkingComponent")
+	end
 end
 
 function VillagerSystem:targetReachedEvent(event)

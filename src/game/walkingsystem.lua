@@ -203,17 +203,26 @@ function WalkingSystem:_createPath(entity)
 	local path, targetEntity, targetRotation, nextStop
 	local instruction = walking:getInstructions()
 
+	-- Make an initial check to see whether they're already there.
+	for _,target in ipairs(walking:getTargetGrids()) do
+		if start == target then
+			return {}
+		end
+	end
+
 	if instruction == WalkingComponent.INSTRUCTIONS.DROPOFF then
 		assert(entity:has("CarryingComponent"), "Can't drop off nothing.")
 
 		local ti, tj = walking:getTargetTile()
-		local gi, gj = self.map:getFreeGrid(ti, tj, entity:get("CarryingComponent"):getResource())
-		assert(gi and gj, "TODO: No free grid to drop off.") -- TODO
-
-		local target = self.map:getGrid(gi, gj)
+		local target = self.map:getFreeGrid(ti, tj, entity:get("CarryingComponent"):getResource())
+		if not target then
+			return nil
+		end
 
 		path = self:_calculatePath(start, target)
-		assert(path, "TODO: No path to free resource.") -- TODO
+		if not path then
+			return nil
+		end
 
 		-- Last grid is the destination.
 		local grid = table.remove(path, 1)
@@ -261,7 +270,9 @@ function WalkingSystem:_createPath(entity)
 				return resourceComponent:getResource() == resource and resourceComponent:isUsable()
 			end)
 
-		assert(resourceNearest, "Available resource not reachable") -- FIXME: Do something smart.
+		if not resourceNearest then
+			return nil -- FIXME: Do something smart.
+		end
 
 		-- Remove the last grid, which is the location of the resource.
 		table.remove(resourcePath, 1)
@@ -272,7 +283,9 @@ function WalkingSystem:_createPath(entity)
 			construction:getFreeWorkGrids(),
 			resourceNearest:get("PositionComponent"):getGrid())
 
-		assert(workNearest, "No path from resource to work grid.") -- FIXME: Do something smart.
+		if not workNearest then
+			return nil -- FIXME: Do something smart.
+		end
 
 		-- Reserve the resources.
 		local pickupAmount = math.min(count, resourceNearest:get("ResourceComponent"):getResourceAmount())
@@ -325,7 +338,9 @@ function WalkingSystem:_createPath(entity)
 				return resourceComponent:getResource() == resource and resourceComponent:isUsable()
 			end)
 
-		assert(resourceNearest, "Available resource not reachable") -- FIXME: Do something smart.
+		if not resourceNearest then
+			return nil -- FIXME: Do something smart.
+		end
 
 		-- Remove the last grid, which is the location of the resource.
 		table.remove(resourcePath, 1)

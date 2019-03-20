@@ -264,7 +264,7 @@ function Map:getFreeGrid(ti, tj, resource)
 			while 2 * x * d < m do
 				if cgi >= sgi and cgi <= egi and cgj >= sgj and cgj <= egj and
 				   self.grid[cgi] and self.grid[cgi][cgj] and self.grid[cgi][cgj].collision == Map.COLL_NONE then
-					return cgi, cgj
+					return self.grid[cgi][cgj]
 				end
 				x = x + d
 				cgi = gi + x
@@ -272,7 +272,7 @@ function Map:getFreeGrid(ti, tj, resource)
 			while 2 * y * d < m do
 				if cgi >= sgi and cgi <= egi and cgj >= sgj and cgj <= egj and
 				   self.grid[cgi] and self.grid[cgi][cgj] and self.grid[cgi][cgj].collision == Map.COLL_NONE then
-					return cgi, cgj
+					return self.grid[cgi][cgj]
 				end
 				y = y + d
 				cgj = gj + y
@@ -287,8 +287,9 @@ function Map:getFreeGrid(ti, tj, resource)
 
 	for cgi=sgi,sgi + self.gridsPerTile - 1 do
 		for cgj=sgj,sgj + self.gridsPerTile - 1 do
-			if self.grid[cgi][cgj].collision == Map.COLL_NONE then
-				return cgi, cgj
+			local grid = self.grid[cgi][cgj]
+			if grid.collision == Map.COLL_NONE then
+				return grid
 			end
 		end
 	end

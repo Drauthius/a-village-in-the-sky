@@ -63,15 +63,15 @@ function DefaultLevel:initiate(engine, map)
 		while num > 0 do
 			local resource = blueprint:createResourcePile(type, math.min(3, num))
 
-			local gi, gj = map:getFreeGrid(0, 0, type)
-			map:addResource(resource, map:getGrid(gi, gj))
+			local grid = map:getFreeGrid(0, 0, type)
+			map:addResource(resource, grid)
 
-			local ox, oy = map:gridToWorldCoords(gi, gj)
+			local ox, oy = map:gridToWorldCoords(grid.gi, grid.gj)
 			ox = ox - map.halfGridWidth
 			oy = oy - resource:get("SpriteComponent"):getSprite():getHeight() + map.gridHeight
 
 			resource:get("SpriteComponent"):setDrawPosition(ox, oy)
-			resource:add(PositionComponent(map:getGrid(gi, gj), nil, 0, 0))
+			resource:add(PositionComponent(grid, nil, 0, 0))
 
 			engine:addEntity(resource)
 			state:increaseResource(type, resource:get("ResourceComponent"):getResourceAmount())
@@ -127,10 +127,14 @@ function DefaultLevel:initiate(engine, map)
 			local villager = lovetoys.Entity()
 
 			local gi, gj = unpack(table.remove(startingPositions) or {})
+			local grid
 			if not gi or not gj then
-				gi, gj = map:getFreeGrid(0, 0, "villager")
+				grid = map:getFreeGrid(0, 0, "villager")
+				gi, gj = grid.gi, grid.gj
+			else
+				grid = map:getGrid(gi, gj)
 			end
-			map:reserve(villager, map:getGrid(gi, gj))
+			map:reserve(villager, grid)
 
 			local colorSwap = ColorSwapComponent()
 			local skinColor = colors.skins[love.math.random(1, #colors.skins)]
@@ -150,7 +154,7 @@ function DefaultLevel:initiate(engine, map)
 				end
 			end
 			villager:add(colorSwap)
-			villager:add(PositionComponent(map:getGrid(gi, gj), nil, 0, 0))
+			villager:add(PositionComponent(grid, nil, 0, 0))
 			villager:add(GroundComponent(map:gridToGroundCoords(gi + 0.5, gj + 0.5)))
 			villager:add(VillagerComponent({
 				hairy = love.math.random() <= 0.5,
