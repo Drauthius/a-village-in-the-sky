@@ -8,6 +8,7 @@
 --    * It is possible to starve a construction site by moving villagers at inopportune times.
 --    * Villagers can be drawn behind e.g. the blacksmith shed, when there are a lot of things in the scene and they
 --      are directly in front (to the right) of it.
+--    * Villagers can be in the way for themselves... (Entering their home when standing at the door.)
 --  - Next:
 --    * Sleep cycle
 --    * Birth and death
@@ -174,6 +175,7 @@ function Game:enter()
 	self.eventManager:addListener("AssignedEvent", villagerSystem, villagerSystem.assignedEvent)
 	self.eventManager:addListener("BuildingCompletedEvent", buildingSystem, buildingSystem.buildingCompletedEvent)
 	self.eventManager:addListener("BuildingEnteredEvent", buildingSystem, buildingSystem.buildingEnteredEvent)
+	self.eventManager:addListener("BuildingEnteredEvent", villagerSystem, villagerSystem.buildingEnteredEvent)
 	self.eventManager:addListener("BuildingLeftEvent", buildingSystem, buildingSystem.buildingLeftEvent)
 	self.eventManager:addListener("BuildingLeftEvent", villagerSystem, villagerSystem.buildingLeftEvent)
 	self.eventManager:addListener("TargetReachedEvent", villagerSystem, villagerSystem.targetReachedEvent)

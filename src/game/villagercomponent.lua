@@ -9,22 +9,26 @@ VillagerComponent.static.GOALS = {
 	FOOD_DROPOFF = 3,
 	WORK_PICKUP = 4,
 	WORK = 5,
-	WAIT = 6,
-	MOVING = 7
+	SLEEP = 6,
+	WAIT = 7,
+	MOVING = 8
 }
 
 function VillagerComponent:initialize(stats)
 	self.name = stats.name or "Uh"
-	self.age = stats.age or 0.0
+	self.age = stats.age or 0.0 -- 0-death
 	self.hairy = stats.hairy or false
 	self.gender = stats.gender
-	self.strength = stats.strength or 0.5
-	self.craftsmanship = stats.craftsmanship or 0.5
 
-	self.direction = love.math.random(0, 359)
+	self.strength = stats.strength or 0.5 -- 0-1
+	self.craftsmanship = stats.craftsmanship or 0.5 -- 0.1
 
-	self.speedModifierAge = 1.0
-	self.speedModifierTerrain = 1.0
+	self.sleepiness = 0.0 -- 0-1
+
+	self.direction = love.math.random(0, 359) -- 0-359
+
+	self.speedModifierAge = 1.0 -- Multiplicative
+	self.speedModifierTerrain = 1.0 -- Multiplicative
 
 	self.goal = VillagerComponent.GOALS.NONE
 	self.delay = 0.0
@@ -53,6 +57,14 @@ end
 
 function VillagerComponent:getCraftsmanship()
 	return self.craftsmanship
+end
+
+function VillagerComponent:getSleepiness()
+	return self.sleepiness
+end
+
+function VillagerComponent:setSleepiness(sleepiness)
+	self.sleepiness = sleepiness
 end
 
 function VillagerComponent:getDirection()

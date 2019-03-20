@@ -2,6 +2,7 @@ local lovetoys = require "lib.lovetoys.lovetoys"
 local table = require "lib.table"
 
 local BuildingEnteredEvent = require "src.game.buildingenteredevent"
+local BuildingLeftEvent = require "src.game.buildingleftevent"
 local BuildingComponent = require "src.game.buildingcomponent"
 local CarryingComponent = require "src.game.carryingcomponent"
 local PositionComponent = require "src.game.positioncomponent"
@@ -30,7 +31,8 @@ VillagerSystem.static.TIMERS = {
 	NO_RESOURCE_DELAY = 5,
 	FARM_WAIT = 5,
 	ASSIGNED_DELAY = 0.4,
-	BUILDING_LEFT_DELAY = 0.2,
+	BUILDING_LEFT_DELAY = 0.25,
+	BUILDING_TEMP_ENTER = 0.25,
 	WORK_COMPLETED_DELAY = 1.0
 }
 
@@ -43,6 +45,16 @@ VillagerSystem.static.RAND = {
 VillagerSystem.static.FOOD = {
 	GATHER_WHEN_BELOW = 0.5
 }
+
+VillagerSystem.static.SLEEP = {
+	-- When idle: 90 seconds to gain 100% sleepiness.
+	IDLE_GAIN_PER_SECOND = 1 / 90,
+	-- When sleeping: 45 seconds to get rid of 100% sleepiness.
+	LOSS_PER_SECOND = 1 / 45,
+	-- When the villager should try and get some shut-eye.
+	SLEEPINESS_THRESHOLD = 0.65
+}
+
 
 function VillagerSystem.requires()
 	return {"VillagerComponent"}
@@ -57,11 +69,11 @@ end
 
 function VillagerSystem:update(dt)
 	for _,entity in pairs(self.targets) do
-		self:_updateVillager(entity, dt)
+		self:_takeAction(entity, dt)
 	end
 end
 
-function VillagerSystem:_updateVillager(entity, dt)
+function VillagerSystem:_takeAction(entity, dt)
 	local villager = entity:get("VillagerComponent")
 	local adult = entity:has("AdultComponent") and entity:get("AdultComponent")
 	local goal = villager:getGoal()
@@ -70,6 +82,9 @@ function VillagerSystem:_updateVillager(entity, dt)
 		-- Doing something.
 		return
 	end
+
+	local sleepiness = math.min(1.0, villager:getSleepiness() + VillagerSystem.SLEEP.IDLE_GAIN_PER_SECOND * dt)
+	villager:setSleepiness(sleepiness)
 
 	if villager:getDelay() > 0.0 then
 		villager:decreaseDelay(dt)
@@ -101,6 +116,24 @@ function VillagerSystem:_updateVillager(entity, dt)
 		villager:setGoal(VillagerComponent.GOALS.DROPOFF)
 
 		return
+	end
+
+	-- Check if the villager is sleepy.
+	if sleepiness >= VillagerSystem.SLEEP.SLEEPINESS_THRESHOLD and villager:getHome() then
+		local home = villager:getHome()
+		print(entity, "is sleepy")
+
+		self:_prepare(entity)
+
+		-- The entrance is an offset, so translate it to a real grid coordinate.
+		-- TODO: DRY
+		local entrance = home:get("EntranceComponent"):getEntranceGrid()
+		local grid = home:get("PositionComponent"):getGrid()
+		local entranceGrid = self.map:getGrid(grid.gi + entrance.ogi, grid.gj + entrance.ogj)
+		local ti, tj = home:get("PositionComponent"):getTile()
+
+		entity:add(WalkingComponent(ti, tj, { entranceGrid }, WalkingComponent.INSTRUCTIONS.GO_HOME))
+		villager:setGoal(VillagerComponent.GOALS.SLEEP)
 	end
 
 	-- If adult with a work place, start working.
@@ -403,16 +436,45 @@ function VillagerSystem:assignedEvent(event)
 	villager:setDelay(VillagerSystem.TIMERS.ASSIGNED_DELAY)
 end
 
+function VillagerSystem:buildingEnteredEvent(event)
+	local entity = event:getVillager()
+	local villager = entity:get("VillagerComponent")
+
+	if event:isTemporary() then
+		entity:remove("SpriteComponent")
+
+		entity:add(TimerComponent(VillagerSystem.TIMERS.BUILDING_TEMP_ENTER, function()
+			entity:add(SpriteComponent())
+
+			villager:setGoal(VillagerComponent.GOALS.NONE)
+			if entity:has("WorkingComponent") then
+				entity:remove("WorkingComponent")
+			end
+			entity:remove("TimerComponent")
+		end))
+	else
+		self.map:unreserve(entity, entity:get("PositionComponent"):getGrid())
+		entity:remove("SpriteComponent")
+		entity:remove("PositionComponent")
+		entity:remove("InteractiveComponent")
+	end
+end
+
 function VillagerSystem:buildingLeftEvent(event)
 	local entity = event:getVillager()
-	local workPlace = event:getBuilding()
+	local building = event:getBuilding()
 
-	local entrance = workPlace:get("EntranceComponent"):getEntranceGrid()
-	local grid = workPlace:get("PositionComponent"):getGrid()
+	local entrance = building:get("EntranceComponent"):getEntranceGrid()
+	local grid = building:get("PositionComponent"):getGrid()
 	local entranceGrid = self.map:getGrid(grid.gi + entrance.ogi, grid.gj + entrance.ogj)
 
 	local villager = entity:get("VillagerComponent")
-	entity:remove("WorkingComponent")
+
+	if not building:has("DwellingComponent") then
+		-- Left a work place
+		entity:remove("WorkingComponent")
+	end
+
 	villager:setGoal(VillagerComponent.GOALS.NONE)
 	entity:add(SpriteComponent())
 	entity:add(PositionComponent(entranceGrid))
@@ -535,15 +597,6 @@ function VillagerSystem:targetReachedEvent(event)
 		dwelling:setGettingFood(false)
 
 		-- Temporarily enter the building.
-		entity:remove("SpriteComponent")
-
-		entity:add(TimerComponent(0.25, function()
-			entity:add(SpriteComponent())
-
-			villager:setGoal(VillagerComponent.GOALS.NONE)
-			entity:remove("TimerComponent")
-		end))
-
 		self.eventManager:fireEvent(BuildingEnteredEvent(home, entity, true))
 
 		entity:remove("CarryingComponent")
@@ -563,29 +616,7 @@ function VillagerSystem:targetReachedEvent(event)
 				production:addResource(resource, amount)
 				production:reserveResource(entity, resource, amount)
 
-				local temporary
-				if production:getNeededResources(entity) then
-					-- Temporarily enter the building.
-					temporary = true
-					entity:remove("SpriteComponent")
-
-					entity:add(TimerComponent(0.25, function()
-						entity:add(SpriteComponent())
-
-						-- There still are resources needed. Might as well circle back.
-						villager:setGoal(VillagerComponent.GOALS.NONE)
-						entity:remove("WorkingComponent")
-						entity:remove("TimerComponent")
-					end))
-				else
-					-- Enter the building!
-					temporary = false
-					self.map:unreserve(entity, entity:get("PositionComponent"):getGrid())
-					entity:remove("SpriteComponent")
-					entity:remove("PositionComponent")
-					entity:remove("InteractiveComponent")
-				end
-
+				local temporary = production:getNeededResources(entity) ~= nil
 				self.eventManager:fireEvent(BuildingEnteredEvent(workPlace, entity, temporary))
 			else
 				error("Carried resources to unknown workplace.")
@@ -593,6 +624,23 @@ function VillagerSystem:targetReachedEvent(event)
 
 			entity:remove("CarryingComponent")
 		end
+	elseif goal == VillagerComponent.GOALS.SLEEP then
+		local home = villager:getHome()
+		--local dwelling = home:get("DwellingComponent")
+
+		local timer = TimerComponent()
+		timer:getTimer():during(villager:getSleepiness() / VillagerSystem.SLEEP.LOSS_PER_SECOND, function(dt)
+			-- Decrease the sleepiness.
+			villager:setSleepiness(math.max(0.0, villager:getSleepiness() - VillagerSystem.SLEEP.LOSS_PER_SECOND * dt))
+		end, function()
+			entity:remove("TimerComponent")
+			-- Leave the house.
+			self.eventManager:fireEvent(BuildingLeftEvent(home, entity))
+			print(entity, "has slept: "..entity:get("VillagerComponent"):getSleepiness())
+		end)
+		entity:add(timer)
+
+		self.eventManager:fireEvent(BuildingEnteredEvent(home, entity))
 	elseif goal == VillagerComponent.GOALS.MOVING then
 		villager:setDelay(VillagerSystem.TIMERS.PATH_WAIT_DELAY)
 		villager:setGoal(VillagerComponent.GOALS.NONE)
