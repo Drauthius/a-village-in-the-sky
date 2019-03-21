@@ -145,7 +145,18 @@ function FieldSystem:workEvent(event)
 		field:setState(state)
 		workPlace:get("AssignmentComponent"):unassign(entity)
 
-		self.eventManager:fireEvent(WorkCompletedEvent(workPlace, entity))
+		-- Check whether all fields are completed.
+		local complete = true
+		for _,otherField in ipairs(field:getEnclosure():get("FieldEnclosureComponent"):getFields()) do
+			if otherField:get("FieldComponent"):getState() ~= state and
+			   not otherField:get("WorkComponent"):isComplete() and
+			   otherField:get("AssignmentComponent"):getNumAssignees() < 1 then
+				complete = false
+				break
+			end
+		end
+
+		self.eventManager:fireEvent(WorkCompletedEvent(workPlace, entity, not complete))
 	end
 end
 

@@ -5,12 +5,16 @@
 --    * Villagers can get stuck in a four-grid gridlock.
 --    * Villagers heading the exact opposite direction can get stuck in a two-grid gridlock.
 --    * Removing a villager from a production job can leave resources "locked in limbo".
+--      The same goes for building jobs.
 --    * It is possible to starve a construction site by moving villagers at inopportune times.
 --    * Villagers can be drawn behind e.g. the blacksmith shed, when there are a lot of things in the scene and they
 --      are directly in front (to the right) of it.
---    * Villagers can be in the way for themselves... (Entering their home when standing at the door.)
+--    * Display bug with the bottom panel???
+--    * Villagers can stand in front of the bread delivery, causing it to be dropped where it stands.
+--      Bread dropped outside door is not picked up. Is it reserved??
 --  - Next:
 --    * Sleep cycle
+--      Bakery remains
 --    * Birth and death
 --  - Refactoring:
 --    * There is little reason to have the VillagerComponent be called "VillagerComponent", other than symmetry.

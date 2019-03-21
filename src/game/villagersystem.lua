@@ -134,6 +134,7 @@ function VillagerSystem:_takeAction(entity, dt)
 
 		entity:add(WalkingComponent(ti, tj, { entranceGrid }, WalkingComponent.INSTRUCTIONS.GO_HOME))
 		villager:setGoal(VillagerComponent.GOALS.SLEEP)
+		return
 	end
 
 	-- If adult with a work place, start working.
@@ -409,9 +410,11 @@ function VillagerSystem:assignedEvent(event)
 			return
 		end
 
-		self:_unreserveAll(entity)
-		self:_prepare(entity)
-		villager:setGoal(VillagerComponent.GOALS.NONE)
+		if villager:getGoal() ~= VillagerComponent.GOALS.SLEEP then -- TODO: Others as well..
+			self:_unreserveAll(entity)
+			self:_prepare(entity)
+			villager:setGoal(VillagerComponent.GOALS.NONE)
+		end
 
 		adult:setWorkArea(site:get("PositionComponent"):getTile())
 
@@ -777,9 +780,14 @@ end
 function VillagerSystem:workCompletedEvent(event)
 	local entity = event:getVillager()
 	local villager = entity:get("VillagerComponent")
+	local adult = entity:get("AdultComponent")
+	local farmer = adult:getOccupation() == WorkComponent.FARMER
 
-	if not event:isTemporary() then
-		entity:get("AdultComponent"):setWorkPlace(nil)
+	if not event:isTemporary() or farmer then
+		adult:setWorkPlace(nil)
+		if not event:isTemporary() then
+			villager:setSleepiness(1.0)
+		end
 	end
 
 	if entity:has("WorkingComponent") then -- Might not be actively working on the site (e.g. resource already covered)

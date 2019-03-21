@@ -26,8 +26,9 @@ function DetailsPanel:initialize(y)
 		{ "Food", "getAge" },
 		{},
 		{ "Occupation", "getOccupationName", true },
-		{ "Strength", "getAge" },
-		{ "Craftsmanship", "getAge" }
+		{ "Strength", "getStrength" },
+		{ "Craftsmanship", "getCraftsmanship" },
+		{ "Sleepiness", "getSleepiness" }
 	}
 end
 
@@ -60,6 +61,9 @@ function DetailsPanel:draw()
 					value = adult[value](adult)
 				else
 					value = villager[value](villager)
+				end
+				if type(value) == "number" then
+					value = string.format("%.2f", value)
 				end
 				love.graphics.setFont(self.fontBold)
 				love.graphics.print(key, x, y)

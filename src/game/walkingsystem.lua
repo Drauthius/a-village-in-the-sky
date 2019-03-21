@@ -185,6 +185,11 @@ function WalkingSystem:_initiatePath(entity)
 end
 
 function WalkingSystem:_calculatePath(start, target)
+	-- Make an initial check that we're actually going somewhere.
+	if start == target then
+		return {}
+	end
+
 	local nodes = astar.search(self.map, start, target)
 	local path = astar.reconstructReversedPath(start, target, nodes)
 
@@ -202,13 +207,6 @@ function WalkingSystem:_createPath(entity)
 	local start = entity:get("PositionComponent"):getGrid()
 	local path, targetEntity, targetRotation, nextStop
 	local instruction = walking:getInstructions()
-
-	-- Make an initial check to see whether they're already there.
-	for _,target in ipairs(walking:getTargetGrids()) do
-		if start == target then
-			return {}
-		end
-	end
 
 	if instruction == WalkingComponent.INSTRUCTIONS.DROPOFF then
 		assert(entity:has("CarryingComponent"), "Can't drop off nothing.")

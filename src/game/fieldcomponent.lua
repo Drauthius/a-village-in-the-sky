@@ -32,6 +32,7 @@ function FieldComponent:setState(state)
 end
 
 function FieldComponent:getEnclosure()
+	assert(self.enclosure)
 	return self.enclosure
 end
 
