@@ -12,9 +12,9 @@
 --    * Display bug with the bottom panel???
 --    * Villagers can stand in front of the bread delivery, causing it to be dropped where it stands.
 --      Bread dropped outside door is not picked up. Is it reserved??
+--      Problem seems to be that tile is owned by the building, but occupied by a villager.
 --  - Next:
---    * Sleep cycle
---      Bakery remains
+--    * Hunger and meals
 --    * Birth and death
 --  - Refactoring:
 --    * There is little reason to have the VillagerComponent be called "VillagerComponent", other than symmetry.
@@ -39,8 +39,8 @@
 --    * Woman animations
 --    * Investigate and fix (or work around) aseprite sprite sheet bug
 --    * New blacksmith building.
---  - Controls
---    * Zoom (less smooth, to avoid uneven pixels)
+--  - Controls:
+--    * Zoom (less smooth, to avoid uneven pixels) (with min/max, and a zoom-to-mouse functionality)
 --    * Drag (with min/max, to avoid getting lost in space)
 --    * Assigning/selecting through double tap or hold?
 --      The details panel must have a "Deselect/Cancel/Close" button/icon so

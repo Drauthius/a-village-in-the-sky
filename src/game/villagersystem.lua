@@ -170,27 +170,35 @@ function VillagerSystem:_takeAction(entity, dt)
 		elseif workPlace:has("ProductionComponent") then
 			local production = workPlace:get("ProductionComponent")
 
-			-- Make a first pass to determine if any work can be carried out.
-			local blacklist, resource = {}
-			repeat
-				resource = production:getNeededResources(entity, blacklist)
-				if not resource then
-					villager:setDelay(VillagerSystem.TIMERS.NO_RESOURCE_DELAY)
-					villager:setGoal(VillagerComponent.GOALS.NONE)
-					return
-				end
-
-				-- Don't count that resource again, in case we go round again.
-				blacklist[resource] = true
-			until state:getNumAvailableResources(resource) > 0
-
 			-- The entrance is an offset, so translate it to a real grid coordinate.
 			local entrance = workPlace:get("EntranceComponent"):getEntranceGrid()
 			local grid = workPlace:get("PositionComponent"):getGrid()
 			local entranceGrid = self.map:getGrid(grid.gi + entrance.ogi, grid.gj + entrance.ogj)
 
-			entity:add(WalkingComponent(ti, tj, { entranceGrid }, WalkingComponent.INSTRUCTIONS.PRODUCE))
-			villager:setGoal(VillagerComponent.GOALS.WORK_PICKUP)
+			-- First check if any resources are needed.
+			if production:getNeededResources(entity) then
+				-- Make a first pass to determine if any work can be carried out.
+				local blacklist, resource = {}
+				repeat
+					resource = production:getNeededResources(entity, blacklist)
+					if not resource then
+						villager:setDelay(VillagerSystem.TIMERS.NO_RESOURCE_DELAY)
+						villager:setGoal(VillagerComponent.GOALS.NONE)
+						return
+					end
+
+					-- Don't count that resource again, in case we go round again.
+					blacklist[resource] = true
+				until state:getNumAvailableResources(resource) > 0
+
+				entity:add(WalkingComponent(ti, tj, { entranceGrid }, WalkingComponent.INSTRUCTIONS.PRODUCE))
+				villager:setGoal(VillagerComponent.GOALS.WORK_PICKUP)
+			else
+				-- All resources accounted for. Get straight to work.
+				-- XXX: That double array inconsistency...
+				entity:add(WalkingComponent(ti, tj, { { entranceGrid } }, WalkingComponent.INSTRUCTIONS.WORK))
+				villager:setGoal(VillagerComponent.GOALS.WORK)
+			end
 		else
 			local workGrids = workPlace:get("WorkComponent"):getWorkGrids()
 			assert(workGrids, "No grid information for workplace "..workPlace:get("WorkComponent"):getTypeName())
@@ -488,14 +496,8 @@ function VillagerSystem:buildingLeftEvent(event)
 
 	villager:setDelay(VillagerSystem.TIMERS.BUILDING_LEFT_DELAY)
 
-	if building:has("DwellingComponent") then
-		-- Left a house
-		-- Make sure to move a bit away from the door.
-		self:_fidget(entity, true)
-	else
-		-- Left a work place
-		entity:remove("WorkingComponent")
-	end
+	-- Make sure to move a bit away from the door.
+	self:_fidget(entity, true) -- TODO: Looks a bit weird when going the opposite direction.
 end
 
 function VillagerSystem:targetReachedEvent(event)
@@ -616,13 +618,14 @@ function VillagerSystem:targetReachedEvent(event)
 
 		entity:remove("CarryingComponent")
 	elseif goal == VillagerComponent.GOALS.WORK then
+		local workPlace = entity:get("AdultComponent"):getWorkPlace()
+
 		-- Start working
 		entity:get("WorkingComponent"):setWorking(true)
 
 		if entity:has("CarryingComponent") then
 			local resource = entity:get("CarryingComponent"):getResource()
 			local amount = entity:get("CarryingComponent"):getAmount()
-			local workPlace = entity:get("AdultComponent"):getWorkPlace()
 
 			if workPlace:has("ConstructionComponent") then
 				workPlace:get("ConstructionComponent"):addResources(resource, amount)
@@ -638,6 +641,9 @@ function VillagerSystem:targetReachedEvent(event)
 			end
 
 			entity:remove("CarryingComponent")
+		elseif workPlace:has("ProductionComponent") then
+			-- This should be for finishing a produce.
+			self.eventManager:fireEvent(BuildingEnteredEvent(workPlace, entity))
 		end
 	elseif goal == VillagerComponent.GOALS.SLEEP then
 		local home = villager:getHome()
@@ -783,11 +789,14 @@ function VillagerSystem:workCompletedEvent(event)
 	local adult = entity:get("AdultComponent")
 	local farmer = adult:getOccupation() == WorkComponent.FARMER
 
+	-- XXX: Messy
 	if not event:isTemporary() or farmer then
 		adult:setWorkPlace(nil)
 		if not event:isTemporary() then
 			villager:setSleepiness(1.0)
 		end
+	elseif event:getWorkSite():has("ProductionComponent") then
+		villager:setSleepiness(1.0)
 	end
 
 	if entity:has("WorkingComponent") then -- Might not be actively working on the site (e.g. resource already covered)

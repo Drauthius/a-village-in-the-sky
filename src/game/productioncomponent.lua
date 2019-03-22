@@ -84,6 +84,10 @@ function ProductionComponent:reserveResource(villager, resource, amount)
 	self.storedResources[resource] = self.storedResources[resource] - amount
 end
 
+function ProductionComponent:getCompletion(villager)
+	return self.completion[villager] or 0.0
+end
+
 function ProductionComponent:increaseCompletion(villager, value)
 	self.completion[villager] = (self.completion[villager] or 0.0) + value
 end

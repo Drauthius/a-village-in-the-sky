@@ -67,13 +67,25 @@ function WorkSystem:update(dt)
 			if villagerEntity:has("WorkingComponent") and villagerEntity:get("WorkingComponent"):getWorking() then
 				local craftsmanship = villagerEntity:get("VillagerComponent"):getCraftsmanship()
 				local durationModifier = 2^(2 - craftsmanship) / 2 -- TODO: Is this really what I want?
-				production:increaseCompletion(villagerEntity,
-					WorkSystem.COMPLETION.PRODUCING[entity:get("BuildingComponent"):getType()] * durationModifier * dt)
-				if production:isComplete(villagerEntity) then
+				local workType = entity:get("BuildingComponent"):getType()
+				local increase = WorkSystem.COMPLETION.PRODUCING[workType] * durationModifier * dt
+
+				production:increaseCompletion(villagerEntity, increase)
+
+				local complete = production:isComplete(villagerEntity)
+				if not complete and workType == BuildingComponent.BAKERY then
+					-- Add a break in the middle of baking, for the yeast to take effect, no?
+					local completion = production:getCompletion(villagerEntity)
+					if completion >= 50.0 - increase/2 and completion < 50.0 + increase/2 then
+						self.eventManager:fireEvent(BuildingLeftEvent(entity, villagerEntity))
+						self.eventManager:fireEvent(WorkCompletedEvent(entity, villagerEntity, true))
+					end
+				elseif complete then
 					production:reset(villagerEntity)
 					villagerEntity:add(CarryingComponent(next(production:getOutput())))
 
 					self.eventManager:fireEvent(BuildingLeftEvent(entity, villagerEntity))
+					self.eventManager:fireEvent(WorkCompletedEvent(entity, villagerEntity, true))
 				end
 			end
 		end
