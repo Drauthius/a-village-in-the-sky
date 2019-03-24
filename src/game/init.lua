@@ -40,7 +40,7 @@
 --    * Investigate and fix (or work around) aseprite sprite sheet bug
 --    * New blacksmith building.
 --  - Controls:
---    * Zoom (less smooth, to avoid uneven pixels) (with min/max, and a zoom-to-mouse functionality)
+--    * Zoom (less smooth, to avoid uneven pixels)
 --    * Drag (with min/max, to avoid getting lost in space)
 --    * Assigning/selecting through double tap or hold?
 --      The details panel must have a "Deselect/Cancel/Close" button/icon so
@@ -104,6 +104,8 @@ local state = require "src.game.state"
 
 local Game = {}
 
+Game.CAMERA_MIN_ZOOM = 0.5
+Game.CAMERA_MAX_ZOOM = 10
 Game.CAMERA_EPSILON = 0.025
 -- Zoom level before the foreground is visible
 Game.FOREGROUND_VISIBLE_ZOOM = 2
@@ -360,14 +362,24 @@ function Game:mousereleased(x, y)
 end
 
 function Game:wheelmoved(_, y)
+	local oldScale = self.camera.scale
+
 	if y < 0 then
-		if self.camera.scale >= 0.2 then
+		if oldScale >= Game.CAMERA_MIN_ZOOM then
 			self.camera:zoom(0.9)
 		end
 	elseif y > 0 then
-		if self.camera.scale <= 10.0 then
+		if oldScale <= Game.CAMERA_MAX_ZOOM then
 			self.camera:zoom(1.1)
 		end
+	end
+
+	if self.camera.scale ~= oldScale then
+		local mx, my = screen:getCoordinate(love.mouse.getPosition())
+		local w, h = screen:getDimensions()
+		local diffx, diffy = mx - w/2, my - h/2
+		local newScale = self.camera.scale
+		self.camera:move(diffx / newScale * (newScale / oldScale - 1), diffy / newScale * (newScale / oldScale - 1))
 	end
 end
 
