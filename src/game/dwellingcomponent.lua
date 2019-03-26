@@ -7,8 +7,8 @@ function DwellingComponent:initialize()
 	self.gettingFood = false
 end
 
-function DwellingComponent:addFood(amount)
-	self.food = self.food + amount
+function DwellingComponent:setFood(amount)
+	self.food = amount
 end
 
 function DwellingComponent:getFood()

@@ -28,6 +28,7 @@ function DetailsPanel:initialize(y)
 		{ "Occupation", "getOccupationName", true },
 		{ "Strength", "getStrength" },
 		{ "Craftsmanship", "getCraftsmanship" },
+		{ "Hunger", "getHunger" },
 		{ "Sleepiness", "getSleepiness" }
 	}
 end

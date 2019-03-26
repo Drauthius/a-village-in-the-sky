@@ -10,8 +10,9 @@ VillagerComponent.static.GOALS = {
 	WORK_PICKUP = 4,
 	WORK = 5,
 	SLEEP = 6,
-	WAIT = 7,
-	MOVING = 8
+	EAT = 7,
+	WAIT = 8,
+	MOVING = 9
 }
 
 function VillagerComponent:initialize(stats)
@@ -23,6 +24,7 @@ function VillagerComponent:initialize(stats)
 	self.strength = stats.strength or 0.5 -- 0-1
 	self.craftsmanship = stats.craftsmanship or 0.5 -- 0.1
 
+	self.hunger = 0.0 -- 0-1
 	self.sleepiness = 0.0 -- 0-1
 
 	self.direction = love.math.random(0, 359) -- 0-359
@@ -33,6 +35,7 @@ function VillagerComponent:initialize(stats)
 	self.goal = VillagerComponent.GOALS.NONE
 	self.delay = 0.0
 	self.home = nil
+	self.inside = false
 end
 
 function VillagerComponent:getName()
@@ -57,6 +60,14 @@ end
 
 function VillagerComponent:getCraftsmanship()
 	return self.craftsmanship
+end
+
+function VillagerComponent:getHunger()
+	return self.hunger
+end
+
+function VillagerComponent:setHunger(hunger)
+	self.hunger = hunger
 end
 
 function VillagerComponent:getSleepiness()
@@ -126,6 +137,14 @@ end
 
 function VillagerComponent:setHome(home)
 	self.home = home
+end
+
+function VillagerComponent:isInside()
+	return self.inside
+end
+
+function VillagerComponent:setInside(inside)
+	self.inside = inside
 end
 
 function VillagerComponent:getSpeedModifierAge()

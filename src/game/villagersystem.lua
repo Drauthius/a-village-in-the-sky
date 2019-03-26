@@ -43,7 +43,16 @@ VillagerSystem.static.RAND = {
 }
 
 VillagerSystem.static.FOOD = {
-	GATHER_WHEN_BELOW = 0.5
+	-- Get food when the dwelling has less bread than this amount.
+	GATHER_WHEN_BELOW = 0.5,
+	-- When idle: 10 minutes to gain 100% hunger.
+	IDLE_HUNGER_PER_SECOND = 1 / 600,
+	-- Eat breakfast (after sleeping) when hunger is above this amount.
+	BREAKFAST_WHEN_ABOVE = 0.55,
+	-- Stops what they're doing and tries to get some food.
+	CRITICAL_WHEN_ABOVE = 0.80, -- TODO: Unused
+	-- When eating: 20 seconds to get rid of 100% sleepiness
+	LOSS_PER_SECOND = 1 / 20
 }
 
 VillagerSystem.static.SLEEP = {
@@ -69,31 +78,62 @@ end
 
 function VillagerSystem:update(dt)
 	for _,entity in pairs(self.targets) do
-		self:_takeAction(entity, dt)
+		local villager = entity:get("VillagerComponent")
+		local goal = villager:getGoal()
+
+		if not villager:isInside() or goal ~= VillagerComponent.GOALS.EAT then
+			local hunger = math.min(1.0, villager:getHunger() + VillagerSystem.FOOD.IDLE_HUNGER_PER_SECOND * dt)
+			villager:setHunger(hunger)
+		end
+
+		if not villager:isInside() or goal ~= VillagerComponent.GOALS.SLEEP then
+			local sleepiness = math.min(1.0, villager:getSleepiness() + VillagerSystem.SLEEP.IDLE_GAIN_PER_SECOND * dt)
+			villager:setSleepiness(sleepiness)
+		end
+
+		if goal == VillagerComponent.GOALS.NONE then
+			if villager:getDelay() > 0.0 then
+				villager:decreaseDelay(dt)
+
+				if(villager:getDelay() > VillagerSystem.TIMERS.IDLE_FIDGET_MIN) then
+					self:_fidget(entity)
+				end
+			else
+				self:_takeAction(entity, dt)
+			end
+		end
 	end
 end
 
-function VillagerSystem:_takeAction(entity, dt)
+function VillagerSystem:_takeAction(entity)
 	local villager = entity:get("VillagerComponent")
 	local adult = entity:has("AdultComponent") and entity:get("AdultComponent")
-	local goal = villager:getGoal()
 
-	if goal ~= VillagerComponent.GOALS.NONE then
-		-- Doing something.
-		return
-	end
+	if villager:isInside() and villager:getHunger() >= VillagerSystem.FOOD.BREAKFAST_WHEN_ABOVE then
+		local home = villager:getHome()
+		local dwelling = home:get("DwellingComponent")
+		-- TODO: Check if other family members need the food more.
+		-- TODO: Partial digestion.
+		if dwelling:getFood() >= 0.5 then
+			print(entity, "is hungry")
+			villager:setGoal(VillagerComponent.GOALS.EAT)
 
-	local sleepiness = math.min(1.0, villager:getSleepiness() + VillagerSystem.SLEEP.IDLE_GAIN_PER_SECOND * dt)
-	villager:setSleepiness(sleepiness)
+			local eating = 0.5
+			dwelling:setFood(dwelling:getFood() - eating)
+			local targetHunger = math.max(0.0, villager:getHunger() - eating)
 
-	if villager:getDelay() > 0.0 then
-		villager:decreaseDelay(dt)
+			local timer = TimerComponent()
+			timer:getTimer():during((villager:getHunger() - targetHunger) / VillagerSystem.FOOD.LOSS_PER_SECOND, function(dt)
+				-- Decrease the hunger.
+				villager:setHunger(math.max(0.0, villager:getHunger() - VillagerSystem.FOOD.LOSS_PER_SECOND * dt))
+			end, function()
+				entity:remove("TimerComponent")
+				entity:get("VillagerComponent"):setGoal(VillagerComponent.GOALS.NONE)
+			end)
+			entity:add(timer)
 
-		if(villager:getDelay() > VillagerSystem.static.TIMERS.IDLE_FIDGET_MIN) then
-			self:_fidget(entity)
+			return
 		end
-
-		return
 	end
 
 	-- If carrying something, drop it off first.
@@ -119,7 +159,7 @@ function VillagerSystem:_takeAction(entity, dt)
 	end
 
 	-- Check if the villager is sleepy.
-	if sleepiness >= VillagerSystem.SLEEP.SLEEPINESS_THRESHOLD and villager:getHome() then
+	if villager:getSleepiness() >= VillagerSystem.SLEEP.SLEEPINESS_THRESHOLD and villager:getHome() then
 		local home = villager:getHome()
 		print(entity, "is sleepy")
 
@@ -263,9 +303,11 @@ function VillagerSystem:_takeAction(entity, dt)
 		local dwelling = home:get("DwellingComponent")
 		-- Get some food if available.
 		if not dwelling:isGettingFood() and
-		   dwelling:getFood() < VillagerSystem.FOOD.GATHER_WHEN_BELOW and
-		   state:getNumAvailableResources(ResourceComponent.BREAD) > 1 then
+		   dwelling:getFood() <= VillagerSystem.FOOD.GATHER_WHEN_BELOW and
+		   state:getNumAvailableResources(ResourceComponent.BREAD) >= 1 then
 			dwelling:setGettingFood(true)
+
+			self:_prepare(entity)
 
 			-- The entrance is an offset, so translate it to a real grid coordinate.
 			local entrance = home:get("EntranceComponent"):getEntranceGrid()
@@ -278,7 +320,14 @@ function VillagerSystem:_takeAction(entity, dt)
 		end
 	end
 
-	self:_fidget(entity)
+	if villager:isInside() then
+		-- Leave the house.
+		self.eventManager:fireEvent(BuildingLeftEvent(villager:getHome(), entity))
+		-- Move away from the door.
+		self:_fidget(entity, true)
+	else
+		self:_fidget(entity)
+	end
 end
 
 function VillagerSystem:_fidget(entity, force)
@@ -333,6 +382,12 @@ function VillagerSystem:_prepare(entity)
 			self.map:unreserve(entity, entity:get("WalkingComponent"):getNextGrid())
 		end
 		entity:remove("WalkingComponent")
+	end
+
+	-- Ensure that the villager is outside.
+	if entity:get("VillagerComponent"):isInside() then
+		-- Leave the house.
+		self.eventManager:fireEvent(BuildingLeftEvent(entity:get("VillagerComponent"):getHome(), entity))
 	end
 end
 
@@ -418,7 +473,8 @@ function VillagerSystem:assignedEvent(event)
 			return
 		end
 
-		if villager:getGoal() ~= VillagerComponent.GOALS.SLEEP then -- TODO: Others as well..
+		if villager:getGoal() ~= VillagerComponent.GOALS.SLEEP and
+		   villager:getGoal() ~= VillagerComponent.GOALS.EAT then -- TODO: Others as well..
 			self:_unreserveAll(entity)
 			self:_prepare(entity)
 			villager:setGoal(VillagerComponent.GOALS.NONE)
@@ -476,6 +532,10 @@ function VillagerSystem:buildingEnteredEvent(event)
 		entity:remove("SpriteComponent")
 		entity:remove("PositionComponent")
 		entity:remove("InteractiveComponent")
+
+		if event:getBuilding():has("DwellingComponent") then
+			villager:setInside(true)
+		end
 	end
 end
 
@@ -489,15 +549,13 @@ function VillagerSystem:buildingLeftEvent(event)
 
 	local villager = entity:get("VillagerComponent")
 
+	villager:setInside(false)
 	villager:setGoal(VillagerComponent.GOALS.NONE)
 	entity:add(SpriteComponent())
 	entity:add(PositionComponent(entranceGrid))
 	self.map:reserve(entity, entity:get("PositionComponent"):getGrid())
 
 	villager:setDelay(VillagerSystem.TIMERS.BUILDING_LEFT_DELAY)
-
-	-- Make sure to move a bit away from the door.
-	self:_fidget(entity, true) -- TODO: Looks a bit weird when going the opposite direction.
 end
 
 function VillagerSystem:targetReachedEvent(event)
@@ -610,7 +668,7 @@ function VillagerSystem:targetReachedEvent(event)
 		local dwelling = home:get("DwellingComponent")
 
 		assert(resource == ResourceComponent.BREAD, "Is this even edible?")
-		dwelling:addFood(amount)
+		dwelling:setFood(dwelling:getFood() + amount)
 		dwelling:setGettingFood(false)
 
 		-- Temporarily enter the building.
@@ -655,9 +713,7 @@ function VillagerSystem:targetReachedEvent(event)
 			villager:setSleepiness(math.max(0.0, villager:getSleepiness() - VillagerSystem.SLEEP.LOSS_PER_SECOND * dt))
 		end, function()
 			entity:remove("TimerComponent")
-			-- Leave the house.
-			self.eventManager:fireEvent(BuildingLeftEvent(home, entity))
-			print(entity, "has slept: "..entity:get("VillagerComponent"):getSleepiness())
+			entity:get("VillagerComponent"):setGoal(VillagerComponent.GOALS.NONE)
 		end)
 		entity:add(timer)
 
