@@ -40,8 +40,6 @@
 --    * Investigate and fix (or work around) aseprite sprite sheet bug
 --    * New blacksmith building.
 --  - Controls:
---    * Zoom (less smooth, to avoid uneven pixels)
---    * Drag (with min/max, to avoid getting lost in space)
 --    * Assigning/selecting through double tap or hold?
 --      The details panel must have a "Deselect/Cancel/Close" button/icon so
 --      that villagers can be easily deselected.
@@ -194,6 +192,8 @@ function Game:enter()
 	self.gui = GUI(self.engine)
 
 	self.level:initiate(self.engine, self.map)
+
+	self:_updateCameraBoundingBox()
 end
 
 function Game:update(dt)
@@ -205,7 +205,7 @@ function Game:update(dt)
 		self.camera:lockPosition(
 				self.dragging.cx,
 				self.dragging.cy,
-				Camera.smooth.damped(15))
+				Camera.smooth.damped(10))
 		if self.dragging.released and
 		   math.abs(self.dragging.cx - self.camera.x) <= Game.CAMERA_EPSILON and
 		   math.abs(self.dragging.cy - self.camera.y) <= Game.CAMERA_EPSILON then
@@ -333,8 +333,9 @@ function Game:mousemoved(x, y)
 			self.dragging.dragged = true
 		end
 
-		self.dragging.cx = self.dragging.ox + newx
-		self.dragging.cy = self.dragging.oy + newy
+		local bb = self.cameraBoundingBox
+		self.dragging.cx = math.max(bb.xMin, math.min(bb.xMax, self.dragging.ox + newx))
+		self.dragging.cy = math.max(bb.yMin, math.min(bb.yMax, self.dragging.oy + newy))
 	end
 end
 
@@ -379,7 +380,20 @@ function Game:wheelmoved(_, y)
 		local w, h = screen:getDimensions()
 		local diffx, diffy = mx - w/2, my - h/2
 		local newScale = self.camera.scale
-		self.camera:move(diffx / newScale * (newScale / oldScale - 1), diffy / newScale * (newScale / oldScale - 1))
+
+		self:_updateCameraBoundingBox()
+		local bb = self.cameraBoundingBox
+
+		local dx, dy = diffx / newScale * (newScale / oldScale - 1), diffy / newScale * (newScale / oldScale - 1)
+
+		if self.dragging then
+			-- Change the position to where the camera is going, to avoid jumps
+			self.dragging.cx = math.max(bb.xMin, math.min(bb.xMax, self.dragging.cx + dx))
+			self.dragging.cy = math.max(bb.yMin, math.min(bb.yMax, self.dragging.cy + dy))
+		end
+
+		self.camera.x = math.max(bb.xMin, math.min(bb.xMax, self.camera.x + dx))
+		self.camera.y = math.max(bb.yMin, math.min(bb.yMax, self.camera.y + dy))
 	end
 end
 
@@ -572,6 +586,8 @@ function Game:_placeTile(placing)
 
 	-- Notify GUI to update its state.
 	self.gui:placed()
+	-- Update camera bounds.
+	self:_updateCameraBoundingBox()
 end
 
 function Game:_placeBuilding(placing)
@@ -619,6 +635,33 @@ function Game:_placeBuilding(placing)
 
 	-- Notify GUI to update its state.
 	self.gui:placed()
+end
+
+--- Update `self.cameraBoundingBox` with the minimum and maximum position of the camera, in world coords,
+-- based on the placed tiles.
+function Game:_updateCameraBoundingBox()
+	-- The tip of every corner, sort of.
+	local _, yMin = self.map:tileToWorldCoords(self.map.firstTile[1], self.map.firstTile[2])
+	local xMin, _ = self.map:tileToWorldCoords(self.map.firstTile[1], self.map.lastTile[2] + 1)
+	local _, yMax = self.map:tileToWorldCoords(self.map.lastTile[1] + 1, self.map.lastTile[2] + 1)
+	local xMax, _ = self.map:tileToWorldCoords(self.map.lastTile[1] + 1, self.map.firstTile[2])
+
+	local scale = self.camera.scale
+	-- Offset, so a little bit of the tile can be seen.
+	local ox = -5 * scale
+	local oy = ox
+	local drawArea = screen:getDrawArea()
+	-- Allow the camera (centre of the screen) to be half a screen away.
+	local w2, h2 = drawArea.width / 2 + ox, drawArea.height / 2 + oy
+	xMin, yMin = xMin - w2 / scale, yMin - h2 / scale
+	xMax, yMax = xMax + w2 / scale, yMax + h2 / scale
+
+	self.cameraBoundingBox = {
+		xMin = xMin,
+		xMax = xMax,
+		yMin = yMin,
+		yMax = yMax
+	}
 end
 
 return Game
