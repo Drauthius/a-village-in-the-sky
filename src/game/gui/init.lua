@@ -1,4 +1,5 @@
 local class = require "lib.middleclass"
+local babel = require "lib.babel"
 
 local DetailsPanel = require "src.game.gui.detailspanel"
 local InfoPanel = require "src.game.gui.infopanel"
@@ -24,6 +25,9 @@ function GUI:initialize(engine)
 
 	self.resourceFont = love.graphics.newFont("asset/font/Norse-Bold.otf", 16)
 	self.menuFont = love.graphics.newFont("asset/font/Norse.otf", 26)
+	self.yearPanel = spriteSheet:getSprite("year-panel")
+	self.yearPanel.number = spriteSheet:getData("year-number")
+	self.yearPanel.text = spriteSheet:getData("year-text")
 	self.menuButton = spriteSheet:getSprite("menu-button")
 	self.menuButton.data = spriteSheet:getData("menutext-position")
 
@@ -215,6 +219,31 @@ function GUI:draw()
 		love.graphics.setColor(1, 1, 1)
 	end
 
+	do -- Year panel
+		local x, y = 1, 1
+		spriteSheet:draw(self.yearPanel, x, y)
+
+		love.graphics.setColor(0, 0, 0)
+
+		local h = (self.yearPanel.text.bounds.h - self.menuFont:getHeight()) / 2
+		love.graphics.setFont(self.menuFont)
+		love.graphics.printf(babel.translate("Year"),
+			x + self.yearPanel.text.bounds.x,
+			y + self.yearPanel.text.bounds.y + h,
+			self.yearPanel.text.bounds.w,
+			"center")
+
+		h = (self.yearPanel.number.bounds.h - self.menuFont:getHeight()) / 2
+		love.graphics.setFont(self.menuFont)
+		love.graphics.printf(math.floor(state:getYear()),
+			x + self.yearPanel.number.bounds.x,
+			y + self.yearPanel.number.bounds.y + h,
+			self.yearPanel.number.bounds.w,
+			"center")
+
+		love.graphics.setColor(1, 1, 1)
+	end
+
 	do -- Menu button
 		local x, y = self.screenWidth - self.menuButton:getWidth() - 1, 1
 		spriteSheet:draw(self.menuButton, x, y)
@@ -222,7 +251,7 @@ function GUI:draw()
 		local h = (self.menuButton.data.bounds.h - self.menuFont:getHeight()) / 2
 		love.graphics.setColor(0, 0, 0)
 		love.graphics.setFont(self.menuFont)
-		love.graphics.printf("Menu",
+		love.graphics.printf(babel.translate("Menu"),
 			x + self.menuButton.data.bounds.x,
 			y + self.menuButton.data.bounds.y + h,
 			self.menuButton.data.bounds.w,

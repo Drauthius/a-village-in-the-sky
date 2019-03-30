@@ -54,8 +54,8 @@
 --    * Fill up details panel with correct information
 --      Villager stuff, Monolith, wait with other things.
 --  - Localization:
---    * Refrain from using hardcoded strings, and consult a library instead.
---      https://github.com/martin-damien/babel
+--    * Font support
+--    * Details panel
 --  - Nice to have:
 --    * Don't increase opacity for overlapping shadows.
 --    * Villagers always reserve two grids when walking. Problem?
@@ -105,10 +105,14 @@ local Game = {}
 Game.CAMERA_MIN_ZOOM = 0.5
 Game.CAMERA_MAX_ZOOM = 10
 Game.CAMERA_EPSILON = 0.025
+-- Number of squared pixels (in camera space) before interpreting a movement as a drag instead of a click.
+Game.CAMERA_DRAG_THRESHOLD = 20
 -- Zoom level before the foreground is visible
 Game.FOREGROUND_VISIBLE_ZOOM = 2
 -- How transparent the foreground is based on the zoom level.
 Game.FOREGROUND_VISIBLE_FACTOR = 1.0
+-- 1 minute is 1 year.
+Game.YEARS_PER_SECOND = 1 / 60
 
 function Game:init()
 	lovetoys.initialize({ debug = true, middleclassPath = "lib.middleclass" })
@@ -221,6 +225,8 @@ function Game:update(dt)
 	})
 
 	for _=1,self.speed do
+		state:increaseYear(Game.YEARS_PER_SECOND * dt)
+
 		Timer.update(dt)
 		for _,background in ipairs(self.backgrounds) do
 			background:update(dt)
@@ -327,7 +333,7 @@ function Game:mousemoved(x, y)
 		local newx, newy = self.dragging.sx - ex, self.dragging.sy - ey
 		newx, newy = newx / self.camera.scale, newy / self.camera.scale
 
-		local tolerance = 20
+		local tolerance = Game.CAMERA_DRAG_THRESHOLD
 		if not self.dragging.dragged and
 		   (self.dragging.sx - ex)^2 + (self.dragging.sy - ey)^2 >= tolerance then
 			self.dragging.dragged = true

@@ -9,6 +9,7 @@ function State:initialize()
 		x = 0,
 		y = 0
 	}
+	self.year = 0.0
 	self.placing = nil
 	self.selected = nil
 	self.resources = {
@@ -43,6 +44,17 @@ end
 
 function State:setMousePosition(x, y)
 	self.mouseCoords.x, self.mouseCoords.y = x, y
+end
+
+--
+-- Year count
+--
+function State:getYear()
+	return self.year
+end
+
+function State:increaseYear(dt)
+	self.year = self.year + dt
 end
 
 --
