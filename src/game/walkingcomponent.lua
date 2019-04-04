@@ -21,6 +21,7 @@ function WalkingComponent:initialize(ti, tj, grids, instructions)
 	self:setTargetGrids(grids)
 	self:setInstructions(instructions)
 	self:setNextStop(nil)
+	self:setSpeedModifier(1.0)
 end
 
 function WalkingComponent:getPath()
@@ -85,6 +86,14 @@ end
 
 function WalkingComponent:setNextStop(nextStop)
 	self.nextStop = nextStop
+end
+
+function WalkingComponent:getSpeedModifier()
+	return self.speedModifier
+end
+
+function WalkingComponent:setSpeedModifier(speed)
+	self.speedModifier = speed
 end
 
 return WalkingComponent

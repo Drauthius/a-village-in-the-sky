@@ -1,14 +1,19 @@
 local class = require "lib.middleclass"
 local lovetoys = require "lib.lovetoys.lovetoys"
 
+local AdultComponent = require "src.game.adultcomponent"
+local AnimationComponent = require "src.game.animationcomponent"
 local BuildingComponent = require "src.game.buildingcomponent"
 local CollisionComponent = require "src.game.collisioncomponent"
+local ColorSwapComponent = require "src.game.colorswapcomponent"
 local ParticleComponent = require "src.game.particlecomponent"
 local PlacingComponent = require "src.game.placingcomponent"
 local ResourceComponent = require "src.game.resourcecomponent"
 local RunestoneComponent = require "src.game.runestonecomponent"
+local SeniorComponent = require "src.game.seniorcomponent"
 local SpriteComponent = require "src.game.spritecomponent"
 local TileComponent = require "src.game.tilecomponent"
+local VillagerComponent = require "src.game.villagercomponent"
 local WorkComponent = require "src.game.workcomponent"
 
 local spriteSheet = require "src.game.spritesheet"
@@ -16,6 +21,7 @@ local spriteSheet = require "src.game.spritesheet"
 local Blueprint = class("Blueprint")
 
 Blueprint.static.PARTICLE_SYSTEMS = {}
+Blueprint.static.VILLAGER_PALETTES = {}
 
 function Blueprint:createPlacingTile(type)
 	local tile = lovetoys.Entity()
@@ -96,6 +102,92 @@ function Blueprint:createResourcePile(type, amount)
 	resource:add(SpriteComponent(sprite))
 
 	return resource
+end
+
+function Blueprint:createVillager(gender, age)
+	local entity = lovetoys.Entity()
+
+	local colors = Blueprint.VILLAGER_PALETTES.COLORS
+	if not colors then
+		local palette = spriteSheet:getSprite("villagers-palette")
+		colors = {
+			skin = {
+				-- Default:
+				{ { palette:getPixel(4, 0) },
+				  { palette:getPixel(5, 0) } },
+				-- Fairer:
+				{ { 0.761, 0.584, 0.510, 1 },
+				  { 0.812, 0.663, 0.569, 1 } }
+			},
+			hair = {
+				-- Default:
+				{ { palette:getPixel(6, 0) },
+				  { palette:getPixel(7, 0) } },
+				-- Lighter:
+				{ { 0.490, 0.369, 0.145, 1 },
+				  { 0.569, 0.471, 0.224, 1 } }
+			},
+			shirt = {
+				-- Default:
+				{ { palette:getPixel(8, 0) },
+				  { palette:getPixel(9, 0) } },
+				-- Lighter:
+				{ { 0.506, 0.565, 0.600, 1 },
+				  { 0.753, 0.812, 0.808, 1 } }
+			},
+			pants = {
+				-- Default:
+				{ { palette:getPixel(10, 0) },
+				  { palette:getPixel(11, 0) } },
+				-- Browner:
+				{ { 0.212, 0.169, 0.129, 1 },
+				  { 0.259, 0.204, 0.165, 1 } }
+			},
+			shoes = {
+				-- Default:
+				{ { palette:getPixel(12, 0) },
+				  { palette:getPixel(13, 0) } }
+			}
+		}
+		Blueprint.VILLAGER_PALETTES.COLORS = colors
+	end
+
+	local colorSwap = ColorSwapComponent()
+	local skinColor = colors.skin[love.math.random(1, #colors.skin)]
+	for part,colorChoices in pairs(colors) do
+		local color
+		if part == "skin" then
+			color = skinColor
+		elseif part == "shoes" and love.math.random() < 0.5 then
+			-- Barefoot!
+			color = skinColor
+		else
+			color = colorChoices[love.math.random(1, #colorChoices)]
+		end
+
+		-- 1 is the default colour to replace.
+		-- Always replace the hair, so that we can change it later without fuss.
+		if color ~= colorChoices[1] or part == "hair" then
+			colorSwap:add(part, colorChoices[1], color)
+		end
+	end
+	entity:add(colorSwap)
+	entity:add(SpriteComponent()) -- Filled in by the sprite system.
+	entity:add(AnimationComponent())
+
+	entity:add(VillagerComponent({
+		hairy = love.math.random() < 0.5,
+		gender = gender,
+		age = age
+	}))
+	if age >= 14 then -- XXX: Get value from some place.
+		entity:add(AdultComponent())
+		if age >= 55 then -- XXX: Get value from some place.
+			entity:add(SeniorComponent())
+		end
+	end
+
+	return entity
 end
 
 function Blueprint:createWoodSparksParticle()

@@ -29,9 +29,6 @@ function VillagerComponent:initialize(stats)
 
 	self.direction = love.math.random(0, 359) -- 0-359
 
-	self.speedModifierAge = 1.0 -- Multiplicative
-	self.speedModifierTerrain = 1.0 -- Multiplicative
-
 	self.goal = VillagerComponent.GOALS.NONE
 	self.delay = 0.0
 	self.home = nil
@@ -149,26 +146,6 @@ end
 
 function VillagerComponent:setInside(inside)
 	self.inside = inside
-end
-
-function VillagerComponent:getSpeedModifierAge()
-	return self.speedModifierAge
-end
-
-function VillagerComponent:setSpeedModifierAge(modifier)
-	self.speedModifierAge = modifier
-end
-
-function VillagerComponent:getSpeedModifierTerrain()
-	return self.speedModifierTerrain
-end
-
-function VillagerComponent:setSpeedModifierTerrain(modifier)
-	self.speedModifierTerrain = modifier
-end
-
-function VillagerComponent:getSpeedModifierTotal()
-	return self.speedModifierAge * self.speedModifierTerrain
 end
 
 return VillagerComponent

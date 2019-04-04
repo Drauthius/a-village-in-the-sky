@@ -2,8 +2,6 @@ local lovetoys = require "lib.lovetoys.lovetoys"
 
 local Level = require "src.game.level"
 
-local AdultComponent = require "src.game.adultcomponent"
-local AnimationComponent = require "src.game.animationcomponent"
 local AssignmentComponent = require "src.game.assignmentcomponent"
 local BuildingComponent = require "src.game.buildingcomponent"
 local ConstructionComponent = require "src.game.constructioncomponent"
@@ -13,7 +11,6 @@ local PositionComponent = require "src.game.positioncomponent"
 local ResourceComponent = require "src.game.resourcecomponent"
 local SpriteComponent = require "src.game.spritecomponent"
 local TileComponent = require "src.game.tilecomponent"
-local VillagerComponent = require "src.game.villagercomponent"
 
 local HallwayLevel = Level:subclass("HallwayLevel")
 
@@ -32,19 +29,14 @@ function HallwayLevel:initiate(engine, map)
 		for gj=0,map.gridsPerTile - 1 do
 			if gi == math.floor(map.gridsPerTile / 2) then
 				if gj % 2 == 0 then
-					local villager = lovetoys.Entity()
+					local villager = blueprint:createVillager("male", 20)
 
 					map:reserve(villager, map:getGrid(gi, gj))
 
 					villager:add(PositionComponent(map:getGrid(gi, gj), nil, 0, 0))
 					villager:add(GroundComponent(map:gridToGroundCoords(gi + 0.5, gj + 0.5)))
-					villager:add(VillagerComponent({ gender = "male", age = 20 }))
-					villager:add(SpriteComponent())
-					villager:add(AnimationComponent())
-					villager:add(AdultComponent())
 
 					engine:addEntity(villager)
-
 					state:increaseNumMaleVillagers()
 				end
 			else

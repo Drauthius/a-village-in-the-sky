@@ -3,13 +3,16 @@ local table = require "lib.table"
 
 local BuildingEnteredEvent = require "src.game.buildingenteredevent"
 local BuildingLeftEvent = require "src.game.buildingleftevent"
+
+local AdultComponent = require "src.game.adultcomponent"
 local BuildingComponent = require "src.game.buildingcomponent"
 local CarryingComponent = require "src.game.carryingcomponent"
 local PositionComponent = require "src.game.positioncomponent"
+local ResourceComponent = require "src.game.resourcecomponent"
+local SeniorComponent = require "src.game.seniorcomponent"
 local SpriteComponent = require "src.game.spritecomponent"
 local TimerComponent = require "src.game.timercomponent"
 local VillagerComponent = require "src.game.villagercomponent"
-local ResourceComponent = require "src.game.resourcecomponent"
 local WalkingComponent = require "src.game.walkingcomponent"
 local WorkComponent = require "src.game.workcomponent"
 local WorkingComponent = require "src.game.workingcomponent"
@@ -64,6 +67,10 @@ VillagerSystem.static.SLEEP = {
 	SLEEPINESS_THRESHOLD = 0.65
 }
 
+-- When the children reach adulthood, and can start working.
+VillagerSystem.static.ADULTHOOD = 14
+-- When the adults reach seniorhood, and work/walk slower.
+VillagerSystem.static.SENIORHOOD = 55
 
 function VillagerSystem.requires()
 	return {"VillagerComponent"}
@@ -552,6 +559,16 @@ function VillagerSystem:buildingLeftEvent(event)
 	local entranceGrid = self.map:getGrid(grid.gi + entrance.ogi, grid.gj + entrance.ogj)
 
 	local villager = entity:get("VillagerComponent")
+
+	if villager:getAge() >= VillagerSystem.ADULTHOOD and not entity:has("AdultComponent") then
+		entity:add(AdultComponent())
+	elseif villager:getAge() >= VillagerSystem.SENIORHOOD and not entity:has("SeniorComponent") then
+		entity:add(SeniorComponent())
+		-- Change the hair.
+		entity:get("ColorSwapComponent"):replace("hair",
+			{ { 0.45, 0.45, 0.45, 1.0 },
+			  { 0.55, 0.55, 0.55, 1.0 } })
+	end
 
 	villager:setInside(false)
 	villager:setGoal(VillagerComponent.GOALS.NONE)

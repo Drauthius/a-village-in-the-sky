@@ -40,6 +40,8 @@ SpriteSystem.static.ANIMATIONS = {
 	}
 }
 
+SpriteSystem.static.SENIOR_MODIFIER = 0.85
+
 function SpriteSystem.requires()
 	return {"SpriteComponent"}
 end
@@ -208,8 +210,16 @@ function SpriteSystem:updateVillager(dt, entity)
 			attribute = villager:getStrength()
 		end
 		durationModifier = 2^(2 - attribute) / 2
+		if entity:has("SeniorComponent") then
+			durationModifier = durationModifier * SpriteSystem.SENIOR_MODIFIER
+		end
 	elseif walking then
-		durationModifier = 1 / villager:getSpeedModifierTotal()
+		if entity:has("WalkingComponent") then
+			durationModifier = 1 / entity:get("WalkingComponent"):getSpeedModifier()
+		else
+			-- "Walking" in place to simulate some kind of movement when picking up/dropping off stuff.
+			durationModifier = 0.8
+		end
 	end
 
 	-- Figure out the animation frame.

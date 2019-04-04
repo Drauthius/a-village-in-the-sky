@@ -26,7 +26,10 @@ WalkingSystem.static.SPEED_MODIFIER = {
 		[1] = 0.9,
 		[2] = 0.8,
 		[3] = 0.7
-	}
+	},
+	child = 1.5,
+	adult = 1.0,
+	senior = 0.8
 }
 
 function WalkingSystem.requires()
@@ -62,7 +65,6 @@ function WalkingSystem:_walkTheWalk(entity, dt)
 		end
 
 		path = walking:getPath()
-		self:_updateWalkingSpeed(entity) -- In case they're carrying something.
 
 		-- Add a timer to recalculate the path regularly, to be more up to date with ones surroundings.
 		if walking:getInstructions() ~= WalkingComponent.INSTRUCTIONS.WANDER and
@@ -146,7 +148,7 @@ function WalkingSystem:_walkTheWalk(entity, dt)
 	local tgx, tgy = self.map:gridToGroundCoords(nextGrid.gi + 0.5, nextGrid.gj + 0.5)
 
 	local diff = vector(tgx - cgx, tgy - cgy)
-	local delta = diff:normalized() * WalkingSystem.BASE_SPEED * villager:getSpeedModifierTotal() * dt
+	local delta = diff:normalized() * WalkingSystem.BASE_SPEED * walking:getSpeedModifier() * dt
 
 	entity:get("GroundComponent"):setPosition(cgx + delta.x, cgy + delta.y)
 
@@ -177,6 +179,7 @@ function WalkingSystem:_initiatePath(entity)
 		walking:setTargetEntity(target)
 		walking:setTargetRotation(rotation)
 		walking:setNextStop(nextStop)
+		self:_updateWalkingSpeed(entity)
 
 		return true
 	end
@@ -472,16 +475,27 @@ function WalkingSystem:_getRotation(last, target)
 end
 
 function WalkingSystem:_updateWalkingSpeed(entity)
-	local villager = entity:get("VillagerComponent")
 	local grid = entity:get("PositionComponent"):getGrid()
 
+	-- Modify walking speed based on terrain.
 	local ti, tj = self.map:gridToTileCoords(grid.gi, grid.gj)
 	local speedModifier = WalkingSystem.SPEED_MODIFIER[self.map:getTile(ti, tj).type]
+
+	-- Modify walking speed based on carried stuff.
 	if entity:has("CarryingComponent") then
 		speedModifier = speedModifier * WalkingSystem.SPEED_MODIFIER.carrying[entity:get("CarryingComponent"):getAmount()]
 	end
-	-- XXX: Not only terrain...
-	villager:setSpeedModifierTerrain(speedModifier)
+
+	-- Modify walking speed based on age.
+	if entity:has("SeniorComponent") then
+		speedModifier = speedModifier * WalkingSystem.SPEED_MODIFIER.senior
+	elseif entity:has("AdultComponent") then
+		speedModifier = speedModifier * WalkingSystem.SPEED_MODIFIER.adult
+	else
+		speedModifier = speedModifier * WalkingSystem.SPEED_MODIFIER.child
+	end
+
+	entity:get("WalkingComponent"):setSpeedModifier(speedModifier)
 end
 
 return WalkingSystem
