@@ -46,6 +46,10 @@ function VillagerComponent:getAge()
 	return self.age
 end
 
+function VillagerComponent:increaseAge(dt)
+	self.age = self.age + dt
+end
+
 function VillagerComponent:getGender()
 	return self.gender
 end

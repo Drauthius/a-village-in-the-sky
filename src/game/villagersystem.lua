@@ -81,6 +81,10 @@ function VillagerSystem:update(dt)
 		local villager = entity:get("VillagerComponent")
 		local goal = villager:getGoal()
 
+		-- XXX: Put the constant in a better place.
+		local Game = require "src.game"
+		villager:increaseAge(Game.YEARS_PER_SECOND * dt)
+
 		if not villager:isInside() or goal ~= VillagerComponent.GOALS.EAT then
 			local hunger = math.min(1.0, villager:getHunger() + VillagerSystem.FOOD.IDLE_HUNGER_PER_SECOND * dt)
 			villager:setHunger(hunger)

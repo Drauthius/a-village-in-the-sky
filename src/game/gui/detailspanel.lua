@@ -23,13 +23,12 @@ function DetailsPanel:initialize(y)
 	self.villagerDetails = {
 		{ "Name", "getName" },
 		{ "Age", "getAge" },
-		{ "Food", "getAge" },
+		{ "Hunger", "getHunger" },
+		{ "Sleepiness", "getSleepiness" },
 		{},
 		{ "Occupation", "getOccupationName", true },
 		{ "Strength", "getStrength" },
-		{ "Craftsmanship", "getCraftsmanship" },
-		{ "Hunger", "getHunger" },
-		{ "Sleepiness", "getSleepiness" }
+		{ "Craftsmanship", "getCraftsmanship" }
 	}
 end
 
