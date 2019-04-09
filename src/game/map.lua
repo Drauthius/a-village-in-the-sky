@@ -109,9 +109,9 @@ function Map:addObject(entity, i, j)
 	end
 end
 
-function Map:addResource(resource, grid)
+function Map:addResource(resource, grid, force)
 	grid.collision = Map.COLL_STATIC
-	assert(not grid.owner, "Overlap")
+	assert(force or not grid.owner, "Overlap")
 	grid.owner = resource
 end
 
@@ -130,6 +130,20 @@ function Map:unreserve(villager, grid)
 end
 
 function Map:remove(entity)
+	-- TODO: All collisions aren't square currently.
+	--local from, to = entity:get("PositionComponent"):getFromGrid(), entity:get("PositionComponent"):getToGrid()
+
+	--for gi=from.gi,to.gi do
+	--	for gj=from.gj,to.gj do
+	--		local grid = self:getGrid(gi, gj)
+	--		if grid.owner == entity then
+	--			grid.collision = bit.band(grid.collision, bit.bnot(Map.COLL_STATIC))
+	--			grid.collision = bit.band(grid.collision, bit.bnot(Map.COLL_RESERVED))
+	--			grid.owner = nil
+	--		end
+	--	end
+	--end
+
 	local grid = entity:get("PositionComponent"):getGrid()
 
 	-- XXX: It might occupy multiple grids.

@@ -12,14 +12,17 @@ VillagerComponent.static.GOALS = {
 	SLEEP = 6,
 	EAT = 7,
 	WAIT = 8,
-	MOVING = 9
+	MOVING = 9,
+	CHILDBIRTH = 10
 }
 
-function VillagerComponent:initialize(stats)
+function VillagerComponent:initialize(stats, mother, father)
 	self.name = stats.name or "Uh"
 	self.age = stats.age or 0.0 -- 0-death
 	self.hairy = stats.hairy or false
 	self.gender = stats.gender
+
+	self.alive = true
 
 	self.strength = stats.strength or 0.5 -- 0-1
 	self.craftsmanship = stats.craftsmanship or 0.5 -- 0.1
@@ -32,7 +35,12 @@ function VillagerComponent:initialize(stats)
 	self.goal = VillagerComponent.GOALS.NONE
 	self.delay = 0.0
 	self.home = nil
-	self.inside = false
+	self.isAtHome = false
+
+	-- NOTE: These references need to be cleared to release the entities completely.
+	self.mother = mother
+	self.father = father
+	self.children = {}
 end
 
 function VillagerComponent:getName()
@@ -61,6 +69,14 @@ end
 
 function VillagerComponent:getCraftsmanship()
 	return self.craftsmanship
+end
+
+function VillagerComponent:isAlive()
+	return self.alive
+end
+
+function VillagerComponent:setDead()
+	self.alive = false
 end
 
 function VillagerComponent:getHunger()
@@ -140,12 +156,34 @@ function VillagerComponent:setHome(home)
 	self.home = home
 end
 
-function VillagerComponent:isInside()
-	return self.inside
+function VillagerComponent:isHome()
+	return self.isAtHome
 end
 
-function VillagerComponent:setInside(inside)
-	self.inside = inside
+function VillagerComponent:setIsHome(isAtHome)
+	self.isAtHome = isAtHome
+end
+
+function VillagerComponent:getMother()
+	return self.mother
+end
+
+function VillagerComponent:getFather()
+	return self.mother
+end
+
+function VillagerComponent:addChild(child)
+	table.insert(self.children, child)
+end
+
+function VillagerComponent:getChildren()
+	return self.children
+end
+
+function VillagerComponent:clear()
+	self.mother = nil
+	self.father = nil
+	self.children = {}
 end
 
 return VillagerComponent

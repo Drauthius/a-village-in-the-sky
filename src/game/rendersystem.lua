@@ -319,10 +319,11 @@ function RenderSystem:draw()
 
 			local icon = spriteSheet:getSprite("headers", "occupied-icon")
 			for i=1,entity:get("AssignmentComponent"):getNumAssignees() do
-				-- TODO: Value
+				-- XXX: Value
 				spriteSheet:draw(icon, 9 + x + ((i - 1) * (icon:getWidth() + 1)), y + 1)
 			end
 		elseif entity:has("DwellingComponent") then
+			local dwelling = entity:get("DwellingComponent")
 			local header = spriteSheet:getSprite("headers", "dwelling-header")
 			local x, y = sprite:getOriginalDrawPosition()
 			local w, h = header:getDimensions()
@@ -332,17 +333,27 @@ function RenderSystem:draw()
 			y = y - h / 2
 			spriteSheet:draw(header, x, y)
 
+			if dwelling:isRelated() then
+				-- XXX: Value
+				spriteSheet:draw(spriteSheet:getSprite("headers", "family-ties-icon"), x + 22, y)
+			end
+
 			local headerData = spriteSheet:getData("dwelling-header")
 			for _,type in ipairs({ "boys", "girls", "food" }) do
 				local data = spriteSheet:getData(type .. "-count")
 				local Fx, Fy = x + data.bounds.x - headerData.bounds.x, y + data.bounds.y - headerData.bounds.y
 
-				local amount = 0
+				local amount
 				if type == "food" then
 					love.graphics.setFont(love.graphics.newFont("asset/font/Norse.otf", data.bounds.h))
-					amount = entity:get("DwellingComponent"):getFood()
+					amount = dwelling:getFood()
 				else
 					love.graphics.setFont(love.graphics.newFont(data.bounds.h))
+					if type == "boys" then
+						amount = dwelling:getNumBoys()
+					else
+						amount = dwelling:getNumGirls()
+					end
 				end
 
 				-- Drop shadow

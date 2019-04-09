@@ -4,6 +4,10 @@ local Timer = require "lib.hump.timer"
 
 local TimerComponent = class("TimerComponent")
 
+-- 1 minute is 1 year.
+TimerComponent.static.YEARS_TO_SECONDS = 60
+TimerComponent.static.YEARS_PER_SECOND = 1 / TimerComponent.YEARS_TO_SECONDS
+
 function TimerComponent:initialize(delay, after)
 	self.timer = Timer.new()
 	if delay and after then

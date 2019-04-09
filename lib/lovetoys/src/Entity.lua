@@ -48,13 +48,13 @@ end
 
 -- Removes a component from the entity.
 function Entity:remove(name)
+    if self.eventManager then
+        self.eventManager:fireEvent(lovetoys.ComponentRemoved(self, name))
+    end
     if self.components[name] then
         self.components[name] = nil
     else
         lovetoys.debug("Entity: Trying to remove unexisting component " .. name .. " from Entity. Please fix this")
-    end
-    if self.eventManager then
-        self.eventManager:fireEvent(lovetoys.ComponentRemoved(self, name))
     end
 end
 

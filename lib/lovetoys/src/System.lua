@@ -41,7 +41,7 @@ function System:removeEntity(entity, component)
         end
     end
 
-	if self.onRemoveEntity then self:onRemoveEntity(entity) end
+    if self.onRemoveEntity then self:onRemoveEntity(entity) end
 end
 
 function System:componentRemoved(entity, component)
@@ -64,6 +64,8 @@ function System:componentRemoved(entity, component)
             self.targets[entity.id] = nil
         end
     end
+
+    if self.onRemoveEntity then self:onRemoveEntity(entity) end
 end
 
 function System:pickRequiredComponents(entity)

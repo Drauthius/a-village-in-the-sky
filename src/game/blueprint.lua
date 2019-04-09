@@ -6,6 +6,7 @@ local AnimationComponent = require "src.game.animationcomponent"
 local BuildingComponent = require "src.game.buildingcomponent"
 local CollisionComponent = require "src.game.collisioncomponent"
 local ColorSwapComponent = require "src.game.colorswapcomponent"
+local FertilityComponent = require "src.game.fertilitycomponent"
 local ParticleComponent = require "src.game.particlecomponent"
 local PlacingComponent = require "src.game.placingcomponent"
 local ResourceComponent = require "src.game.resourcecomponent"
@@ -22,6 +23,9 @@ local Blueprint = class("Blueprint")
 
 Blueprint.static.PARTICLE_SYSTEMS = {}
 Blueprint.static.VILLAGER_PALETTES = {}
+
+-- Chance that the child does not dress/look like its parents, per item/group.
+Blueprint.static.PALETTE_DEVIATION = 0.05
 
 function Blueprint:createPlacingTile(type)
 	local tile = lovetoys.Entity()
@@ -104,8 +108,10 @@ function Blueprint:createResourcePile(type, amount)
 	return resource
 end
 
-function Blueprint:createVillager(gender, age)
+function Blueprint:createVillager(mother, father, gender, age)
 	local entity = lovetoys.Entity()
+	gender = gender or (love.math.random() < 0.5 and "male" or "female")
+	age = age or 0
 
 	local colors = Blueprint.VILLAGER_PALETTES.COLORS
 	if not colors then
@@ -152,8 +158,19 @@ function Blueprint:createVillager(gender, age)
 		Blueprint.VILLAGER_PALETTES.COLORS = colors
 	end
 
+	local parents = {}
+	if mother then
+		table.insert(parents, mother)
+	end
+	if father then
+		table.insert(parents, father)
+	end
+	for _,parent in ipairs(parents) do
+		parent:get("VillagerComponent"):addChild(entity)
+	end
+
 	local colorSwap = ColorSwapComponent()
-	local skinColor = colors.skin[love.math.random(1, #colors.skin)]
+	local skinColor = self:_getColor("skin", colors.skin, parents)
 	for part,colorChoices in pairs(colors) do
 		local color
 		if part == "skin" then
@@ -162,7 +179,7 @@ function Blueprint:createVillager(gender, age)
 			-- Barefoot!
 			color = skinColor
 		else
-			color = colorChoices[love.math.random(1, #colorChoices)]
+			color = self:_getColor(part, colorChoices, parents)
 		end
 
 		-- 1 is the default colour to replace.
@@ -179,9 +196,10 @@ function Blueprint:createVillager(gender, age)
 		hairy = love.math.random() < 0.5,
 		gender = gender,
 		age = age
-	}))
+	}, mother, father))
 	if age >= 14 then -- XXX: Get value from some place.
 		entity:add(AdultComponent())
+		entity:add(FertilityComponent()) -- FIXME: This can be grossly inaccurate for the first year.
 		if age >= 55 then -- XXX: Get value from some place.
 			entity:add(SeniorComponent())
 		end
@@ -347,11 +365,21 @@ function Blueprint:createDustParticle(direction, small)
 	return entity
 end
 
-function Blueprint:createDeathParticle()
+function Blueprint:createDeathParticle(villager)
 	local entity = lovetoys.Entity()
-	local sprite = spriteSheet:getSprite("villagers 1", "male - SW")
+	local sprite, key
 
-	local particleSystem = Blueprint.PARTICLE_SYSTEMS.DEATH
+	if villager:has("AdultComponent") then
+		local hairy = villager:get("VillagerComponent"):isHairy() and "(Hairy) " or ""
+		sprite = spriteSheet:getSprite("villagers "..hairy.."1", villager:get("VillagerComponent"):getGender().." - SE")
+		key = "ADULT_DEATH"
+	else
+		sprite = spriteSheet:getSprite("children 1",
+			(villager:get("VillagerComponent"):getGender() == "male" and "Boy" or "Girl").." - SE")
+		key = "CHILD_DEATH"
+	end
+
+	local particleSystem = Blueprint.PARTICLE_SYSTEMS[key]
 	if not particleSystem then
 		particleSystem = love.graphics.newParticleSystem(spriteSheet:getImage(), 1)
 		particleSystem:setQuads(sprite:getQuad())
@@ -367,7 +395,7 @@ function Blueprint:createDeathParticle()
 		particleSystem:setParticleLifetime(3)
 		particleSystem:emit(1)
 
-		Blueprint.PARTICLE_SYSTEMS.DEATH = particleSystem
+		Blueprint.PARTICLE_SYSTEMS[key] = particleSystem
 	end
 
 	entity:add(ParticleComponent(particleSystem:clone(), true))
@@ -375,6 +403,26 @@ function Blueprint:createDeathParticle()
 	-- TODO: Either color swap to more phantasmal colours, or create new sprites.
 
 	return entity
+end
+
+--
+-- Internal functions
+--
+
+function Blueprint:_getColor(part, colorChoices, parents)
+	local color
+
+	if love.math.random() < Blueprint.PALETTE_DEVIATION or #parents < 1 then
+		color = colorChoices[love.math.random(1, #colorChoices)]
+	else
+		color = parents[love.math.random(1, #parents)]:get("ColorSwapComponent"):getGroup(part)
+		-- Make sure to return something at least.
+		if not color then
+			color = colorChoices[1]
+		end
+	end
+
+	return color
 end
 
 return Blueprint()

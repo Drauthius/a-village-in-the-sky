@@ -154,7 +154,7 @@ function SpriteSystem:updateVillager(dt, entity)
 	local animated = true
 	local walking = false
 	local working = false
-	if entity:has("CarryingComponent") then
+	if adult and entity:has("CarryingComponent") then
 		local carrying = entity:get("CarryingComponent")
 		targetAnimation = SpriteSystem.ANIMATIONS.walking[carrying:getResource()][carrying:getAmount()]
 		walking = true
@@ -251,6 +251,10 @@ function SpriteSystem:updateVillager(dt, entity)
 			targetSprite, duration = spriteSheet:getSprite("villagers "..hairy..frame, slice)
 		else
 			slice = (villager:getGender() == "male" and "Boy" or "Girl") .. " - " .. cardinalDir
+			if entity:has("CarryingComponent") then
+				-- TODO: Convert to using the frames as the adults.
+				slice = slice .. " - Bread"
+			end
 			targetSprite, duration = spriteSheet:getSprite("children "..frame, slice)
 		end
 	end

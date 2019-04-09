@@ -13,9 +13,13 @@
 --    * Villagers can stand in front of the bread delivery, causing it to be dropped where it stands.
 --      Bread dropped outside door is not picked up. Is it reserved??
 --      Problem seems to be that tile is owned by the building, but occupied by a villager.
+--      They don't seem to always move away from the door (rotation/direction problem?).
+--    * When exiting a house when another villager is in the way results in the grid being unoccupied.
 --  - Next:
---    * Hunger and meals
 --    * Birth and death
+--      Death of villager not handled properly (not unassigned everything)
+--        Break it up by handling it in onRemoveEntity (for various systems)
+--    * Proper fonts and font creation.
 --  - Refactoring:
 --    * There is little reason to have the VillagerComponent be called "VillagerComponent", other than symmetry.
 --    * Map:reserve() is a bad name for something that doesn't use COLL_RESERVED
@@ -79,6 +83,7 @@ local BlinkComponent = require "src.game.blinkcomponent"
 local ConstructionComponent = require "src.game.constructioncomponent"
 local InteractiveComponent = require "src.game.interactivecomponent"
 local PositionComponent = require "src.game.positioncomponent"
+local TimerComponent = require "src.game.timercomponent"
 -- Events
 local AssignedEvent = require "src.game.assignedevent"
 -- Systems
@@ -88,6 +93,7 @@ local FieldSystem
 local ParticleSystem
 local PlacingSystem
 local PositionSystem
+local PregnancySystem
 local RenderSystem
 local SpriteSystem
 local TimerSystem
@@ -100,19 +106,24 @@ local screen = require "src.screen"
 local soundManager = require "src.soundmanager"
 local state = require "src.game.state"
 
-local Game = {}
+local Game = {
+	-- Requirement to be allowed to listen to events.
+	class = { name = "Game" }
+}
 
+-- Maximum minimisation.
 Game.CAMERA_MIN_ZOOM = 0.5
+-- Maximum maximisation.
 Game.CAMERA_MAX_ZOOM = 10
-Game.CAMERA_EPSILON = 0.025
--- Number of squared pixels (in camera space) before interpreting a movement as a drag instead of a click.
-Game.CAMERA_DRAG_THRESHOLD = 20
 -- Zoom level before the foreground is visible
 Game.FOREGROUND_VISIBLE_ZOOM = 2
 -- How transparent the foreground is based on the zoom level.
 Game.FOREGROUND_VISIBLE_FACTOR = 1.0
--- 1 minute is 1 year.
-Game.YEARS_PER_SECOND = 1 / 60
+
+-- Number of squared pixels (in camera space) before interpreting a movement as a drag instead of a click.
+Game.CAMERA_DRAG_THRESHOLD = 20
+-- Number of squared pixels (in camera space) before interpreting the camera movement as stopped.
+Game.CAMERA_EPSILON = 0.05
 
 function Game:init()
 	lovetoys.initialize({ debug = true, middleclassPath = "lib.middleclass" })
@@ -124,6 +135,7 @@ function Game:init()
 	ParticleSystem = require "src.game.particlesystem"
 	PlacingSystem = require "src.game.placingsystem"
 	PositionSystem = require "src.game.positionsystem"
+	PregnancySystem = require "src.game.pregnancysystem"
 	RenderSystem = require "src.game.rendersystem"
 	SpriteSystem = require "src.game.spritesystem"
 	TimerSystem = require "src.game.timersystem"
@@ -157,6 +169,7 @@ function Game:enter()
 
 	local buildingSystem = BuildingSystem(self.engine)
 	local fieldSystem = FieldSystem(self.engine, self.eventManager, self.map)
+	local pregnancySystem = PregnancySystem(self.eventManager)
 	local villagerSystem = VillagerSystem(self.engine, self.eventManager, self.map)
 	local workSystem = WorkSystem(self.engine, self.eventManager)
 
@@ -164,6 +177,7 @@ function Game:enter()
 	self.engine:addSystem(PlacingSystem(self.map), "update")
 	self.engine:addSystem(workSystem, "update") -- Must be before the sprite system
 	self.engine:addSystem(villagerSystem, "update")
+	self.engine:addSystem(pregnancySystem, "update")
 	self.engine:addSystem(WalkingSystem(self.engine, self.eventManager, self.map), "update")
 	self.engine:addSystem(TimerSystem(), "update") -- Must be before the sprite system...
 	self.engine:addSystem(SpriteSystem(self.eventManager), "update")
@@ -180,14 +194,24 @@ function Game:enter()
 	self.engine:stopSystem("BuildingSystem")
 	self.engine:stopSystem("PositionSystem")
 
+	-- Event handling for logging/the player.
+	self.eventManager:addListener("ChildbirthStartedEvent", self, self.childbirthStartedEvent)
+	self.eventManager:addListener("ChildbirthEndedEvent", self, self.childbirthEndedEvent)
+
+	-- Events between the systems.
 	self.eventManager:addListener("AssignedEvent", villagerSystem, villagerSystem.assignedEvent)
 	self.eventManager:addListener("BuildingCompletedEvent", buildingSystem, buildingSystem.buildingCompletedEvent)
 	self.eventManager:addListener("BuildingEnteredEvent", buildingSystem, buildingSystem.buildingEnteredEvent)
 	self.eventManager:addListener("BuildingEnteredEvent", villagerSystem, villagerSystem.buildingEnteredEvent)
+	self.eventManager:addListener("BuildingEnteredEvent", pregnancySystem, pregnancySystem.buildingEnteredEvent)
 	self.eventManager:addListener("BuildingLeftEvent", buildingSystem, buildingSystem.buildingLeftEvent)
 	self.eventManager:addListener("BuildingLeftEvent", villagerSystem, villagerSystem.buildingLeftEvent)
+	self.eventManager:addListener("ChildbirthStartedEvent", villagerSystem, villagerSystem.childbirthStartedEvent)
+	self.eventManager:addListener("ChildbirthEndedEvent", villagerSystem, villagerSystem.childbirthEndedEvent)
 	self.eventManager:addListener("TargetReachedEvent", villagerSystem, villagerSystem.targetReachedEvent)
 	self.eventManager:addListener("TargetUnreachableEvent", villagerSystem, villagerSystem.targetUnreachableEvent)
+	self.eventManager:addListener("VillagerAgedEvent", villagerSystem, villagerSystem.villagerAgedEvent)
+	self.eventManager:addListener("VillagerAgedEvent", pregnancySystem, pregnancySystem.villagerAgedEvent)
 	self.eventManager:addListener("WorkEvent", fieldSystem, fieldSystem.workEvent)
 	self.eventManager:addListener("WorkEvent", workSystem, workSystem.workEvent)
 	self.eventManager:addListener("WorkCompletedEvent", villagerSystem, villagerSystem.workCompletedEvent)
@@ -211,8 +235,8 @@ function Game:update(dt)
 				self.dragging.cy,
 				Camera.smooth.damped(10))
 		if self.dragging.released and
-		   math.abs(self.dragging.cx - self.camera.x) <= Game.CAMERA_EPSILON and
-		   math.abs(self.dragging.cy - self.camera.y) <= Game.CAMERA_EPSILON then
+		   math.abs(self.dragging.cx - self.camera.x)^2 +
+		   math.abs(self.dragging.cy - self.camera.y)^2 <= Game.CAMERA_EPSILON then
 			-- Clear and release the dragging table, to avoid subpixel camera movement which looks choppy.
 			self.dragging = nil
 		end
@@ -225,7 +249,7 @@ function Game:update(dt)
 	})
 
 	for _=1,self.speed do
-		state:increaseYear(Game.YEARS_PER_SECOND * dt)
+		state:increaseYear(TimerComponent.YEARS_PER_SECOND * dt)
 
 		Timer.update(dt)
 		for _,background in ipairs(self.backgrounds) do
@@ -295,12 +319,6 @@ function Game:keyreleased(key, scancode)
 		self.speed = 10
 	elseif scancode == "5" then
 		self.speed = 50
-	elseif scancode == "a" then
-		local particle = blueprint:createDeathParticle()
-		particle:set(PositionComponent(self.map:getGrid(13, 9)))
-		particle:get("SpriteComponent"):setDrawPosition(self.map:gridToWorldCoords(13, 9))
-		particle:get("ParticleComponent"):getParticleSystem():start()
-		self.engine:addEntity(particle)
 	end
 end
 
@@ -472,7 +490,9 @@ function Game:_handleClick(x, y)
 				assignment:assign(selected)
 			end
 
-			self.eventManager:fireEvent(AssignedEvent(clicked, selected))
+			if not alreadyAdded then
+				self.eventManager:fireEvent(AssignedEvent(clicked, selected))
+			end
 
 			soundManager:playEffect("successfulAssignment") -- TODO: Different sounds per assigned occupation?
 			BlinkComponent:makeBlinking(clicked, { 0.15, 0.70, 0.15, 1.0 }) -- TODO: Colour value
@@ -668,6 +688,20 @@ function Game:_updateCameraBoundingBox()
 		yMin = yMin,
 		yMax = yMax
 	}
+end
+
+--
+-- Events
+--
+
+function Game:childbirthStartedEvent(event)
+	print("Childbirth started")
+end
+
+function Game:childbirthEndedEvent(event)
+	print("Childbirth ended. Mother "..
+		(event:didMotherSurvive() and "survived" or "died").." and child "..
+		(event:didChildSurvive() and "survived" or "died"))
 end
 
 return Game

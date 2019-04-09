@@ -29,15 +29,12 @@ function HallwayLevel:initiate(engine, map)
 		for gj=0,map.gridsPerTile - 1 do
 			if gi == math.floor(map.gridsPerTile / 2) then
 				if gj % 2 == 0 then
-					local villager = blueprint:createVillager("male", 20)
-
-					map:reserve(villager, map:getGrid(gi, gj))
+					local villager = blueprint:createVillager(nil, nil, "male", 20)
 
 					villager:add(PositionComponent(map:getGrid(gi, gj), nil, 0, 0))
 					villager:add(GroundComponent(map:gridToGroundCoords(gi + 0.5, gj + 0.5)))
 
 					engine:addEntity(villager)
-					state:increaseNumMaleVillagers()
 				end
 			else
 				local type = math.floor(map.gridsPerTile / 2) > gi and ResourceComponent.WOOD or ResourceComponent.TOOL

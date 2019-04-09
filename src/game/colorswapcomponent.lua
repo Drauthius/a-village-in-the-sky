@@ -32,6 +32,20 @@ function ColorSwapComponent:replace(group, newColors)
 	end
 end
 
+function ColorSwapComponent:getGroup(group)
+	if not self.groups[group] then
+		return nil
+	end
+
+	local offset, count = unpack(self.groups[group])
+	local ret = {}
+	for i=1,count do
+		table.insert(ret, self.newColors[i+offset])
+	end
+
+	return ret
+end
+
 function ColorSwapComponent:getReplacedColors()
 	return self.oldColors
 end

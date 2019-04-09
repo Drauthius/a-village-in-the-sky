@@ -172,32 +172,26 @@ end
 --
 -- Villagers
 --
-function State:increaseNumMaleVillagers()
-	self.villagers.maleVillagers = self.villagers.maleVillagers + 1
+function State:increaseNumVillagers(gender, isAdult)
+	local key = gender .. (isAdult and "Villagers" or "Children")
+	self.villagers[key] = self.villagers[key] + 1
+end
+
+function State:decreaseNumVillagers(gender, isAdult)
+	local key = gender .. (isAdult and "Villagers" or "Children")
+	self.villagers[key] = self.villagers[key] - 1
 end
 
 function State:getNumMaleVillagers()
 	return self.villagers.maleVillagers
 end
 
-function State:increaseNumFemaleVillagers()
-	self.villagers.femaleVillagers = self.villagers.femaleVillagers + 1
-end
-
 function State:getNumFemaleVillagers()
 	return self.villagers.femaleVillagers
 end
 
-function State:increaseNumMaleChildren()
-	self.villagers.maleChildren = self.villagers.maleChildren + 1
-end
-
 function State:getNumMaleChildren()
 	return self.villagers.maleChildren
-end
-
-function State:increaseNumFemaleChildren()
-	self.villagers.femaleChildren = self.villagers.femaleChildren + 1
 end
 
 function State:getNumFemaleChildren()

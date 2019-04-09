@@ -3,10 +3,13 @@ local table = require "lib.table"
 
 local BuildingEnteredEvent = require "src.game.buildingenteredevent"
 local BuildingLeftEvent = require "src.game.buildingleftevent"
+local ChildbirthStartedEvent = require "src.game.childbirthstartedevent"
+local VillagerAgedEvent = require "src.game.villageragedevent"
 
 local AdultComponent = require "src.game.adultcomponent"
 local BuildingComponent = require "src.game.buildingcomponent"
 local CarryingComponent = require "src.game.carryingcomponent"
+local FertilityComponent = require "src.game.fertilitycomponent"
 local PositionComponent = require "src.game.positioncomponent"
 local ResourceComponent = require "src.game.resourcecomponent"
 local SeniorComponent = require "src.game.seniorcomponent"
@@ -32,11 +35,13 @@ VillagerSystem.static.TIMERS = {
 	PATH_FAILED_DELAY = 3,
 	PATH_WAIT_DELAY = 2,
 	NO_RESOURCE_DELAY = 5,
+	CHILDBIRTH_NO_HOME_DELAY = 3,
 	FARM_WAIT = 5,
 	ASSIGNED_DELAY = 0.4,
 	BUILDING_LEFT_DELAY = 0.25,
 	BUILDING_TEMP_ENTER = 0.25,
-	WORK_COMPLETED_DELAY = 1.0
+	WORK_COMPLETED_DELAY = 1.0,
+	CHILDBIRTH_RECOVERY_DELAY = (1/12) * TimerComponent.YEARS_TO_SECONDS
 }
 
 VillagerSystem.static.RAND = {
@@ -67,10 +72,14 @@ VillagerSystem.static.SLEEP = {
 	SLEEPINESS_THRESHOLD = 0.65
 }
 
+-- When the babies reach childhood, and can start going out.
+VillagerSystem.static.CHILDHOOD = 5
 -- When the children reach adulthood, and can start working.
 VillagerSystem.static.ADULTHOOD = 14
 -- When the adults reach seniorhood, and work/walk slower.
 VillagerSystem.static.SENIORHOOD = 55
+-- The chance to die of old age, accumulated per year after reaching seniorhood.
+VillagerSystem.static.DEATH_CHANCE = 0.005
 
 function VillagerSystem.requires()
 	return {"VillagerComponent"}
@@ -86,18 +95,22 @@ end
 function VillagerSystem:update(dt)
 	for _,entity in pairs(self.targets) do
 		local villager = entity:get("VillagerComponent")
+		local age = villager:getAge()
 		local goal = villager:getGoal()
 
-		-- XXX: Put the constant in a better place.
-		local Game = require "src.game"
-		villager:increaseAge(Game.YEARS_PER_SECOND * dt)
+		villager:increaseAge(TimerComponent.YEARS_PER_SECOND * dt)
+		if math.floor(age) ~= math.floor(villager:getAge()) then
+			-- Happy birthday!
+			self.eventManager:fireEvent(VillagerAgedEvent(entity))
+			age = villager:getAge()
+		end
 
-		if not villager:isInside() or goal ~= VillagerComponent.GOALS.EAT then
+		if (not villager:isHome() or goal ~= VillagerComponent.GOALS.EAT) and age >= VillagerSystem.CHILDHOOD then
 			local hunger = math.min(1.0, villager:getHunger() + VillagerSystem.FOOD.IDLE_HUNGER_PER_SECOND * dt)
 			villager:setHunger(hunger)
 		end
 
-		if not villager:isInside() or goal ~= VillagerComponent.GOALS.SLEEP then
+		if not villager:isHome() or goal ~= VillagerComponent.GOALS.SLEEP then
 			local sleepiness = math.min(1.0, villager:getSleepiness() + VillagerSystem.SLEEP.IDLE_GAIN_PER_SECOND * dt)
 			villager:setSleepiness(sleepiness)
 		end
@@ -120,11 +133,30 @@ function VillagerSystem:_takeAction(entity)
 	local villager = entity:get("VillagerComponent")
 	local adult = entity:has("AdultComponent") and entity:get("AdultComponent")
 
-	if villager:isInside() and villager:getHunger() >= VillagerSystem.FOOD.BREAKFAST_WHEN_ABOVE then
+	-- Babies don't consume food or go outside.
+	if villager:getAge() < VillagerSystem.CHILDHOOD then
+		return
+	end
+
+	-- Unlikely to happen, but a mother in labour should probably go home.
+	-- (Can theoretically occur if the mother is temporarily blocked by something.)
+	if entity:has("PregnancyComponent") and entity:get("PregnancyComponent"):isInLabour() then
+		if villager:getHome() then
+			-- Fake the event.
+			self:childbirthStartedEvent(ChildbirthStartedEvent(entity))
+		else
+			-- If she has no home, she will just stand about.
+			villager:setDelay(VillagerSystem.TIMERS.CHILDBIRTH_NO_HOME_DELAY)
+		end
+		return
+	end
+
+	if villager:isHome() and villager:getHunger() >= VillagerSystem.FOOD.BREAKFAST_WHEN_ABOVE then
 		local home = villager:getHome()
 		local dwelling = home:get("DwellingComponent")
 		-- TODO: Check if other family members need the food more.
 		-- TODO: Partial digestion.
+		-- TODO: Children gain more.
 		if dwelling:getFood() >= 0.5 then
 			print(entity, "is hungry")
 			villager:setGoal(VillagerComponent.GOALS.EAT)
@@ -175,15 +207,7 @@ function VillagerSystem:_takeAction(entity)
 		print(entity, "is sleepy")
 
 		self:_prepare(entity)
-
-		-- The entrance is an offset, so translate it to a real grid coordinate.
-		-- TODO: DRY
-		local entrance = home:get("EntranceComponent"):getEntranceGrid()
-		local grid = home:get("PositionComponent"):getGrid()
-		local entranceGrid = self.map:getGrid(grid.gi + entrance.ogi, grid.gj + entrance.ogj)
-		local ti, tj = home:get("PositionComponent"):getTile()
-
-		entity:add(WalkingComponent(ti, tj, { entranceGrid }, WalkingComponent.INSTRUCTIONS.GO_HOME))
+		self:_goToBuilding(entity, home, WalkingComponent.INSTRUCTIONS.GO_HOME)
 		villager:setGoal(VillagerComponent.GOALS.SLEEP)
 		return
 	end
@@ -221,11 +245,6 @@ function VillagerSystem:_takeAction(entity)
 		elseif workPlace:has("ProductionComponent") then
 			local production = workPlace:get("ProductionComponent")
 
-			-- The entrance is an offset, so translate it to a real grid coordinate.
-			local entrance = workPlace:get("EntranceComponent"):getEntranceGrid()
-			local grid = workPlace:get("PositionComponent"):getGrid()
-			local entranceGrid = self.map:getGrid(grid.gi + entrance.ogi, grid.gj + entrance.ogj)
-
 			-- First check if any resources are needed.
 			if production:getNeededResources(entity) then
 				-- Make a first pass to determine if any work can be carried out.
@@ -234,7 +253,6 @@ function VillagerSystem:_takeAction(entity)
 					resource = production:getNeededResources(entity, blacklist)
 					if not resource then
 						villager:setDelay(VillagerSystem.TIMERS.NO_RESOURCE_DELAY)
-						villager:setGoal(VillagerComponent.GOALS.NONE)
 						return
 					end
 
@@ -242,12 +260,11 @@ function VillagerSystem:_takeAction(entity)
 					blacklist[resource] = true
 				until state:getNumAvailableResources(resource) > 0
 
-				entity:add(WalkingComponent(ti, tj, { entranceGrid }, WalkingComponent.INSTRUCTIONS.PRODUCE))
+				self:_goToBuilding(entity, workPlace, WalkingComponent.INSTRUCTIONS.PRODUCE)
 				villager:setGoal(VillagerComponent.GOALS.WORK_PICKUP)
 			else
 				-- All resources accounted for. Get straight to work.
-				-- XXX: That double array inconsistency...
-				entity:add(WalkingComponent(ti, tj, { { entranceGrid } }, WalkingComponent.INSTRUCTIONS.WORK))
+				self:_goToBuilding(entity, workPlace, WalkingComponent.INSTRUCTIONS.WORK)
 				villager:setGoal(VillagerComponent.GOALS.WORK)
 			end
 		else
@@ -295,7 +312,6 @@ function VillagerSystem:_takeAction(entity)
 		if adult:getOccupation() == WorkComponent.FARMER then
 			-- For farms, try again later.
 			villager:setDelay(VillagerSystem.TIMERS.FARM_WAIT)
-			villager:setGoal(VillagerComponent.GOALS.NONE)
 		else
 			adult:setWorkArea(nil)
 		end
@@ -309,6 +325,7 @@ function VillagerSystem:_takeAction(entity)
 	end
 
 	-- If the villager has a home, fill it up with food and stay close to it.
+	-- TODO: Walk closer to home, if wandered too far.
 	if villager:getHome() then
 		local home = villager:getHome()
 		local dwelling = home:get("DwellingComponent")
@@ -319,19 +336,13 @@ function VillagerSystem:_takeAction(entity)
 			dwelling:setGettingFood(true)
 
 			self:_prepare(entity)
-
-			-- The entrance is an offset, so translate it to a real grid coordinate.
-			local entrance = home:get("EntranceComponent"):getEntranceGrid()
-			local grid = home:get("PositionComponent"):getGrid()
-			local entranceGrid = self.map:getGrid(grid.gi + entrance.ogi, grid.gj + entrance.ogj)
-			local ti, tj = home:get("PositionComponent"):getTile()
-
-			entity:add(WalkingComponent(ti, tj, { entranceGrid }, WalkingComponent.INSTRUCTIONS.GET_FOOD))
+			self:_goToBuilding(entity, home, WalkingComponent.INSTRUCTIONS.GET_FOOD)
 			villager:setGoal(VillagerComponent.GOALS.FOOD_PICKUP)
+			return
 		end
 	end
 
-	if villager:isInside() then
+	if villager:isHome() then
 		-- Leave the house.
 		self.eventManager:fireEvent(BuildingLeftEvent(villager:getHome(), entity))
 		-- Move away from the door.
@@ -381,22 +392,36 @@ function VillagerSystem:_fidget(entity, force)
 	end
 end
 
-function VillagerSystem:_prepare(entity)
+function VillagerSystem:_goToBuilding(entity, building, instructions)
+	-- Assumes that _prepare() and everything else has been called.
+
+	-- The entrance is an offset, so translate it to a real grid coordinate.
+	local entrance = building:get("EntranceComponent"):getEntranceGrid()
+	local grid = building:get("PositionComponent"):getGrid()
+	local entranceGrid = self.map:getGrid(grid.gi + entrance.ogi, grid.gj + entrance.ogj)
+	local ti, tj = building:get("PositionComponent"):getTile()
+
+	-- XXX: That double array inconsistency...
+	if instructions == WalkingComponent.INSTRUCTIONS.WORK then
+		entranceGrid = { entranceGrid }
+	end
+
+	entity:add(WalkingComponent(ti, tj, { entranceGrid }, instructions))
+end
+
+function VillagerSystem:_prepare(entity, okInside)
 	-- Remove any lingering timer.
 	if entity:has("TimerComponent") then
 		entity:remove("TimerComponent")
 	end
 
-	-- Unreserve any reserved grids.
+	-- Remove any walking instruction.
 	if entity:has("WalkingComponent") then
-		if entity:get("WalkingComponent"):getNextGrid() then
-			self.map:unreserve(entity, entity:get("WalkingComponent"):getNextGrid())
-		end
 		entity:remove("WalkingComponent")
 	end
 
 	-- Ensure that the villager is outside.
-	if entity:get("VillagerComponent"):isInside() then
+	if not okInside and entity:get("VillagerComponent"):isHome() then
 		-- Leave the house.
 		self.eventManager:fireEvent(BuildingLeftEvent(entity:get("VillagerComponent"):getHome(), entity))
 	end
@@ -405,7 +430,7 @@ end
 function VillagerSystem:_unreserveAll(entity)
 	local villager = entity:get("VillagerComponent")
 	local adult = entity:get("AdultComponent")
-	local workPlace = adult:getWorkPlace()
+	local workPlace = adult and adult:getWorkPlace()
 
 	local type, amount
 	for _,resourceEntity in pairs(self.engine:getEntitiesWithComponent("ResourceComponent")) do
@@ -437,7 +462,7 @@ function VillagerSystem:_unreserveAll(entity)
 		end
 	end
 
-	if adult:getOccupation() == WorkComponent.FARMER then
+	if adult and adult:getOccupation() == WorkComponent.FARMER then
 		local enclosure
 		if workPlace then
 			enclosure = workPlace:get("FieldComponent"):getEnclosure()
@@ -454,7 +479,9 @@ function VillagerSystem:_unreserveAll(entity)
 		end
 	end
 
-	adult:setWorkPlace(nil)
+	if adult then
+		adult:setWorkPlace(nil) -- TODO: This can't be right.
+	end
 	if entity:has("WorkingComponent") then
 		entity:remove("WorkingComponent")
 	end
@@ -474,8 +501,138 @@ function VillagerSystem:assignedEvent(event)
 	local adult = entity:get("AdultComponent")
 	local villager = entity:get("VillagerComponent")
 
+	self.homeRelatedGoals = self.homeRelatedGoals or {
+		VillagerComponent.GOALS.FOOD_PICKUP,
+		VillagerComponent.GOALS.FOOD_DROPOFF,
+		VillagerComponent.GOALS.SLEEP,
+		VillagerComponent.GOALS.EAT,
+		VillagerComponent.GOALS.CHILDBIRTH
+	}
+	self.workRelatedGoals = self.workRelatedGoals or {
+		VillagerComponent.GOALS.WORK_PICKUP,
+		VillagerComponent.GOALS.WORK
+	}
+
 	if site:has("DwellingComponent") then
+		local oldHome = villager:getHome()
+
+		if oldHome then
+			-- Check whether the villager is living with their parents.
+			-- (This event is only sent if the villager was not previously assigned.)
+			if oldHome == site then
+				if villager:getGender() == "male" then
+					site:get("DwellingComponent"):setNumBoys(site:get("DwellingComponent"):getNumBoys() - 1)
+				else
+					site:get("DwellingComponent"):setNumGirls(site:get("DwellingComponent"):getNumGirls() - 1)
+				end
+			else
+				oldHome:get("AssignmentComponent"):unassign(entity)
+				oldHome:get("DwellingComponent"):setRelated(false) -- Can't be related to yourself!
+
+				for _,goal in ipairs(self.homeRelatedGoals) do
+					if villager:getGoal() == goal then
+						self:_unreserveAll(entity)
+						self:_prepare(entity)
+						villager:setGoal(VillagerComponent.GOALS.NONE)
+						break
+					end
+				end
+			end
+		end
+
 		villager:setHome(site)
+
+		-- Check if we there are any kids we need to bring with us.
+		-- Divide up the children randomly (cause why not).
+		for _,child in ipairs(villager:getChildren()) do
+			local moveIn = false
+			if oldHome then
+				-- First, check to see if there is a parent left in the old home.
+				if site:get("AssignmentComponent"):getNumAssignees() == 0 then
+					moveIn = true
+				else
+					local villagerLeft = site:get("AssignmentComponent"):getAssignee()[1]
+					if child:getMother() == villagerLeft or child:getFather() == villagerLeft then
+						-- Then, check if the new house is crowded (5+ children)
+						if site:get("DwellingComponent"):getNumBoys() + site:get("DwellingComponent"):getNumGirls() >= 5 then
+							moveIn = false
+						else
+							-- 50/50
+							moveIn = love.math.random() < 0.5
+						end
+					end
+				end
+
+				if moveIn then
+					if child:get("VillagerComponent"):getGender() == "male" then
+						oldHome:get("DwellingComponent"):setNumBoys(oldHome:get("DwellingComponent"):getNumBoys() - 1)
+					else
+						oldHome:get("DwellingComponent"):setNumGirls(oldHome:get("DwellingComponent"):getNumGirls() - 1)
+					end
+				end
+			else
+				-- Take the chance to actually LIVE.
+				moveIn = true
+			end
+
+			if moveIn then
+				child:get("VillagerComponent"):setHome(site)
+				if child:get("VillagerComponent"):getGender() == "male" then
+					site:get("DwellingComponent"):setNumBoys(site:get("DwellingComponent"):getNumBoys() + 1)
+				else
+					site:get("DwellingComponent"):setNumGirls(site:get("DwellingComponent"):getNumGirls() + 1)
+				end
+			end
+		end
+
+		local assignees = site:get("AssignmentComponent"):getAssignees()
+		local other = assignees[1] ~= entity and assignees[1] or assignees[2]
+		if other then
+			-- Set the related flag.
+			-- This is done by checking for the parents and grandparents.
+			-- TODO: This means that great-grandparents and great-uncles/aunts aren't considered related,
+			--       but first cousins are.
+			local related = { villager }
+			local mother = villager:getMother()
+			if mother then
+				table.insert(related, mother)
+				table.insert(related, mother:get("VillagerComponent"):getMother())
+				table.insert(related, mother:get("VillagerComponent"):getFather())
+			end
+			local father = villager:getFather()
+			if father then
+				table.insert(related, father)
+				table.insert(related, father:get("VillagerComponent"):getMother())
+				table.insert(related, father:get("VillagerComponent"):getFather())
+			end
+
+			local isRelated = false
+			for _,v in ipairs(related) do
+				mother = other:get("VillagerComponent"):getMother()
+				father = other:get("VillagerComponent"):getFather()
+
+				if other == v then
+					isRelated = true
+					break
+				elseif mother then
+					if mother == v or
+					   mother:get("VillagerComponent"):getMother() == v or
+					   mother:get("VillagerComponent"):getFather() == v then
+						isRelated = true
+						break
+					end
+				elseif father then
+					if father == v or
+					   father:get("VillagerComponent"):getMother() == v or
+					   father:get("VillagerComponent"):getFather() == v then
+						isRelated = true
+						break
+					end
+				end
+			end
+
+			site:get("DwellingComponent"):setRelated(isRelated)
+		end
 	else
 		local workPlace = adult:getWorkPlace()
 
@@ -484,11 +641,13 @@ function VillagerSystem:assignedEvent(event)
 			return
 		end
 
-		if villager:getGoal() ~= VillagerComponent.GOALS.SLEEP and
-		   villager:getGoal() ~= VillagerComponent.GOALS.EAT then -- TODO: Others as well..
-			self:_unreserveAll(entity)
-			self:_prepare(entity)
-			villager:setGoal(VillagerComponent.GOALS.NONE)
+		for _,goal in ipairs(self.workRelatedGoals) do
+			if villager:getGoal() == goal then
+				self:_unreserveAll(entity)
+				self:_prepare(entity)
+				villager:setGoal(VillagerComponent.GOALS.NONE)
+				break
+			end
 		end
 
 		adult:setWorkArea(site:get("PositionComponent"):getTile())
@@ -539,13 +698,12 @@ function VillagerSystem:buildingEnteredEvent(event)
 			entity:remove("TimerComponent")
 		end))
 	else
-		self.map:unreserve(entity, entity:get("PositionComponent"):getGrid())
 		entity:remove("SpriteComponent")
 		entity:remove("PositionComponent")
 		entity:remove("InteractiveComponent")
 
 		if event:getBuilding():has("DwellingComponent") then
-			villager:setInside(true)
+			villager:setIsHome(true)
 		end
 	end
 end
@@ -554,6 +712,8 @@ function VillagerSystem:buildingLeftEvent(event)
 	local entity = event:getVillager()
 	local building = event:getBuilding()
 
+	-- The entrance is an offset, so translate it to a real grid coordinate.
+	-- TODO: DRY?
 	local entrance = building:get("EntranceComponent"):getEntranceGrid()
 	local grid = building:get("PositionComponent"):getGrid()
 	local entranceGrid = self.map:getGrid(grid.gi + entrance.ogi, grid.gj + entrance.ogj)
@@ -561,7 +721,11 @@ function VillagerSystem:buildingLeftEvent(event)
 	local villager = entity:get("VillagerComponent")
 
 	if villager:getAge() >= VillagerSystem.ADULTHOOD and not entity:has("AdultComponent") then
-		entity:add(AdultComponent())
+		entity:add(AdultComponent()) -- TODO: Send user event
+		entity:add(FertilityComponent())
+
+		state:decreaseNumVillagers(villager:getGender(), false)
+		state:increaseNumVillagers(villager:getGender(), true)
 	elseif villager:getAge() >= VillagerSystem.SENIORHOOD and not entity:has("SeniorComponent") then
 		entity:add(SeniorComponent())
 		-- Change the hair.
@@ -570,13 +734,148 @@ function VillagerSystem:buildingLeftEvent(event)
 			  { 0.55, 0.55, 0.55, 1.0 } })
 	end
 
-	villager:setInside(false)
+	villager:setIsHome(false)
 	villager:setGoal(VillagerComponent.GOALS.NONE)
 	entity:add(SpriteComponent())
 	entity:add(PositionComponent(entranceGrid))
-	self.map:reserve(entity, entity:get("PositionComponent"):getGrid())
 
 	villager:setDelay(VillagerSystem.TIMERS.BUILDING_LEFT_DELAY)
+end
+
+function VillagerSystem:childbirthStartedEvent(event)
+	local entity = event:getVillager()
+	local villager = entity:get("VillagerComponent")
+
+	self:_prepare(entity, true)
+	self:_unreserveAll(entity)
+
+	if entity:has("CarryingComponent") then
+		-- Just drop it at her feet.
+		-- TODO: Maybe do something smarter here?
+
+		-- TODO: DRY
+		local grid = entity:get("PositionComponent"):getGrid()
+		local resource = entity:get("CarryingComponent"):getResource()
+		local amount = entity:get("CarryingComponent"):getAmount()
+		entity:remove("CarryingComponent")
+
+		local resourceEntity = blueprint:createResourcePile(resource, amount)
+		self.map:addResource(resourceEntity, grid, true)
+
+		-- TODO: Set up the resource somewhere else.
+		local gi, gj = grid.gi, grid.gj
+		local ox, oy = self.map:gridToWorldCoords(gi, gj)
+		ox = ox - self.map.halfGridWidth
+		oy = oy - resourceEntity:get("SpriteComponent"):getSprite():getHeight() + self.map.gridHeight
+
+		resourceEntity:get("SpriteComponent"):setDrawPosition(ox, oy)
+		resourceEntity:add(PositionComponent(self.map:getGrid(gi, gj), nil, self.map:gridToTileCoords(gi, gj)))
+
+		self.engine:addEntity(resourceEntity)
+		state:increaseResource(resource, amount)
+	end
+
+	-- The mother will need to make her way home, to prepare.
+	if villager:getHome() then
+		if not villager:isHome() then
+			self:_goToBuilding(entity, villager:getHome(), WalkingComponent.INSTRUCTIONS.GO_HOME)
+		end
+		villager:setGoal(VillagerComponent.GOALS.CHILDBIRTH)
+	else
+		-- Stop what you're doing anyway.
+		villager:setGoal(VillagerComponent.GOALS.NONE)
+	end
+end
+
+function VillagerSystem:childbirthEndedEvent(event)
+	local entity = event:getMother()
+	local villager = entity:get("VillagerComponent")
+
+	-- Make sure the mother isn't sleeping or doing anything else.
+	self:_prepare(entity, true)
+
+	-- The child is created even if she didn't make it, so that the death animation can be played correctly.
+	local child = blueprint:createVillager(entity, event:getFather())
+	if event:wasIndoors() then
+		child:remove("SpriteComponent") -- Don't need that.
+		child:get("VillagerComponent"):setHome(villager:getHome())
+		child:get("VillagerComponent"):setIsHome(true)
+	else
+		assert(not event:didChildSurvive(), "Don't know where to place the child.")
+		child:add(PositionComponent(entity:get("PositionComponent"):getGrid()))
+	end
+	self.engine:addEntity(child)
+
+	if not event:didChildSurvive() then
+		self.engine:removeEntity(child, true)
+	end
+
+	if event:didMotherSurvive() then
+		entity:add(TimerComponent(VillagerSystem.TIMERS.CHILDBIRTH_RECOVERY_DELAY, function()
+			entity:remove("TimerComponent")
+			entity:get("VillagerComponent"):setGoal(VillagerComponent.GOALS.NONE)
+		end))
+	else
+		self.engine:removeEntity(entity, true)
+	end
+end
+
+function VillagerSystem:onAddEntity(entity)
+	state:increaseNumVillagers(entity:get("VillagerComponent"):getGender(), entity:has("AdultComponent"))
+end
+
+-- Called when a villager dies.
+function VillagerSystem:onRemoveEntity(entity)
+	local villager = entity:get("VillagerComponent")
+	local grid
+
+	-- Villager is outside.
+	if entity:has("PositionComponent") then
+		grid = entity:get("PositionComponent"):getGrid()
+	else
+		-- XXX: Here comes the guessing game.
+		local site
+		if villager:isHome() then
+			site = villager:getHome()
+		else
+			site = villager:getWorkPlace()
+		end
+
+		local from, to = site:get("PositionComponent"):getFromGrid(), site:get("PositionComponent"):getToGrid()
+		grid = self.map:getGrid(from.gi + math.floor((to.gi - from.gi) / 2),
+		                        from.gj + math.floor((to.gj - from.gj) / 2))
+	end
+
+	local particle = blueprint:createDeathParticle(entity)
+	particle:set(PositionComponent(grid))
+	particle:get("SpriteComponent"):setDrawPosition(self.map:gridToWorldCoords(grid.gi, grid.gj))
+	self.engine:addEntity(particle)
+	state:decreaseNumVillagers(villager:getGender(), entity:has("AdultComponent"))
+
+	-- The component isn't removed immediately, because it is used to determine ancestry to a certain degree.
+	villager:setDead()
+
+	-- Free the great-grandparents, if everyone is dead.
+	local parents = {}
+	table.insert(parents, villager:getMother())
+	table.insert(parents, villager:getFather())
+	local grandParents = {}
+	for _,v in ipairs(parents) do
+		v = v:get("VillagerComponent")
+		if v:isDead() then
+			table.insert(grandParents, v:getMother())
+			table.insert(grandParents, v:getFather())
+		end
+	end
+	for _,v in ipairs(grandParents) do
+		v = v:get("VillagerComponent")
+		if v:isDead() then
+			-- TODO: A fair bit hacky, no?
+			assert(not v:getMother() or v:getMother():get("VillagerComponent"):isDead(), "Great-grandmother not dead. :(")
+			assert(not v:getFather() or v:getFather():get("VillagerComponent"):isDead(), "Great-grandfather not dead. :(")
+			v:clear()
+		end
+	end
 end
 
 function VillagerSystem:targetReachedEvent(event)
@@ -739,6 +1038,9 @@ function VillagerSystem:targetReachedEvent(event)
 		entity:add(timer)
 
 		self.eventManager:fireEvent(BuildingEnteredEvent(home, entity))
+	elseif goal == VillagerComponent.GOALS.CHILDBIRTH then
+		self.eventManager:fireEvent(BuildingEnteredEvent(villager:getHome(), entity))
+		-- A new event will be fired when the childbirth has ended.
 	elseif goal == VillagerComponent.GOALS.MOVING then
 		villager:setDelay(VillagerSystem.TIMERS.PATH_WAIT_DELAY)
 		villager:setGoal(VillagerComponent.GOALS.NONE)
@@ -858,6 +1160,21 @@ function VillagerSystem:targetUnreachableEvent(event)
 
 	villager:setDelay(VillagerSystem.TIMERS.PATH_FAILED_DELAY)
 	villager:setGoal(VillagerComponent.GOALS.NONE)
+end
+
+function VillagerSystem:villagerAgedEvent(event)
+	local entity = event:getVillager()
+	local villager = entity:get("VillagerComponent")
+	local ageDiff = villager:getAge() - VillagerSystem.SENIORHOOD
+
+	--print(villager:getAge(), ageDiff * VillagerSystem.DEATH_CHANCE)
+	if ageDiff > 0 and
+	   love.math.random() < ageDiff * VillagerSystem.DEATH_CHANCE then
+		print(entity, "has died of old age, at the age of "..villager:getAge()) -- TODO: Send event
+
+		self:_unreserveAll(entity) -- TODO: Should not be needed.
+		self.engine:removeEntity(entity, true)
+	end
 end
 
 function VillagerSystem:workCompletedEvent(event)

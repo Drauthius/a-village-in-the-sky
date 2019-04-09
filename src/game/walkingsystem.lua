@@ -43,6 +43,13 @@ function WalkingSystem:initialize(engine, eventManager, map)
 	self.map = map
 end
 
+function WalkingSystem:onRemoveEntity(entity)
+	-- Unreserve any reserved grids.
+	if entity:get("WalkingComponent"):getNextGrid() then
+		self.map:unreserve(entity, entity:get("WalkingComponent"):getNextGrid())
+	end
+end
+
 function WalkingSystem:update(dt)
 	for _,entity in pairs(self.targets) do
 		self:_walkTheWalk(entity, dt)

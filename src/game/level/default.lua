@@ -40,11 +40,16 @@ function DefaultLevel:initiate(engine, map)
 		[ResourceComponent.BREAD] = 6
 	}
 
+	-- Split so that we can assign the children to the adults.
 	local startingVillagers = {
-		maleVillagers = 2,
-		femaleVillagers = 2,
-		maleChild = 1,
-		femaleChild = 1
+		{ -- Adults
+			maleVillagers = 2,
+			femaleVillagers = 2
+		},
+		{ -- Children
+			maleChild = 1,
+			femaleChild = 1
+		}
 	}
 	local startingPositions = {
 		{ 11, 2 },
@@ -76,27 +81,40 @@ function DefaultLevel:initiate(engine, map)
 		end
 	end
 
-	for type,num in pairs(startingVillagers) do
-		for _=1,num do
-			local villager = blueprint:createVillager(
-				type:match("^male") and "male" or "female",
-				type:match("Child$") and 5 or 20)
+	local females = {}
+	for _,tbl in ipairs(startingVillagers) do
+		for type,num in pairs(tbl) do
+			for _=1,num do
+				local isMale = type:match("^male")
+				local isChild = type:match("Child$")
+				local mother
 
-			local gi, gj = unpack(table.remove(startingPositions) or {})
-			local grid
-			if not gi or not gj then
-				grid = map:getFreeGrid(0, 0, "villager")
-				gi, gj = grid.gi, grid.gj
-			else
-				grid = map:getGrid(gi, gj)
+				if isChild then
+					mother = table.remove(females)
+				end
+
+				local villager = blueprint:createVillager(mother, nil,
+				                                          isMale and "male" or "female",
+				                                          isChild and 5 or 20)
+
+				if not isMale and not isChild then
+					table.insert(females, villager)
+				end
+
+				local gi, gj = unpack(table.remove(startingPositions) or {})
+				local grid
+				if not gi or not gj then
+					grid = map:getFreeGrid(0, 0, "villager")
+					gi, gj = grid.gi, grid.gj
+				else
+					grid = map:getGrid(gi, gj)
+				end
+
+				villager:add(PositionComponent(grid, nil, 0, 0))
+				villager:add(GroundComponent(map:gridToGroundCoords(gi + 0.5, gj + 0.5)))
+
+				engine:addEntity(villager)
 			end
-			map:reserve(villager, grid)
-
-			villager:add(PositionComponent(grid, nil, 0, 0))
-			villager:add(GroundComponent(map:gridToGroundCoords(gi + 0.5, gj + 0.5)))
-
-			engine:addEntity(villager)
-			state["increaseNum" .. type:gsub("^%l", string.upper):gsub("Child$", "Children")](state)
 		end
 	end
 end

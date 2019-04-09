@@ -103,6 +103,10 @@ function BuildingSystem:buildingEnteredEvent(event)
 
 	if not event:isTemporary() then
 		local building = entity:get("BuildingComponent")
+		local villager = event:getVillager()
+
+		self:_assignChimney(entity, villager)
+		building:addInside(villager)
 
 		-- Propeller!
 		if building:getType() == BuildingComponent.BAKERY and not building.propeller:has("AnimationComponent") then
@@ -139,39 +143,21 @@ function BuildingSystem:buildingEnteredEvent(event)
 
 			propeller:add(animation)
 		end
-
-		for _,chimney in ipairs(building:getChimneys()) do
-			if chimney:get("AssignmentComponent"):getNumAssignees() < 1 then
-				chimney:get("AssignmentComponent"):assign(event:getVillager())
-				chimney:get("ParticleComponent"):getParticleSystem():start()
-				return
-			end
-		end
-
-		error("No free chimney?")
 	end
 end
 
 function BuildingSystem:buildingLeftEvent(event)
 	local entity = event:getBuilding()
+	local villager = event:getVillager()
 	local building = entity:get("BuildingComponent")
-	local found, numWorkers = false, 0
 
 	self:_openDoor(entity)
+	self:_unassignChimney(entity, villager)
 
-	for _,chimney in ipairs(building:getChimneys()) do
-		if chimney:get("AssignmentComponent"):isAssigned(event:getVillager()) then
-			chimney:get("AssignmentComponent"):unassign(event:getVillager())
-			chimney:get("ParticleComponent"):getParticleSystem():pause()
-			found = true
-		else
-			numWorkers = numWorkers + chimney:get("AssignmentComponent"):getNumAssignees()
-		end
-	end
+	building:removeInside(villager)
 
-	assert(found, "Villager not assigned to chimney?")
-
-	if building:getType() == BuildingComponent.BAKERY and numWorkers < 1 then
+	-- Stop the propeller, if everyone has left.
+	if building:getType() == BuildingComponent.BAKERY and #building:getInside() < 1 then
 		local propeller = building.propeller
 
 		local frames = propeller:get("AnimationComponent"):getFrames()
@@ -203,6 +189,60 @@ function BuildingSystem:_openDoor(entity)
 		entity:get("SpriteComponent"):setNeedsRefresh(true)
 		soundManager:playEffect("doorClosed")
 	end))
+end
+
+function BuildingSystem:_assignChimney(entity, villager)
+	-- Check whether the child is living with a parent. In that case, they don't get a chimney.
+	if entity:has("DwellingComponent") then
+		local livingWithParents = true
+		for _,v in ipairs(entity:get("AssignmentComponent"):getAssignees()) do
+			if v == villager then
+				livingWithParents = false
+				break
+			end
+		end
+
+		if livingWithParents then
+			return
+		end
+	end
+
+	for _,chimney in ipairs(entity:get("BuildingComponent"):getChimneys()) do
+		if chimney:get("AssignmentComponent"):getNumAssignees() < 1 then
+			chimney:get("AssignmentComponent"):assign(villager)
+			chimney:get("ParticleComponent"):getParticleSystem():start()
+			return
+		end
+	end
+
+	error("No free chimney?")
+end
+
+function BuildingSystem:_unassignChimney(entity, villager)
+	-- Check whether the child is living with a parent. In that case, they don't get a chimney.
+	if entity:has("DwellingComponent") then
+		local livingWithParents = true
+		for _,v in ipairs(entity:get("AssignmentComponent"):getAssignees()) do
+			if v == villager then
+				livingWithParents = false
+				break
+			end
+		end
+
+		if livingWithParents then
+			return
+		end
+	end
+
+	for _,chimney in ipairs(entity:get("BuildingComponent"):getChimneys()) do
+		if chimney:get("AssignmentComponent"):isAssigned(villager) then
+			chimney:get("AssignmentComponent"):unassign(villager)
+			chimney:get("ParticleComponent"):getParticleSystem():pause()
+			return
+		end
+	end
+
+	error("No chimney removed?")
 end
 
 return BuildingSystem

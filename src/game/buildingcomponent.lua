@@ -17,6 +17,7 @@ BuildingComponent.static.BUILDING_NAME = {
 function BuildingComponent:initialize(type, ti, tj)
 	self:setType(type)
 	self:setPosition(ti, tj)
+	self.villagersInside = {}
 	self.chimneys = {}
 end
 
@@ -34,6 +35,25 @@ end
 
 function BuildingComponent:setPosition(ti, tj)
 	self.ti, self.tj = ti, tj
+end
+
+function BuildingComponent:getInside()
+	return self.villagersInside
+end
+
+function BuildingComponent:addInside(villager)
+	table.insert(self.villagersInside, villager)
+end
+
+function BuildingComponent:removeInside(villager)
+	for k,v in ipairs(self.villagersInside) do
+		if v == villager then
+			table.remove(self.villagersInside, k)
+			return
+		end
+	end
+
+	error("Villager was not inside.")
 end
 
 function BuildingComponent:addChimney(chimney)
