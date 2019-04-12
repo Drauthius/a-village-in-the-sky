@@ -10,23 +10,14 @@
 --    * Villagers can be drawn behind e.g. the blacksmith shed, when there are a lot of things in the scene and they
 --      are directly in front (to the right) of it.
 --    * Display bug with the bottom panel???
---    * Villagers can stand in front of the bread delivery, causing it to be dropped where it stands.
---      Bread dropped outside door is not picked up. Is it reserved??
---      Problem seems to be that tile is owned by the building, but occupied by a villager.
---      They don't seem to always move away from the door (rotation/direction problem?).
 --    * When exiting a house when another villager is in the way results in the grid being unoccupied.
+--    * Villagers can loiter on reserved grids.
 --  - Next:
 --    * Birth and death
 --      Death from hunger.
 --    * Proper fonts and font creation.
 --  - Refactoring:
 --    * There is little reason to have the VillagerComponent be called "VillagerComponent", other than symmetry.
---    * Map:reserve() is a bad name for something that doesn't use COLL_RESERVED
---      We could rename COLL_RESERVED to COLL_SPECIAL, and COLL_DYNAMIC to COLL_RESERVED,
---      but it needs to make sense if a spot to drop a resource is reserved, and the villager
---      assumes that there is a villager in the way and tries to tell it to move or something.
---      Maybe it would need to check "how" it is reserved, or we simply split it up further...
---      reserve() for resources, occupy() for villagers?
 --    * Either consolidate production/construction components (wrt input), or maybe add an "input" component?
 --    * Calling variables for "entity" in different contexts begs for trouble.
 --    * Definition/specification for buildings is split into multiple files, making it hard to add new ones.
@@ -71,6 +62,7 @@
 local Camera = require "lib.hump.camera"
 local Timer = require "lib.hump.timer"
 local lovetoys = require "lib.lovetoys.lovetoys"
+local fpsGraph = require("lib.FPSGraph")
 
 local Background = require "src.game.background"
 local GUI = require "src.game.gui"
@@ -222,9 +214,15 @@ function Game:enter()
 	self.level:initiate(self.engine, self.map)
 
 	self:_updateCameraBoundingBox()
+
+	self.fpsGraph = fpsGraph.createGraph()
+	self.memGraph = fpsGraph.createGraph(0, 30)
 end
 
 function Game:update(dt)
+	fpsGraph.updateFPS(self.fpsGraph, dt)
+	fpsGraph.updateMem(self.memGraph, dt)
+
 	local mx, my = screen:getCoordinate(love.mouse.getPosition())
 	local drawArea = screen:getDrawArea()
 	state:setMousePosition(self.camera:worldCoords(mx, my, drawArea.x, drawArea.y, drawArea.width, drawArea.height))
@@ -294,6 +292,8 @@ function Game:draw()
 	self.foreground:draw()
 
 	self.gui:draw()
+
+	fpsGraph.drawGraphs({ self.fpsGraph, self.memGraph })
 end
 
 --

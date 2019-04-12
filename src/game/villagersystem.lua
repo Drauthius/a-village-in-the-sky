@@ -982,7 +982,6 @@ function VillagerSystem:targetReachedEvent(event)
 		end
 
 		local timer = TimerComponent()
-		print(entity, "Timer: DROPOFF")
 		timer:getTimer():after(VillagerSystem.TIMERS.DROPOFF_BEFORE, function()
 			-- Second take that the grid is still empty...
 			if not self.map:isGridEmpty(grid) then
@@ -1004,7 +1003,6 @@ function VillagerSystem:targetReachedEvent(event)
 	elseif goal == VillagerComponent.GOALS.WORK_PICKUP or
 	       goal == VillagerComponent.GOALS.FOOD_PICKUP then
 		local timer = TimerComponent()
-		print(entity, "Timer: PICKUP")
 		timer:getTimer():after(VillagerSystem.TIMERS.PICKUP_BEFORE, function()
 			assert(event:getNextStop(), "Nowhere to put the resource.")
 
@@ -1185,7 +1183,6 @@ function VillagerSystem:targetUnreachableEvent(event)
 			-- Since the walking component will be removed, we save it away and re-add it later.
 			local walking = table.clone(entity:get("WalkingComponent"))
 			-- Wait a second and try the exact same thing again.
-			print(entity, "Timer: PATH WAIT")
 			entity:set(TimerComponent(VillagerSystem.TIMERS.PATH_WAIT_DELAY, function()
 				--self:_prepare(entity)
 				local newWalking = WalkingComponent()

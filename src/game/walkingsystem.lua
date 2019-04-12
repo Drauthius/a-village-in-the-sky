@@ -44,9 +44,9 @@ function WalkingSystem:initialize(engine, eventManager, map)
 end
 
 function WalkingSystem:onRemoveEntity(entity)
-	-- Unreserve any reserved grids.
+	-- Unoccupy any reserved grids.
 	if entity:get("WalkingComponent"):getNextGrid() then
-		self.map:unreserve(entity, entity:get("WalkingComponent"):getNextGrid())
+		self.map:unoccupy(entity, entity:get("WalkingComponent"):getNextGrid())
 	end
 end
 
@@ -112,7 +112,10 @@ function WalkingSystem:_walkTheWalk(entity, dt)
 			for i=1,2 do
 				local newPath
 				local retry = i == 1 and path[1] ~= nextGrid
-				local event = TargetUnreachableEvent(entity, nextGrid.owner, retry, walking:getInstructions())
+				local event = TargetUnreachableEvent(entity,
+				                                     self.map:getOccupyingVillager(nextGrid),
+				                                     retry,
+				                                     walking:getInstructions())
 				self.eventManager:fireEvent(event)
 				if path[1] == nextGrid then
 					print(entity, "Next is the destination :(")
@@ -145,7 +148,7 @@ function WalkingSystem:_walkTheWalk(entity, dt)
 			end
 		end
 
-		self.map:reserve(entity, nextGrid)
+		self.map:occupy(entity, nextGrid)
 		walking:setNextGrid(nextGrid)
 	end
 
@@ -165,7 +168,7 @@ function WalkingSystem:_walkTheWalk(entity, dt)
 	end
 
 	if diff:len2() <= WalkingSystem.MIN_DISTANCE_SQUARED then
-		self.map:unreserve(entity, entity:get("PositionComponent"):getGrid())
+		self.map:unoccupy(entity, entity:get("PositionComponent"):getGrid())
 		entity:get("PositionComponent"):setGrid(nextGrid)
 		walking:setNextGrid(nil)
 

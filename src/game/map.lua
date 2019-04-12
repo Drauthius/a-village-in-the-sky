@@ -15,10 +15,10 @@ local TileComponent = require "src.game.tilecomponent"
 local Map = class("Map")
 
 -- Bitmask
-Map.static.COLL_NONE = 0
-Map.static.COLL_STATIC = 1
-Map.static.COLL_DYNAMIC = 2
-Map.static.COLL_RESERVED = 4
+Map.static.COLL_NONE = 0 -- No collision
+Map.static.COLL_STATIC = 1 -- Building/resource
+Map.static.COLL_DYNAMIC = 2 -- Villager
+Map.static.COLL_RESERVED = 4 -- OK to walk, but please don't loiter.
 
 -- How much more work it is to push a villager than go around them.
 Map.static.OCCUPIED_MULTIPLIER = 10
@@ -109,26 +109,32 @@ function Map:addObject(entity, i, j)
 	end
 end
 
+function Map:occupy(villager, grid)
+	-- TODO: Villagers can walk over other villagers in certain circumstances.
+	if not grid.occupied then
+		grid.collision = bit.bor(grid.collision, Map.COLL_DYNAMIC)
+		grid.occupied = villager
+	end
+end
+
+function Map:unoccupy(villager, grid)
+	if grid.occupied == villager then
+		grid.collision = bit.band(grid.collision, bit.bnot(Map.COLL_DYNAMIC))
+		grid.occupied = nil
+	end
+end
+
+function Map:getOccupyingVillager(grid)
+	return grid.occupied
+end
+
 function Map:addResource(resource, grid, force)
 	grid.collision = Map.COLL_STATIC
-	assert(force or not grid.owner, "Overlap")
+	assert(force or (not grid.owner and not grid.occupied), "Overlap")
 	grid.owner = resource
 end
 
-function Map:reserve(villager, grid)
-	grid.collision = bit.bor(grid.collision, Map.COLL_DYNAMIC)
-	if not grid.owner then -- The villager can "walk over" some reserved grids, but shouldn't take over ownership
-		grid.owner = villager
-	end
-end
-
-function Map:unreserve(villager, grid)
-	grid.collision = bit.band(grid.collision, bit.bnot(Map.COLL_DYNAMIC))
-	if grid.owner == villager then
-		grid.owner = nil
-	end
-end
-
+-- Remove a resource or building from the map.
 function Map:remove(entity)
 	-- TODO: All collisions aren't square currently.
 	--local from, to = entity:get("PositionComponent"):getFromGrid(), entity:get("PositionComponent"):getToGrid()

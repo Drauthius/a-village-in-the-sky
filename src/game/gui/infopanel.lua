@@ -10,7 +10,7 @@ InfoPanel.static.panelWidth = 32
 function InfoPanel:initialize(width)
 	self.hidden = false
 	self.content = {}
-	self.spriteBatch = love.graphics.newSpriteBatch(spriteSheet:getImage(), 50, "static")
+	self.spriteBatch = love.graphics.newSpriteBatch(spriteSheet:getImage(), 16, "static")
 
 	local centre = spriteSheet:getSprite("info-panel-centre")
 	self.spriteBatch:add(centre:getQuad())
