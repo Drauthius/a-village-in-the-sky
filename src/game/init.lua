@@ -17,8 +17,7 @@
 --    * When exiting a house when another villager is in the way results in the grid being unoccupied.
 --  - Next:
 --    * Birth and death
---      Death of villager not handled properly (not unassigned everything)
---        Break it up by handling it in onRemoveEntity (for various systems)
+--      Death from hunger.
 --    * Proper fonts and font creation.
 --  - Refactoring:
 --    * There is little reason to have the VillagerComponent be called "VillagerComponent", other than symmetry.
@@ -156,6 +155,7 @@ function Game:enter()
 
 	self.map = Map()
 	self.level = DefaultLevel()
+	--self.level = require("src.game.level.hallway")()
 	self.backgrounds = {
 		Background(self.camera, 0.05, 2),
 		Background(self.camera, 0.2, 3)

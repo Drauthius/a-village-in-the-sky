@@ -165,8 +165,8 @@ function SpriteSystem:updateVillager(dt, entity)
 			assert(targetAnimation, "Missing walking animation")
 			-- XXX: Didn't want to make a check like this, but here we are.
 			if not entity:has("WalkingComponent") and
-			   villager:getGoal() ~= VillagerComponent.GOALS.DROPOFF
-			   and villager:getGoal() ~= VillagerComponent.GOALS.WORK_PICKUP then
+			   villager:getGoal() ~= VillagerComponent.GOALS.DROPOFF and
+			   villager:getGoal() ~= VillagerComponent.GOALS.WORK_PICKUP then
 				animated = false
 			else
 				walking = true

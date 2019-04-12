@@ -84,6 +84,10 @@ function ProductionComponent:reserveResource(villager, resource, amount)
 	self.storedResources[resource] = self.storedResources[resource] - amount
 end
 
+function ProductionComponent:releaseResources(villager)
+	error("Unimplemented.")
+end
+
 function ProductionComponent:getCompletion(villager)
 	return self.completion[villager] or 0.0
 end
