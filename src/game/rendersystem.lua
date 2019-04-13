@@ -1,4 +1,5 @@
 local lovetoys = require "lib.lovetoys.lovetoys"
+local table = require "lib.table"
 
 local spriteSheet = require "src.game.spritesheet"
 local state = require "src.game.state"
@@ -43,6 +44,10 @@ vec4 effect(vec4 color, Image texture, vec2 texture_coords, vec2 screen_coords)
 }
 ]])
 
+function RenderSystem.requires()
+	return {"SpriteComponent"}
+end
+
 function RenderSystem:initialize()
 	lovetoys.System.initialize(self)
 
@@ -58,79 +63,49 @@ function RenderSystem:initialize()
 
 	-- NOTE: Global
 	love.graphics.setShader(RenderSystem.COLOR_OUTLINE_SHADER)
-end
 
-function RenderSystem.requires()
-	return {"SpriteComponent"}
+	self.terrain = love.graphics.newSpriteBatch(spriteSheet:getImage())
+	self.tileDropping = false
 end
 
 function RenderSystem:draw()
 	love.graphics.setColor(1, 1, 1)
-	local ground = {}
-	local objects = {}
 
-	-- TODO: Can be optimized (spritebatched)
-	for _,entity in pairs(self.targets) do
-		if entity:has("TileComponent") then
-			table.insert(ground, entity)
-		end
+	-- Draw the ground.
+	if self.tileDropping then
+		self:_recalculateTerrain()
 	end
-	table.sort(ground, function(a, b)
-		local ai, aj = a:get("TileComponent"):getPosition()
-		local bi, bj = b:get("TileComponent"):getPosition()
-		if aj < bj then
-			return true
-		elseif aj == bj then
-			return ai < bi
-		else
-			return false
-		end
-	end)
+	love.graphics.draw(self.terrain)
 
+	-- Draw things above ground.
 	-- TODO: Can probably cache (overwrite addEntity/removeEntity?)
+	local objects = {
+		{}, -- Things drawn on the ground (fields).
+		{}  -- Things above ground (buildings, villagers, etc.).
+	}
 	for _,entity in pairs(self.targets) do
 		if entity:has("FieldEnclosureComponent") then
-			local ti, tj = entity:get("PositionComponent"):getTile()
-			for k,tile in ipairs(ground) do
-				if tile:has("TileComponent") then
-					local i, j = tile:get("TileComponent"):getPosition()
-					if ti == i and tj == j then
-						table.insert(ground, k + 1, entity)
-						break
-					end
-				end
-			end
+			table.insert(objects[1], entity)
 		elseif entity:has("PositionComponent") then
-			table.insert(objects, entity)
+			table.insert(objects[2], entity)
 		end
 	end
-	table.sort(objects, function(a, b)
+	table.sort(objects[2], function(a, b)
 		local aTopLeft, aBottomRight = a:get("PositionComponent"):getFromGrid(), a:get("PositionComponent"):getToGrid()
 		local bTopLeft, bBottomRight = b:get("PositionComponent"):getFromGrid(), b:get("PositionComponent"):getToGrid()
 
-		if aBottomRight.gj < bTopLeft.gj then
+		if aBottomRight.gi < bTopLeft.gi then
 			return true
-		elseif aTopLeft.gj > bBottomRight.gj then
+		elseif aTopLeft.gi > bBottomRight.gi then
 			return false
 		else
-			return aTopLeft.gi < bTopLeft.gi
+			return aTopLeft.gj < bTopLeft.gj
 		end
 	end)
 
+	objects = table.flatten(objects)
 	if state:isPlacing() then
 		table.insert(objects, state:getPlacing())
-	end
-
-	for _,entity in ipairs(ground) do
-		if entity:has("BlinkComponent") and entity:get("BlinkComponent"):isActive() then
-			RenderSystem.COLOR_OUTLINE_SHADER:send("newColor", entity:get("BlinkComponent"):getColor())
-		else
-			RenderSystem.COLOR_OUTLINE_SHADER:send("newColor", RenderSystem.NEW_OUTLINE_COLOR)
-		end
-
-		local sprite = entity:get("SpriteComponent")
-		love.graphics.setColor(sprite:getColor())
-		spriteSheet:draw(sprite:getSprite(), sprite:getDrawPosition())
 	end
 
 	for i,entity in ipairs(objects) do
@@ -374,6 +349,49 @@ function RenderSystem:draw()
 				spriteSheet:draw(icon, 10 + x + ((i - 1) * (icon:getWidth() + 1)), y + 1)
 			end
 		end
+	end
+end
+
+-- Fired only when tiles are created by a level.
+function RenderSystem:onAddEntity(entity)
+	if entity:has("TileComponent") then
+		self:_recalculateTerrain()
+	end
+end
+
+function RenderSystem:onTileDropped()
+	self.tileDropping = true
+end
+
+function RenderSystem:onTilePlaced()
+	self.tileDropping = false
+	self:_recalculateTerrain()
+end
+
+function RenderSystem:_recalculateTerrain()
+	self.terrain:clear()
+
+	local ground = {}
+	for _,entity in pairs(self.targets) do
+		if entity:has("TileComponent") then
+			table.insert(ground, entity)
+		end
+	end
+	table.sort(ground, function(a, b)
+		local ai, aj = a:get("TileComponent"):getPosition()
+		local bi, bj = b:get("TileComponent"):getPosition()
+		if aj < bj then
+			return true
+		elseif aj == bj then
+			return ai < bi
+		else
+			return false
+		end
+	end)
+
+	for _,entity in ipairs(ground) do
+		local sprite = entity:get("SpriteComponent")
+		self.terrain:add(sprite:getSprite():getQuad(), sprite:getDrawPosition())
 	end
 end
 

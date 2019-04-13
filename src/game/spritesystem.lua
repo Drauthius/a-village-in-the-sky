@@ -163,13 +163,10 @@ function SpriteSystem:updateVillager(dt, entity)
 		if entity:has("WalkingComponent") or not entity:get("WorkingComponent"):getWorking() then
 			targetAnimation = SpriteSystem.ANIMATIONS.walking_to_work[adult:getOccupation()]
 			assert(targetAnimation, "Missing walking animation")
+			walking = true
 			-- XXX: Didn't want to make a check like this, but here we are.
-			if not entity:has("WalkingComponent") and
-			   villager:getGoal() ~= VillagerComponent.GOALS.DROPOFF and
-			   villager:getGoal() ~= VillagerComponent.GOALS.WORK_PICKUP then
+			if villager:getGoal() == VillagerComponent.GOALS.WAIT then
 				animated = false
-			else
-				walking = true
 			end
 		else
 			local occupation = adult:getOccupation()

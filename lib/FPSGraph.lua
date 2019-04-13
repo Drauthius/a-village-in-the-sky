@@ -67,7 +67,7 @@ function fpsGraph.updateGraph(graph, val, label, dt)
 	if graph.draggable then
 		if (mouseX < graph.width+graph.x and mouseX > graph.x and
 		   mouseY < graph.height+graph.y and mouseY > graph.y) or graph._isDown then
-			if love.mouse.isDown("l") then
+			if love.mouse.isDown(1) then
 				graph._isDown = true
 				graph.x = mouseX - graph._dx
 				graph.y = mouseY - graph._dy

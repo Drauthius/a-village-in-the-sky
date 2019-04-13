@@ -19,6 +19,7 @@ local spriteSheet = require "src.game.spritesheet"
 local state = require "src.game.state"
 
 HallwayLevel.static.NUM_VILLAGERS = 10
+HallwayLevel.static.SIZE = 2
 
 function HallwayLevel:initiate(engine, map)
 	local tile = lovetoys.Entity()
@@ -30,8 +31,8 @@ function HallwayLevel:initiate(engine, map)
 	local villagers = HallwayLevel.NUM_VILLAGERS
 	for gi=0,map.gridsPerTile - 1 do
 		for gj=0,map.gridsPerTile - 1 do
-			if gi == math.floor(map.gridsPerTile / 2) then
-				if gj % 2 == 0 and villagers > 0 then
+			if math.floor(map.gridsPerTile / 2) >= gi and math.floor(map.gridsPerTile / 2) < gi + HallwayLevel.SIZE then
+				if gj % 2 == 1 and villagers > 0 then
 					local villager = blueprint:createVillager(nil, nil, "male", 20)
 
 					villager:add(PositionComponent(map:getGrid(gi, gj), nil, 0, 0))

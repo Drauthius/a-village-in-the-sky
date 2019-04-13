@@ -389,8 +389,8 @@ function VillagerSystem:_fidget(entity, force)
 							target = self.map:getGrid(target.gi + dirConv[1], target.gj + dirConv[2]) or target
 						end
 
-						-- Don't bring the villager to a reserved grid.
-						if not self.map:isGridReserved(target) then
+						-- Don't bring the villager to an occupied or reserved grid.
+						if self.map:isGridEmpty(target) and not self.map:isGridReserved(target) then
 							entity:add(WalkingComponent(nil, nil, { target }, WalkingComponent.INSTRUCTIONS.WANDER))
 						end
 					end
@@ -1128,7 +1128,7 @@ function VillagerSystem:targetUnreachableEvent(event)
 	if blocking and blocking:has("VillagerComponent") then
 		local blockingVillager = blocking:get("VillagerComponent")
 		local goal = blockingVillager:getGoal()
-		local isBusy = goal ~= VillagerComponent.GOALS.NONE and goal ~= VillagerComponent.GOALS.WAIT
+		local isBusy = goal ~= VillagerComponent.GOALS.NONE
 		local isTemporary = goal == VillagerComponent.GOALS.DROPOFF or goal == VillagerComponent.GOALS.WORK_PICKUP or
 		                    goal == VillagerComponent.GOALS.MOVING or blocking:has("WalkingComponent")
 		-- TODO: Look for deadlock amongst villagers (two villagers heading in the opposite directions).
@@ -1201,6 +1201,8 @@ function VillagerSystem:targetUnreachableEvent(event)
 
 			-- Since the walking component will be removed, we save it away and re-add it later.
 			local walking = table.clone(entity:get("WalkingComponent"))
+			goal = villager:getGoal()
+			villager:setGoal(VillagerComponent.GOALS.WAIT)
 			-- Wait a second and try the exact same thing again.
 			entity:set(TimerComponent(VillagerSystem.TIMERS.PATH_WAIT_DELAY, function()
 				--self:_prepare(entity)
@@ -1210,6 +1212,7 @@ function VillagerSystem:targetUnreachableEvent(event)
 				end
 				entity:add(newWalking)
 				entity:remove("TimerComponent")
+				entity:get("VillagerComponent"):setGoal(goal)
 			end))
 
 			print(entity, "Blocked but waiting")

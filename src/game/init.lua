@@ -7,8 +7,6 @@
 --    * Removing a villager from a production job can leave resources "locked in limbo".
 --      The same goes for building jobs.
 --    * It is possible to starve a construction site by moving villagers at inopportune times.
---    * Villagers can be drawn behind e.g. the blacksmith shed, when there are a lot of things in the scene and they
---      are directly in front (to the right) of it.
 --    * Display bug with the bottom panel???
 --  - Next:
 --    * Birth and death
@@ -50,7 +48,6 @@
 --    * Details panel
 --  - Nice to have:
 --    * Don't increase opacity for overlapping shadows.
---    * Villagers always reserve two grids when walking. Problem?
 --    * Quads are created on demand. Problem?
 --    * Villagers pushing another villager that is pushing another villager will end up with the first villager
 --      abandoning the attempt.
@@ -75,6 +72,8 @@ local PositionComponent = require "src.game.positioncomponent"
 local TimerComponent = require "src.game.timercomponent"
 -- Events
 local AssignedEvent = require "src.game.assignedevent"
+local TileDroppedEvent = require "src.game.tiledroppedevent"
+local TilePlacedEvent = require "src.game.tileplacedevent"
 -- Systems
 local BuildingSystem
 local DebugSystem
@@ -160,9 +159,11 @@ function Game:enter()
 	local buildingSystem = BuildingSystem(self.engine)
 	local fieldSystem = FieldSystem(self.engine, self.eventManager, self.map)
 	local pregnancySystem = PregnancySystem(self.eventManager)
+	local renderSystem = RenderSystem()
 	local villagerSystem = VillagerSystem(self.engine, self.eventManager, self.map)
 	local workSystem = WorkSystem(self.engine, self.eventManager)
 
+	-- Updates
 	self.engine:addSystem(fieldSystem, "update")
 	self.engine:addSystem(PlacingSystem(self.map), "update")
 	self.engine:addSystem(workSystem, "update") -- Must be before the sprite system
@@ -172,7 +173,9 @@ function Game:enter()
 	self.engine:addSystem(TimerSystem(), "update") -- Must be before the sprite system...
 	self.engine:addSystem(SpriteSystem(self.eventManager), "update")
 	self.engine:addSystem(ParticleSystem(self.engine), "update")
-	self.engine:addSystem(RenderSystem(), "draw")
+
+	-- Draws
+	self.engine:addSystem(renderSystem, "draw")
 	self.engine:addSystem(DebugSystem(self.map), "draw")
 
 	-- Not enabled by default.
@@ -200,6 +203,8 @@ function Game:enter()
 	self.eventManager:addListener("ChildbirthEndedEvent", villagerSystem, villagerSystem.childbirthEndedEvent)
 	self.eventManager:addListener("TargetReachedEvent", villagerSystem, villagerSystem.targetReachedEvent)
 	self.eventManager:addListener("TargetUnreachableEvent", villagerSystem, villagerSystem.targetUnreachableEvent)
+	self.eventManager:addListener("TileDroppedEvent", renderSystem, renderSystem.onTileDropped)
+	self.eventManager:addListener("TilePlacedEvent", renderSystem, renderSystem.onTilePlaced)
 	self.eventManager:addListener("VillagerAgedEvent", villagerSystem, villagerSystem.villagerAgedEvent)
 	self.eventManager:addListener("VillagerAgedEvent", pregnancySystem, pregnancySystem.villagerAgedEvent)
 	self.eventManager:addListener("WorkEvent", fieldSystem, fieldSystem.workEvent)
@@ -244,7 +249,13 @@ function Game:update(dt)
 		math.max(0.0, math.min(0.9, (Game.FOREGROUND_VISIBLE_ZOOM - self.camera.scale) / Game.FOREGROUND_VISIBLE_FACTOR))
 	})
 
-	for _=1,self.speed do
+	-- Game behaves weirdly when the speed is too great, so better to loop the relevant parts.
+	local loops = self.speed
+	if loops < 1 then
+		dt = dt * loops
+		loops = 1
+	end
+	for _=1,loops do
 		state:increaseYear(TimerComponent.YEARS_PER_SECOND * dt)
 
 		Timer.update(dt)
@@ -309,7 +320,7 @@ function Game:keyreleased(key, scancode)
 	elseif scancode == "escape" then
 		self.gui:back()
 	elseif scancode == "`" then
-		self.speed = 0
+		self.speed = 0.5
 	elseif scancode == "1" then
 		self.speed = 1
 	elseif scancode == "2" then
@@ -601,6 +612,9 @@ function Game:_placeTile(placing)
 	sprite.y = sprite.y - 10
 
 	Timer.tween(0.15, sprite, { y = dest }, "in-bounce", function()
+		-- Tile has come to rest.
+		self.eventManager:fireEvent(TilePlacedEvent(placing))
+
 		-- Screen shake
 		local orig_x, orig_y = self.camera:position()
 		Timer.during(0.10, function()
@@ -615,6 +629,9 @@ function Game:_placeTile(placing)
 	self.gui:placed()
 	-- Update camera bounds.
 	self:_updateCameraBoundingBox()
+
+	-- Notify other parties.
+	self.eventManager:fireEvent(TileDroppedEvent(placing))
 end
 
 function Game:_placeBuilding(placing)

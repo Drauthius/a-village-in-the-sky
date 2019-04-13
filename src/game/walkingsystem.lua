@@ -14,22 +14,35 @@ local WalkingComponent = require "src.game.walkingcomponent"
 
 local WalkingSystem = lovetoys.System:subclass("WalkingSystem")
 
-WalkingSystem.static.BASE_SPEED = 15
-WalkingSystem.static.MIN_DISTANCE_SQUARED = 0.05
+-- Distance squared before the grid is changed to the next one.
+WalkingSystem.static.DISTANCE_CHANGE_GRID = 15
+-- Distance squared before a new next grid is retrieved.
+WalkingSystem.static.DISTANCE_NEXT_GRID = 0.05
+-- How often to recalculate the path.
 WalkingSystem.static.RECALC_DELAY = 5
 
+-- Unmodified walking speed.
+WalkingSystem.static.BASE_SPEED = 15
+-- Multiplicative speed modifiers.
 WalkingSystem.static.SPEED_MODIFIER = {
+	-- Walking on grass.
 	[TileComponent.GRASS] = 1.0,
+	-- Walking in the forest.
 	[TileComponent.FOREST] = 0.6,
+	-- Walking in the mountains.
 	[TileComponent.MOUNTAIN] = 0.8,
-	carrying = {
+	-- Carrying 1, 2, or 3 things.
+	CARRYING = {
 		[1] = 0.9,
 		[2] = 0.8,
 		[3] = 0.7
 	},
-	child = 1.5,
-	adult = 1.0,
-	senior = 0.8
+	-- Being a child.
+	CHILD = 1.5,
+	-- Being an adult.
+	ADULT = 1.0,
+	-- Being a senior.
+	SENIOR = 0.8
 }
 
 function WalkingSystem.requires()
@@ -45,7 +58,8 @@ end
 
 function WalkingSystem:onRemoveEntity(entity)
 	-- Unoccupy any reserved grids.
-	if entity:get("WalkingComponent"):getNextGrid() then
+	local nextGrid = entity:get("WalkingComponent"):getNextGrid()
+	if nextGrid and entity:get("PositionComponent"):getGrid() ~= nextGrid then
 		self.map:unoccupy(entity, entity:get("WalkingComponent"):getNextGrid())
 	end
 end
@@ -167,13 +181,18 @@ function WalkingSystem:_walkTheWalk(entity, dt)
 		villager:setDirection(self:_getRotation(entity:get("PositionComponent"):getGrid(), nextGrid))
 	end
 
-	if diff:len2() <= WalkingSystem.MIN_DISTANCE_SQUARED then
-		self.map:unoccupy(entity, entity:get("PositionComponent"):getGrid())
-		entity:get("PositionComponent"):setGrid(nextGrid)
-		walking:setNextGrid(nil)
+	local len = diff:len2()
+	if len <= WalkingSystem.DISTANCE_CHANGE_GRID then
+		if entity:get("PositionComponent"):getGrid() ~= nextGrid then
+			self.map:unoccupy(entity, entity:get("PositionComponent"):getGrid())
+			entity:get("PositionComponent"):setGrid(nextGrid)
+		end
 
-		-- New terrain?
-		self:_updateWalkingSpeed(entity)
+		if len <= WalkingSystem.DISTANCE_NEXT_GRID then
+			walking:setNextGrid(nil)
+			-- New terrain?
+			self:_updateWalkingSpeed(entity)
+		end
 	end
 end
 
@@ -493,16 +512,16 @@ function WalkingSystem:_updateWalkingSpeed(entity)
 
 	-- Modify walking speed based on carried stuff.
 	if entity:has("CarryingComponent") then
-		speedModifier = speedModifier * WalkingSystem.SPEED_MODIFIER.carrying[entity:get("CarryingComponent"):getAmount()]
+		speedModifier = speedModifier * WalkingSystem.SPEED_MODIFIER.CARRYING[entity:get("CarryingComponent"):getAmount()]
 	end
 
 	-- Modify walking speed based on age.
 	if entity:has("SeniorComponent") then
-		speedModifier = speedModifier * WalkingSystem.SPEED_MODIFIER.senior
+		speedModifier = speedModifier * WalkingSystem.SPEED_MODIFIER.SENIOR
 	elseif entity:has("AdultComponent") then
-		speedModifier = speedModifier * WalkingSystem.SPEED_MODIFIER.adult
+		speedModifier = speedModifier * WalkingSystem.SPEED_MODIFIER.ADULT
 	else
-		speedModifier = speedModifier * WalkingSystem.SPEED_MODIFIER.child
+		speedModifier = speedModifier * WalkingSystem.SPEED_MODIFIER.CHILD
 	end
 
 	entity:get("WalkingComponent"):setSpeedModifier(speedModifier)
