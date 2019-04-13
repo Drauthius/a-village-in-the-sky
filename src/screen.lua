@@ -3,7 +3,7 @@ local Screen = require "lib.gfx.screen"
 local screen = Screen:new()
 
 function screen:setUp()
-	local _, sh = love.window.getDesktopDimensions()
+	--local _, sh = love.window.getDesktopDimensions()
 
 	self.dw, self.dh = 800, 480
 
@@ -22,7 +22,10 @@ function screen:setUp()
 		magFilter = "nearest",
 		flags = {
 			--resizable = true, -- tiling wms tiles it :(
-			fullscreen = false
+			fullscreen = false,
+			vsync = true,
+			minwidth = 800,
+			minheight = 480
 		}
 	})
 end

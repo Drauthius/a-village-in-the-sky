@@ -345,6 +345,10 @@ function Map:isGridEmpty(grid)
 	return grid.collision == Map.COLL_NONE or grid.collision == Map.COLL_RESERVED
 end
 
+function Map:isGridReserved(grid)
+	return bit.band(grid.collision, Map.COLL_RESERVED) ~= 0
+end
+
 function Map:_isGridWalkable(gi, gj)
 	return self.grid[gi] and self.grid[gi][gj] and self:isGridWalkable(self.grid[gi][gj])
 end

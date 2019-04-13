@@ -366,7 +366,9 @@ function VillagerSystem:_fidget(entity, force)
 		local timer = love.math.random() *
 		              (VillagerSystem.TIMERS.IDLE_FIDGET_MAX - VillagerSystem.TIMERS.IDLE_FIDGET_MIN) +
 		              VillagerSystem.TIMERS.IDLE_FIDGET_MIN
-		if force then
+		-- Make sure that the villager doesn't loiter on a reserved grid.
+		if force or self.map:isGridReserved(entity:get("PositionComponent"):getGrid()) then
+			force = true
 			timer = 0
 		end
 
@@ -377,15 +379,20 @@ function VillagerSystem:_fidget(entity, force)
 
 				if force or love.math.random() < VillagerSystem.RAND.WANDER_FORWARD_CHANCE then
 					-- XXX:
-					local WorkSystem = require "src.game.worksystem"
-					local dirConv = WorkSystem.DIR_CONV[villager:getCardinalDirection()]
+					local dirConv = require("src.game.worksystem").DIR_CONV[villager:getCardinalDirection()]
+
 					local grid = entity:get("PositionComponent"):getGrid()
 					local target = self.map:getGrid(grid.gi + dirConv[1], grid.gj + dirConv[2])
 					if target then
-						if not isAdult and love.math.random() < VillagerSystem.RAND.CHILD_DOUBLE_FORWARD_CHANCE then
+						if self.map:isGridReserved(target) or
+						   (not isAdult and love.math.random() < VillagerSystem.RAND.CHILD_DOUBLE_FORWARD_CHANCE) then
 							target = self.map:getGrid(target.gi + dirConv[1], target.gj + dirConv[2]) or target
 						end
-						entity:add(WalkingComponent(nil, nil, { target }, WalkingComponent.INSTRUCTIONS.WANDER))
+
+						-- Don't bring the villager to a reserved grid.
+						if not self.map:isGridReserved(target) then
+							entity:add(WalkingComponent(nil, nil, { target }, WalkingComponent.INSTRUCTIONS.WANDER))
+						end
 					end
 				end
 			end)
@@ -1134,7 +1141,12 @@ function VillagerSystem:targetUnreachableEvent(event)
 			print(blocking, "Blocking villager goal: ", goal, "->", VillagerComponent.GOALS.MOVING)
 			blockingVillager:setGoal(VillagerComponent.GOALS.MOVING)
 
-			local walkable = {}
+			-- Three levels of priority for which grids to go to.
+			local walkable = {
+				{}, -- Free and unreserved.
+				{}, -- Free but reserved.
+				{}  -- Occupied
+			}
 			local here, there = entity:get("PositionComponent"):getGrid(), blocking:get("PositionComponent"):getGrid()
 			-- Go to a random walkable direction that is not here.
 			-- Not sure this randomness does anything...
@@ -1142,21 +1154,28 @@ function VillagerSystem:targetUnreachableEvent(event)
 				for _,gj in ipairs(table.shuffle({ -1, 0, 1 })) do
 					local grid = self.map:getGrid(there.gi + gi, there.gj + gj)
 					if grid and grid ~= here and grid ~= there then
-						-- Prioritise empty grids.
 						if self.map:isGridEmpty(grid) then
 							-- Maybe take two steps.
-							if love.math.random() < VillagerSystem.RAND.MOVE_DOUBLE_FORWARD_CHANCE then
+							if self.map:isGridReserved(grid) or love.math.random() < VillagerSystem.RAND.MOVE_DOUBLE_FORWARD_CHANCE then
 								local newGrid = self.map:getGrid(grid.gi + gi, grid.gj + gj)
-								grid = (newGrid and self.map:isGridEmpty(newGrid)) and newGrid or grid
+								grid = (newGrid and self.map:isGridEmpty(newGrid) and not self.map:isGridReserved(newGrid)) and newGrid or grid
 							end
-							table.insert(walkable, 1, grid)
+
+							if not self.map:isGridReserved(grid) then
+								-- Free and unreserved.
+								table.insert(walkable[1], grid)
+							else
+								-- Free but reserved.
+								table.insert(walkable[2], grid)
+							end
 						elseif self.map:isGridWalkable(grid) then
-							table.insert(walkable, grid)
+							table.insert(walkable[3], grid)
 						end
 					end
 				end
 			end
 
+			walkable = table.flatten(walkable)
 			if next(walkable) then
 				local grid
 				-- Try to pick a grid that isn't directly in the way.

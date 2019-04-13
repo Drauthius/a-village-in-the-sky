@@ -24,4 +24,16 @@ function table.shuffle(tbl)
 	return tbl
 end
 
+-- Note: Flattens one level.
+function table.flatten(tbl)
+	local ret = {}
+	for _,v in ipairs(tbl) do
+		for _,vv in ipairs(v) do
+			table.insert(ret, vv)
+		end
+	end
+
+	return ret
+end
+
 return table

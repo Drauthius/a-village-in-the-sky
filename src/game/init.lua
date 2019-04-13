@@ -10,8 +10,6 @@
 --    * Villagers can be drawn behind e.g. the blacksmith shed, when there are a lot of things in the scene and they
 --      are directly in front (to the right) of it.
 --    * Display bug with the bottom panel???
---    * When exiting a house when another villager is in the way results in the grid being unoccupied.
---    * Villagers can loiter on reserved grids.
 --  - Next:
 --    * Birth and death
 --      Death from hunger.
@@ -293,7 +291,10 @@ function Game:draw()
 
 	self.gui:draw()
 
-	fpsGraph.drawGraphs({ self.fpsGraph, self.memGraph })
+	if self.debug then
+		love.graphics.setLineWidth(1)
+		fpsGraph.drawGraphs({ self.fpsGraph, self.memGraph })
+	end
 end
 
 --
