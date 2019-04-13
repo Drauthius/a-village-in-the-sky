@@ -44,9 +44,9 @@ end
 --- Draws a debug rectangle if the static flag `Bound.debug` is set.
 function AABB:draw()
 	if Bound.debug then
-		love.graphics.setColor(200, 200, 255, 255)
+		love.graphics.setColor(0.8, 0.8, 1, 1)
 		love.graphics.rectangle("line", self._area.x1, self._area.y1, self._area.w, self._area.h)
-		love.graphics.setColor(255, 255, 255, 255)
+		love.graphics.setColor(1, 1, 1, 1)
 	end
 end
 

@@ -66,7 +66,7 @@ function Screen:setUp(pref)
 	self.offsetX = (pref.screenWidth - (pref.drawWidth * self.verticalScale)) / 2
 	self.offsetY = (pref.screenHeight - (pref.drawHeight * self.horizontalScale)) / 2
 
-	self.canvas = love.graphics.newCanvas(pref.drawWidth, pref.drawHeight, { mssa = pref.flags.msaa })
+	self.canvas = love.graphics.newCanvas(pref.drawWidth, pref.drawHeight, { msaa = pref.flags.msaa })
 	self.canvas:setFilter(pref.minFilter, pref.magFilter)
 end
 
@@ -81,12 +81,11 @@ end
 -- everything has been drawn. It is automatically invoked if `overrideDraw` was
 -- enabled.
 function Screen:present()
-	self.testx, self.testy = self.testx or 0, self.testy or 0
 	love.graphics.setCanvas()
-	love.graphics.setColor(255, 255, 255)
+	love.graphics.setColor(1, 1, 1, 1)
 	love.graphics.setBlendMode("alpha", "premultiplied")
 	love.graphics.draw(self.canvas, self.offsetX, self.offsetY, 0,
-	                   self.verticalScale, self.horizontalScale, self.testx, self.testy)
+	                   self.verticalScale, self.horizontalScale)
 	love.graphics.setBlendMode("alpha")
 end
 

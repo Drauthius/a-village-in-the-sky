@@ -284,7 +284,7 @@ function Game:draw()
 	end)
 
 	love.graphics.setCanvas(oldCanvas)
-	love.graphics.setColor(255, 255, 255)
+	love.graphics.setColor(1, 1, 1)
 	love.graphics.setBlendMode("alpha", "premultiplied")
 	love.graphics.draw(self.worldCanvas)
 	love.graphics.setBlendMode("alpha")
