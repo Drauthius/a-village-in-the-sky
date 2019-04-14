@@ -54,12 +54,14 @@ VillagerSystem.static.RAND = {
 VillagerSystem.static.FOOD = {
 	-- Get food when the dwelling has less bread than this amount.
 	GATHER_WHEN_BELOW = 0.5,
-	-- When idle: 10 minutes to gain 100% hunger.
-	IDLE_HUNGER_PER_SECOND = 1 / 600,
+	-- 10 minutes to gain 100% hunger.
+	HUNGER_PER_SECOND = 1 / 600,
+	-- 2 minutes to gain 100% starvation (once hunger has reached its limit).
+	STARVATION_PER_SECOND = 1 / 120,
 	-- Eat breakfast (after sleeping) when hunger is above this amount.
 	BREAKFAST_WHEN_ABOVE = 0.55,
-	-- Stops what they're doing and tries to get some food.
-	CRITICAL_WHEN_ABOVE = 0.80, -- TODO: Unused
+	-- Tries to get some food if not doing anything else when hunger is above this amount.
+	EAT_WHEN_ABOVE = 0.80,
 	-- When eating: 20 seconds to get rid of 100% sleepiness
 	LOSS_PER_SECOND = 1 / 20
 }
@@ -107,8 +109,27 @@ function VillagerSystem:update(dt)
 		end
 
 		if (not villager:isHome() or goal ~= VillagerComponent.GOALS.EAT) and age >= VillagerSystem.CHILDHOOD then
-			local hunger = math.min(1.0, villager:getHunger() + VillagerSystem.FOOD.IDLE_HUNGER_PER_SECOND * dt)
+			local hunger = math.min(1.0, villager:getHunger() + VillagerSystem.FOOD.HUNGER_PER_SECOND * dt)
 			villager:setHunger(hunger)
+			-- Don't starve a mother giving birth, for nicety reasons.
+			if hunger >= 1.0 and goal ~= VillagerComponent.GOALS.CHILDBIRTH then
+				local starvation = math.min(1.0, villager:getStarvation() + VillagerSystem.FOOD.STARVATION_PER_SECOND * dt)
+				villager:setStarvation(starvation)
+				if starvation >= 1.0 then
+					print(entity, "died of hunger")
+					self.engine:removeEntity(entity)
+					return
+				end
+
+				if goal ~= VillagerComponent.GOALS.FOOD_PICKUP and
+				   goal ~= VillagerComponent.GOALS.FOOD_DROPOFF and
+				   goal ~= VillagerComponent.GOALS.SLEEP and
+				   goal ~= VillagerComponent.GOALS.EAT then
+					-- Villager needs to eat. Drop what yer doing.
+					self:_stopAll(entity)
+					self:_prepare(entity, true)
+				end
+			end
 		end
 
 		if not villager:isHome() or goal ~= VillagerComponent.GOALS.SLEEP then
@@ -133,6 +154,7 @@ end
 function VillagerSystem:_takeAction(entity)
 	local villager = entity:get("VillagerComponent")
 	local adult = entity:has("AdultComponent") and entity:get("AdultComponent")
+	local starving = villager:getStarvation() > 0.0
 
 	-- Babies don't consume food or go outside.
 	if villager:getAge() < VillagerSystem.CHILDHOOD then
@@ -142,46 +164,38 @@ function VillagerSystem:_takeAction(entity)
 	-- Unlikely to happen, but a mother in labour should probably go home.
 	-- (Can theoretically occur if the mother is temporarily blocked by something.)
 	if entity:has("PregnancyComponent") and entity:get("PregnancyComponent"):isInLabour() then
-		if villager:getHome() then
-			-- Fake the event.
-			self:childbirthStartedEvent(ChildbirthStartedEvent(entity))
-		else
-			-- If she has no home, she will just stand about.
-			villager:setDelay(VillagerSystem.TIMERS.CHILDBIRTH_NO_HOME_DELAY)
-		end
+		-- Fake the event.
+		self:childbirthStartedEvent(ChildbirthStartedEvent(entity))
 		return
 	end
 
+	-- Check for breakfast.
 	if villager:isHome() and villager:getHunger() >= VillagerSystem.FOOD.BREAKFAST_WHEN_ABOVE then
-		local home = villager:getHome()
-		local dwelling = home:get("DwellingComponent")
-		-- TODO: Check if other family members need the food more.
-		-- TODO: Partial digestion.
-		-- TODO: Children gain more.
-		if dwelling:getFood() >= 0.5 then
-			print(entity, "is hungry")
-			villager:setGoal(VillagerComponent.GOALS.EAT)
-
-			local eating = 0.5
-			dwelling:setFood(dwelling:getFood() - eating)
-			local targetHunger = math.max(0.0, villager:getHunger() - eating)
-
-			local timer = TimerComponent()
-			timer:getTimer():during((villager:getHunger() - targetHunger) / VillagerSystem.FOOD.LOSS_PER_SECOND, function(dt)
-				-- Decrease the hunger.
-				villager:setHunger(math.max(0.0, villager:getHunger() - VillagerSystem.FOOD.LOSS_PER_SECOND * dt))
-			end, function()
-				entity:remove("TimerComponent")
-				entity:get("VillagerComponent"):setGoal(VillagerComponent.GOALS.NONE)
-			end)
-			entity:add(timer)
-
+		if self:_eat(entity) then
+			print(entity, "is getting breakfast")
 			return
 		end
 	end
 
 	-- If carrying something, drop it off first.
 	if entity:has("CarryingComponent") then
+		local carrying = entity:get("CarryingComponent")
+		-- If starving and carrying some food, gulp it down greedily.
+		if starving and carrying:getResource() == ResourceComponent.BREAD then
+			print(entity, "gulping down the carried bread")
+			-- TODO: Shouldn't go all the way down?
+			villager:setHunger(0.0)
+			villager:setStarvation(0.0)
+
+			if carrying:getAmount() > 1 then
+				-- Just the one is enough.
+				carrying:setAmount(carrying:getAmount() - 1)
+			else
+				entity:remove("CarryingComponent")
+			end
+			return
+		end
+
 		local home = villager:getHome()
 		local ti, tj
 
@@ -202,19 +216,54 @@ function VillagerSystem:_takeAction(entity)
 		return
 	end
 
-	-- Check if the villager is sleepy.
-	if villager:getSleepiness() >= VillagerSystem.SLEEP.SLEEPINESS_THRESHOLD and villager:getHome() then
+	if villager:getHome() then
 		local home = villager:getHome()
-		print(entity, "is sleepy")
+		local dwelling = home:get("DwellingComponent")
 
-		self:_prepare(entity)
-		self:_goToBuilding(entity, home, WalkingComponent.INSTRUCTIONS.GO_HOME)
-		villager:setGoal(VillagerComponent.GOALS.SLEEP)
-		return
+		-- Check if the villager is sleepy.
+		if not starving and villager:getSleepiness() >= VillagerSystem.SLEEP.SLEEPINESS_THRESHOLD then
+			print(entity, "is sleepy")
+			self:_prepare(entity, true)
+
+			if villager:isHome() then
+				self:_sleep(entity)
+			else
+				self:_goToBuilding(entity, home, WalkingComponent.INSTRUCTIONS.GO_HOME)
+				villager:setGoal(VillagerComponent.GOALS.SLEEP)
+			end
+			return
+		end
+
+		-- Get some food if necessary and available.
+		if not dwelling:isGettingFood() and
+		   dwelling:getFood() <= VillagerSystem.FOOD.GATHER_WHEN_BELOW and
+		   state:getNumAvailableResources(ResourceComponent.BREAD) >= 1 then
+			dwelling:setGettingFood(true)
+
+			self:_prepare(entity)
+			self:_goToBuilding(entity, home, WalkingComponent.INSTRUCTIONS.GET_FOOD)
+			villager:setGoal(VillagerComponent.GOALS.FOOD_PICKUP)
+			return
+		end
+
+		-- Eat if necessary and possible.
+		if villager:getHunger() >= VillagerSystem.FOOD.EAT_WHEN_ABOVE and
+		   dwelling:getFood() >= 0.5 then -- TODO: Move the check?
+			print(entity, "is hungry")
+			self:_prepare(entity, true)
+
+			if villager:isHome() then
+				self:_eat(entity)
+			else
+				self:_goToBuilding(entity, home, WalkingComponent.INSTRUCTIONS.GO_HOME)
+				villager:setGoal(VillagerComponent.GOALS.EAT)
+			end
+			return
+		end
 	end
 
 	-- If adult with a work place, start working.
-	if adult and adult:getWorkPlace() then
+	if not starving and adult and adult:getWorkPlace() then
 		local workPlace = adult:getWorkPlace()
 		local ti, tj = workPlace:get("PositionComponent"):getTile()
 
@@ -289,7 +338,7 @@ function VillagerSystem:_takeAction(entity)
 	end
 
 	-- If adult with a special work area, get a place to work there.
-	if adult and adult:getWorkArea() and
+	if not starving and adult and adult:getWorkArea() and
 	       (adult:getOccupation() == WorkComponent.WOODCUTTER or
 	        adult:getOccupation() == WorkComponent.MINER or
 	        adult:getOccupation() == WorkComponent.FARMER) then
@@ -325,30 +374,13 @@ function VillagerSystem:_takeAction(entity)
 		return
 	end
 
-	-- If the villager has a home, fill it up with food and stay close to it.
-	-- TODO: Walk closer to home, if wandered too far.
-	if villager:getHome() then
-		local home = villager:getHome()
-		local dwelling = home:get("DwellingComponent")
-		-- Get some food if available.
-		if not dwelling:isGettingFood() and
-		   dwelling:getFood() <= VillagerSystem.FOOD.GATHER_WHEN_BELOW and
-		   state:getNumAvailableResources(ResourceComponent.BREAD) >= 1 then
-			dwelling:setGettingFood(true)
-
-			self:_prepare(entity)
-			self:_goToBuilding(entity, home, WalkingComponent.INSTRUCTIONS.GET_FOOD)
-			villager:setGoal(VillagerComponent.GOALS.FOOD_PICKUP)
-			return
-		end
-	end
-
 	if villager:isHome() then
 		-- Leave the house.
 		self.eventManager:fireEvent(BuildingLeftEvent(villager:getHome(), entity))
 		-- Move away from the door.
 		self:_fidget(entity, true)
 	else
+		-- TODO: Walk closer to home, if wandered too far.
 		self:_fidget(entity)
 	end
 end
@@ -415,6 +447,57 @@ function VillagerSystem:_goToBuilding(entity, building, instructions)
 	end
 
 	entity:add(WalkingComponent(ti, tj, { entranceGrid }, instructions))
+end
+
+function VillagerSystem:_eat(entity)
+	local villager = entity:get("VillagerComponent")
+	local home = villager:getHome()
+	local dwelling = home:get("DwellingComponent")
+
+	-- TODO: Check if other family members need the food more.
+	-- TODO: Partial digestion.
+	-- TODO: Children gain more.
+	if dwelling:getFood() < 0.5 then
+		return false
+	end
+
+	assert(villager:isHome(), "Uh-oh")
+	villager:setGoal(VillagerComponent.GOALS.EAT)
+
+	local eating = 0.5
+	dwelling:setFood(dwelling:getFood() - eating)
+	local targetHunger = math.max(0.0, villager:getHunger() - eating)
+
+	local timer = TimerComponent()
+	timer:getTimer():during((villager:getHunger() - targetHunger) / VillagerSystem.FOOD.LOSS_PER_SECOND, function(dt)
+		-- Decrease the hunger.
+		villager:setHunger(math.max(0.0, villager:getHunger() - VillagerSystem.FOOD.LOSS_PER_SECOND * dt))
+		-- Decrease the starvation.
+		villager:setStarvation(math.max(0.0, villager:getStarvation() - VillagerSystem.FOOD.LOSS_PER_SECOND * dt))
+	end, function()
+		entity:remove("TimerComponent")
+		entity:get("VillagerComponent"):setGoal(VillagerComponent.GOALS.NONE)
+	end)
+	entity:add(timer)
+
+	return
+end
+
+function VillagerSystem:_sleep(entity)
+	local villager = entity:get("VillagerComponent")
+
+	assert(villager:isHome(), "Uh-oh")
+	villager:setGoal(VillagerComponent.GOALS.SLEEP)
+
+	local timer = TimerComponent()
+	timer:getTimer():during(villager:getSleepiness() / VillagerSystem.SLEEP.LOSS_PER_SECOND, function(dt)
+		-- Decrease the sleepiness.
+		villager:setSleepiness(math.max(0.0, villager:getSleepiness() - VillagerSystem.SLEEP.LOSS_PER_SECOND * dt))
+	end, function()
+		entity:remove("TimerComponent")
+		entity:get("VillagerComponent"):setGoal(VillagerComponent.GOALS.NONE)
+	end)
+	entity:add(timer)
 end
 
 function VillagerSystem:_dropCarrying(entity, grid)
@@ -516,6 +599,9 @@ function VillagerSystem:_stopAll(entity)
 		villager:getHome():get("DwellingComponent"):setGettingFood(false)
 	end
 
+	-- Clear any delay.
+	villager:setDelay(0)
+	-- Reset the goal.
 	villager:setGoal(VillagerComponent.GOALS.NONE)
 end
 
@@ -816,6 +902,8 @@ function VillagerSystem:childbirthStartedEvent(event)
 		end
 		villager:setGoal(VillagerComponent.GOALS.CHILDBIRTH)
 	else
+		-- If she has no home, she will just stand about.
+		villager:setDelay(VillagerSystem.TIMERS.CHILDBIRTH_NO_HOME_DELAY)
 		-- Stop what you're doing anyway.
 		villager:setGoal(VillagerComponent.GOALS.NONE)
 	end
@@ -1057,10 +1145,13 @@ function VillagerSystem:targetReachedEvent(event)
 		dwelling:setFood(dwelling:getFood() + amount)
 		dwelling:setGettingFood(false)
 
-		-- Temporarily enter the building.
-		self.eventManager:fireEvent(BuildingEnteredEvent(home, entity, true))
-
 		entity:remove("CarryingComponent")
+
+		-- XXX: If the event is temporary, the villager might pop out and then back in, if e.g. tired or hungry.
+		--      If not temporary, the villager might pop in, start the chimney, and then back out.
+		self.eventManager:fireEvent(BuildingEnteredEvent(home, entity, true))
+		--villager:setDelay(VillagerSystem.TIMERS.BUILDING_TEMP_ENTER)
+		--villager:setGoal(VillagerComponent.GOALS.NONE)
 	elseif goal == VillagerComponent.GOALS.WORK then
 		local workPlace = entity:get("AdultComponent"):getWorkPlace()
 
@@ -1090,20 +1181,11 @@ function VillagerSystem:targetReachedEvent(event)
 			self.eventManager:fireEvent(BuildingEnteredEvent(workPlace, entity))
 		end
 	elseif goal == VillagerComponent.GOALS.SLEEP then
-		local home = villager:getHome()
-		--local dwelling = home:get("DwellingComponent")
-
-		local timer = TimerComponent()
-		timer:getTimer():during(villager:getSleepiness() / VillagerSystem.SLEEP.LOSS_PER_SECOND, function(dt)
-			-- Decrease the sleepiness.
-			villager:setSleepiness(math.max(0.0, villager:getSleepiness() - VillagerSystem.SLEEP.LOSS_PER_SECOND * dt))
-		end, function()
-			entity:remove("TimerComponent")
-			entity:get("VillagerComponent"):setGoal(VillagerComponent.GOALS.NONE)
-		end)
-		entity:add(timer)
-
-		self.eventManager:fireEvent(BuildingEnteredEvent(home, entity))
+		self.eventManager:fireEvent(BuildingEnteredEvent(villager:getHome(), entity))
+		self:_sleep(entity)
+	elseif goal == VillagerComponent.GOALS.EAT then
+		self.eventManager:fireEvent(BuildingEnteredEvent(villager:getHome(), entity))
+		self:_eat(entity)
 	elseif goal == VillagerComponent.GOALS.CHILDBIRTH then
 		self.eventManager:fireEvent(BuildingEnteredEvent(villager:getHome(), entity))
 		-- A new event will be fired when the childbirth has ended.

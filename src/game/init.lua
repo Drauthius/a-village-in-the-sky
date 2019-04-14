@@ -8,10 +8,12 @@
 --      The same goes for building jobs.
 --    * It is possible to starve a construction site by moving villagers at inopportune times.
 --    * Display bug with the bottom panel???
+--    * Villagers standing on a reserved grid can rotate around spastically trying to find a way to move.
+--    * Freeing of dead villagers is not handled properly.
 --  - Next:
---    * Birth and death
---      Death from hunger.
 --    * Proper fonts and font creation.
+--    * Runestone logic.
+--    * Unselect things (in the GUI/detailspanel) that disappear (e.g. villager dies).
 --  - Refactoring:
 --    * There is little reason to have the VillagerComponent be called "VillagerComponent", other than symmetry.
 --    * Either consolidate production/construction components (wrt input), or maybe add an "input" component?

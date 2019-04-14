@@ -15,4 +15,8 @@ function CarryingComponent:getAmount()
 	return self.amount
 end
 
+function CarryingComponent:setAmount(amount)
+	self.amount = amount
+end
+
 return CarryingComponent

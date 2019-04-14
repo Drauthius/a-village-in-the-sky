@@ -28,6 +28,7 @@ function VillagerComponent:initialize(stats, mother, father)
 	self.craftsmanship = stats.craftsmanship or 0.5 -- 0.1
 
 	self.hunger = 0.0 -- 0-1
+	self.starvation = 0.0 -- 0-1
 	self.sleepiness = 0.0 -- 0-1
 
 	self.direction = love.math.random(0, 359) -- 0-359
@@ -71,8 +72,8 @@ function VillagerComponent:getCraftsmanship()
 	return self.craftsmanship
 end
 
-function VillagerComponent:isAlive()
-	return self.alive
+function VillagerComponent:isDead()
+	return not self.alive
 end
 
 function VillagerComponent:setDead()
@@ -85,6 +86,14 @@ end
 
 function VillagerComponent:setHunger(hunger)
 	self.hunger = hunger
+end
+
+function VillagerComponent:getStarvation()
+	return self.starvation
+end
+
+function VillagerComponent:setStarvation(starvation)
+	self.starvation = starvation
 end
 
 function VillagerComponent:getSleepiness()
