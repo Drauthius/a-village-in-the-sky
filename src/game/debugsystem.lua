@@ -17,9 +17,6 @@ function DebugSystem:draw()
 	love.graphics.setLineWidth(1)
 	love.graphics.setPointSize(8)
 
-	self.font = self.font or love.graphics.newFont(8)
-	love.graphics.setFont(self.font)
-
 	for _,entity in pairs(self.targets) do
 		if entity == state:getSelection() then
 			love.graphics.setColor(0.25, 0, 0.75)
@@ -31,6 +28,14 @@ function DebugSystem:draw()
 			love.graphics.rectangle("line",
 					interactive.x, interactive.y,
 					interactive.w, interactive.h)
+
+			self.font2 = self.font2 or love.graphics.newFont(13)
+			love.graphics.setFont(self.font2)
+			love.graphics.setColor(0, 0, 0, 1)
+			love.graphics.print(entity:get("SpriteComponent"):getDrawIndex(), interactive.x, interactive.y)
+			self.font = self.font or love.graphics.newFont(12)
+			love.graphics.setFont(self.font)
+			love.graphics.setColor(1, 1, 1, 1)
 			love.graphics.print(entity:get("SpriteComponent"):getDrawIndex(), interactive.x, interactive.y)
 		end
 		if entity:has("PositionComponent") then

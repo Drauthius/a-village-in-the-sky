@@ -881,7 +881,7 @@ function VillagerSystem:buildingLeftEvent(event)
 	villager:setIsHome(false)
 	villager:setGoal(VillagerComponent.GOALS.NONE)
 	entity:add(SpriteComponent())
-	entity:add(PositionComponent(entranceGrid))
+	entity:add(PositionComponent(entranceGrid, nil, building:get("PositionComponent"):getTile()))
 
 	villager:setDelay(VillagerSystem.TIMERS.BUILDING_LEFT_DELAY)
 end
@@ -932,7 +932,8 @@ function VillagerSystem:childbirthEndedEvent(event)
 		end
 	else
 		assert(not event:didChildSurvive(), "Don't know where to place the child.")
-		child:add(PositionComponent(entity:get("PositionComponent"):getGrid()))
+		local position = entity:get("PositionComponent")
+		child:add(PositionComponent(position:getGrid(), nil, position:getTile()))
 	end
 	self.engine:addEntity(child)
 
@@ -964,10 +965,11 @@ function VillagerSystem:onRemoveEntity(entity)
 	state:decreaseNumVillagers(villager:getGender(), entity:has("AdultComponent"))
 
 	-- Create a particle showing that a villager died.
-	local grid
+	local grid, ti, tj
 	if entity:has("PositionComponent") then
 		-- Villager is outside.
 		grid = entity:get("PositionComponent"):getGrid()
+		ti, tj = entity:get("PositionComponent"):getTile()
 	else
 		-- XXX: Here comes the guessing game.
 		local site
@@ -980,9 +982,10 @@ function VillagerSystem:onRemoveEntity(entity)
 		local from, to = site:get("PositionComponent"):getFromGrid(), site:get("PositionComponent"):getToGrid()
 		grid = self.map:getGrid(from.gi + math.floor((to.gi - from.gi) / 2),
 		                        from.gj + math.floor((to.gj - from.gj) / 2))
+		ti, tj = site:get("PositionComponent"):getTile()
 	end
 	local particle = blueprint:createDeathParticle(entity)
-	particle:set(PositionComponent(grid))
+	particle:set(PositionComponent(grid, nil, ti, tj))
 	particle:get("SpriteComponent"):setDrawPosition(self.map:gridToWorldCoords(grid.gi, grid.gj))
 	self.engine:addEntity(particle)
 

@@ -17,7 +17,9 @@ end
 -- Called when an entity gets the position component.
 function PositionSystem:onAddEntity(entity)
 	if entity:has("VillagerComponent") then
-		self.map:occupy(entity, entity:get("PositionComponent"):getGrid())
+		local grid = entity:get("PositionComponent"):getGrid()
+		self.map:occupy(entity, grid)
+		entity:get("PositionComponent"):setTile(self.map:gridToTileCoords(grid.gi, grid.gj))
 	end
 end
 

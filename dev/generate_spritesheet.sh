@@ -7,14 +7,15 @@ declare -r output='../asset/gfx/spritesheet'
 
 # Files with a "Grid information" layer containing collision information.
 grid_info_layer='Grid information'
+# The tree has to be first or it overwrites some other sprites :o
 buildings=(
+tree.aseprite
 bakery.aseprite
 blacksmith.aseprite
 dwelling.aseprite
 field.aseprite
 iron.aseprite
 monolith.aseprite
-tree.aseprite
 )
 
 split=(

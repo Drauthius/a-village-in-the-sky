@@ -2,15 +2,17 @@ local astar = require "lib.ai.astar"
 local lovetoys = require "lib.lovetoys.lovetoys"
 local vector = require "lib.hump.vector"
 
-local state = require "src.game.state"
-
-local Map = require "src.game.map"
+local EntityMovedEvent = require "src.game.entitymovedevent"
 local TargetReachedEvent = require "src.game.targetreachedevent"
 local TargetUnreachableEvent = require "src.game.targetunreachableevent"
+
+local Map = require "src.game.map"
 local ResourceComponent = require "src.game.resourcecomponent"
 local TileComponent = require "src.game.tilecomponent"
 local TimerComponent = require "src.game.timercomponent"
 local WalkingComponent = require "src.game.walkingcomponent"
+
+local state = require "src.game.state"
 
 local WalkingSystem = lovetoys.System:subclass("WalkingSystem")
 
@@ -186,12 +188,16 @@ function WalkingSystem:_walkTheWalk(entity, dt)
 		if entity:get("PositionComponent"):getGrid() ~= nextGrid then
 			self.map:unoccupy(entity, entity:get("PositionComponent"):getGrid())
 			entity:get("PositionComponent"):setGrid(nextGrid)
+			entity:get("PositionComponent"):setTile(self.map:gridToTileCoords(nextGrid.gi, nextGrid.gj))
+
+			self.eventManager:fireEvent(EntityMovedEvent(entity, nextGrid))
+
+			-- New terrain?
+			self:_updateWalkingSpeed(entity)
 		end
 
 		if len <= WalkingSystem.DISTANCE_NEXT_GRID then
 			walking:setNextGrid(nil)
-			-- New terrain?
-			self:_updateWalkingSpeed(entity)
 		end
 	end
 end

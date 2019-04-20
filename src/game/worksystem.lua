@@ -143,17 +143,17 @@ function WorkSystem:workEvent(event)
 
 		work:increaseCompletion(WorkSystem.COMPLETION.RESOURCE)
 
+		local particle
+		local position = workPlace:get("PositionComponent")
 		if work:getType() == WorkComponent.WOODCUTTER then
-			local spark = blueprint:createWoodSparksParticle()
-			spark:add(PositionComponent(workPlace:get("PositionComponent"):getGrid()))
-			spark:get("SpriteComponent"):setDrawPosition(dx + 14, dy + 55) -- XXX
-			self.engine:addEntity(spark)
+			particle = blueprint:createWoodSparksParticle()
+			particle:get("SpriteComponent"):setDrawPosition(dx + 14, dy + 55) -- XXX
 		elseif work:getType() == WorkComponent.MINER then
-			local spark = blueprint:createIronSparksParticle()
-			spark:add(PositionComponent(workPlace:get("PositionComponent"):getGrid()))
-			spark:get("SpriteComponent"):setDrawPosition(dx + 12, dy + 5) -- XXX
-			self.engine:addEntity(spark)
+			particle = blueprint:createIronSparksParticle()
+			particle:get("SpriteComponent"):setDrawPosition(dx + 12, dy + 5) -- XXX
 		end
+		particle:add(PositionComponent(position:getGrid(), nil, position:getTile()))
+		self.engine:addEntity(particle)
 
 		if work:isComplete() then
 			local workers = workPlace:get("AssignmentComponent"):getAssignees()

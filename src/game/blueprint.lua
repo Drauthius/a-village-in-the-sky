@@ -375,7 +375,7 @@ function Blueprint:createDeathParticle(villager)
 		key = "ADULT_DEATH"
 	else
 		sprite = spriteSheet:getSprite("children 1",
-			(villager:get("VillagerComponent"):getGender() == "male" and "Boy" or "Girl").." - SE")
+			(villager:get("VillagerComponent"):getGender() == "male" and "boy" or "girl").." - SE")
 		key = "CHILD_DEATH"
 	end
 

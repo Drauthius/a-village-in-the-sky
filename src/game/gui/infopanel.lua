@@ -67,8 +67,6 @@ function InfoPanel:draw()
 
 	love.graphics.draw(self.spriteBatch, self.x, self.y)
 
-	love.graphics.print(self.content.name, 0, 32)
-
 	--local start = self.contentBounds.x
 	--for _,widget in ipairs(self.content.items) do
 	--	spriteSheet:draw(widget,

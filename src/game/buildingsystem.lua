@@ -66,7 +66,8 @@ function BuildingSystem:buildingCompletedEvent(event)
 		local propeller = lovetoys.Entity()
 		local propellerData = spriteSheet:getData("Blades") -- Edgy
 		local sprite = spriteSheet:getSprite("windmill-blades 0")
-		propeller:add(PositionComponent(entity:get("PositionComponent"):getGrid())) -- TODO
+		local position = entity:get("PositionComponent")
+		propeller:add(PositionComponent(position:getGrid(), nil, position:getTile()))
 		local dx, dy = entity:get("SpriteComponent"):getDrawPosition()
 		dx = dx + propellerData.bounds.x + math.floor((propellerData.bounds.w - sprite:getWidth()) / 2)
 		dy = dy + propellerData.bounds.y + math.floor((propellerData.bounds.h - sprite:getHeight()) / 2)
@@ -82,10 +83,11 @@ function BuildingSystem:buildingCompletedEvent(event)
 	end
 
 	for i=1,chimneys do
+		local position = entity:get("PositionComponent")
 		local chimneyData = spriteSheet:getData(typeName.."-chimney"..(chimneys == 1 and "" or i))
 		local chimney = blueprint:createSmokeParticle()
 		chimney:add(AssignmentComponent(1))
-		chimney:add(PositionComponent(entity:get("PositionComponent"):getGrid())) -- TODO
+		chimney:add(PositionComponent(position:getGrid(), nil, position:getTile()))
 		local dx, dy = entity:get("SpriteComponent"):getDrawPosition()
 		dx = dx + chimneyData.bounds.x + math.floor(chimneyData.bounds.w / 2)
 		dy = dy + chimneyData.bounds.y + math.floor(chimneyData.bounds.h / 2)

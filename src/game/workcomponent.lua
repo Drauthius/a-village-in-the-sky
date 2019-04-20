@@ -34,8 +34,8 @@ WorkComponent.static.WORK_NAME = {
 --       or slice information?
 WorkComponent.static.WORK_PLACES = {
 	[WorkComponent.WOODCUTTER] = {
-		{ rotation = 90, ogi = -1, ogj = 1 },
-		{ rotation = 270, ogi = 1, ogj = -1 }
+		{ rotation = 90, ogi = -2, ogj = 0 },
+		{ rotation = 270, ogi = 0, ogj = -2 }
 	},
 	[WorkComponent.MINER] = {
 		{ rotation = 90, ogi = -2, ogj = 0 },

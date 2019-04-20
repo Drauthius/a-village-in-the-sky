@@ -19,15 +19,10 @@
 --    * Either consolidate production/construction components (wrt input), or maybe add an "input" component?
 --    * Calling variables for "entity" in different contexts begs for trouble.
 --    * Definition/specification for buildings is split into multiple files, making it hard to add new ones.
---  - Draw order:
---    * Update sprites to be square.
---    * Still some problems with wrong draw order.
 --  - Particles:
 --    * "Button is next" for the tutorial.
---    * When people die. (Probably easiest to do with a new sprite.)
 --  - More sprites:
 --    * Event button has a new event (maybe just want to add a text number?).
---    * Investigate and fix (or work around) aseprite sprite sheet bug
 --    * New blacksmith building.
 --    * More villager fixes
 --      - Shading when walking is off (for children at least).
@@ -58,6 +53,7 @@
 --    * Draw placing tile behind other tiles?
 --    * Villagers going diagonally are sometimes drawn behind.
 --      They're too wide for the grids.
+--    * Dedicated ghost/phantom sprite for death animation.
 
 local Camera = require "lib.hump.camera"
 local Timer = require "lib.hump.timer"
@@ -178,6 +174,7 @@ function Game:enter()
 	self.engine:addSystem(TimerSystem(), "update") -- Must be before the sprite system...
 	self.engine:addSystem(SpriteSystem(self.eventManager), "update")
 	self.engine:addSystem(ParticleSystem(self.engine), "update")
+	self.engine:addSystem(renderSystem, "update")
 
 	-- Draws
 	self.engine:addSystem(renderSystem, "draw")
@@ -206,6 +203,7 @@ function Game:enter()
 	self.eventManager:addListener("BuildingLeftEvent", villagerSystem, villagerSystem.buildingLeftEvent)
 	self.eventManager:addListener("ChildbirthStartedEvent", villagerSystem, villagerSystem.childbirthStartedEvent)
 	self.eventManager:addListener("ChildbirthEndedEvent", villagerSystem, villagerSystem.childbirthEndedEvent)
+	self.eventManager:addListener("EntityMovedEvent", renderSystem, renderSystem.onEntityMoved)
 	self.eventManager:addListener("TargetReachedEvent", villagerSystem, villagerSystem.targetReachedEvent)
 	self.eventManager:addListener("TargetUnreachableEvent", villagerSystem, villagerSystem.targetUnreachableEvent)
 	self.eventManager:addListener("TileDroppedEvent", renderSystem, renderSystem.onTileDropped)
@@ -606,7 +604,7 @@ function Game:_placeTile(placing)
 			dx, dy = -1, -1
 		end
 
-		dust:set(PositionComponent(self.map:getGrid(gi, gj)))
+		dust:set(PositionComponent(self.map:getGrid(gi, gj), nil, self.map:gridToTileCoords(gi, gj)))
 		dust:get("SpriteComponent"):setDrawPosition(self.map:gridToWorldCoords(gi + dx * 2, gj + dy * 2))
 		self.engine:addEntity(dust)
 	end
@@ -644,9 +642,10 @@ function Game:_placeBuilding(placing)
 
 	local ax, ay, minGrid, maxGrid = self.map:addObject(placing, placing:get("BuildingComponent"):getPosition())
 	assert(ax and ay and minGrid and maxGrid, "Could not add building with building component.")
+	local ti, tj = self.map:gridToTileCoords(minGrid.gi, minGrid.gj)
 	placing:get("SpriteComponent"):setDrawPosition(ax, ay)
 	placing:get("SpriteComponent"):resetColor()
-	placing:add(PositionComponent(minGrid, maxGrid, self.map:gridToTileCoords(minGrid.gi, minGrid.gj)))
+	placing:add(PositionComponent(minGrid, maxGrid, ti, tj))
 	placing:add(ConstructionComponent(placing:get("PlacingComponent"):getType()))
 	placing:add(AssignmentComponent(4))
 	InteractiveComponent:makeInteractive(placing, ax, ay)
@@ -677,7 +676,8 @@ function Game:_placeBuilding(placing)
 			gi, gj = minGrid.gi, halfgj
 		end
 
-		dust:set(PositionComponent((assert(self.map:getGrid(gi, gj), ("(%d,%d) is outside of the map"):format(gi, gj)))))
+		dust:set(PositionComponent((assert(self.map:getGrid(gi, gj), ("(%d,%d) is outside of the map"):format(gi, gj))), nil,
+		                           ti, tj))
 		dust:get("SpriteComponent"):setDrawPosition(self.map:gridToWorldCoords(gi, gj))
 		self.engine:addEntity(dust)
 	end
