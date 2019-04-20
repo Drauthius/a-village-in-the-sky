@@ -1,5 +1,4 @@
 local lovetoys = require "lib.lovetoys.lovetoys"
-local table = require "lib.table"
 
 local BuildingComponent = require "src.game.buildingcomponent"
 local FieldComponent = require "src.game.fieldcomponent"
@@ -15,7 +14,6 @@ local spriteSheet = require "src.game.spritesheet"
 local SpriteSystem = lovetoys.System:subclass("SpriteSystem")
 
 SpriteSystem.static.ANIMATIONS = {
-	idle = {},
 	walking = {
 		nothing = {},
 		[ResourceComponent.WOOD] = {},
@@ -37,6 +35,10 @@ SpriteSystem.static.ANIMATIONS = {
 		[WorkComponent.MINER] = {},
 		[WorkComponent.BUILDER] = {},
 		[WorkComponent.FARMER] = {}
+	},
+	children = {
+		nothing = {},
+		[ResourceComponent.BREAD] = {}
 	}
 }
 
@@ -51,21 +53,10 @@ function SpriteSystem:initialize(eventManager)
 
 	self.eventManager = eventManager
 
-	-- Make sure to clone the table since we want to change things in it.
-	SpriteSystem.ANIMATIONS.idle = table.clone(spriteSheet:getFrameTag("Emptyhanded"), true)
-	SpriteSystem.ANIMATIONS.idle.to = SpriteSystem.ANIMATIONS.idle.from
-
 	local walking = SpriteSystem.ANIMATIONS.walking
 	walking.nothing = spriteSheet:getFrameTag("Emptyhanded")
 
 	for resource,name in pairs(ResourceComponent.RESOURCE_NAME) do
-		-- TODO: Consolidate!!
-		if resource == ResourceComponent.IRON then
-			name = "ore"
-		elseif resource == ResourceComponent.GRAIN then
-			name = "wheat"
-		end
-
 		walking[resource] = {
 			[1] = spriteSheet:getFrameTag("1 "..name),
 			[2] = spriteSheet:getFrameTag("2 "..(resource == ResourceComponent.TOOL and name .. "s" or name)),
@@ -111,6 +102,10 @@ function SpriteSystem:initialize(eventManager)
 			NW = spriteSheet:getFrameTag("Reaping")
 		}
 	}
+
+	local children = SpriteSystem.ANIMATIONS.children
+	children.nothing = spriteSheet:getFrameTag("Emptyhanded child")
+	children[ResourceComponent.BREAD][1] = spriteSheet:getFrameTag("1 bread child")
 end
 
 function SpriteSystem:update(dt)
@@ -154,9 +149,10 @@ function SpriteSystem:updateVillager(dt, entity)
 	local animated = true
 	local walking = false
 	local working = false
-	if adult and entity:has("CarryingComponent") then
+	local walkingBase = adult and SpriteSystem.ANIMATIONS.walking or SpriteSystem.ANIMATIONS.children
+	if entity:has("CarryingComponent") then
 		local carrying = entity:get("CarryingComponent")
-		targetAnimation = SpriteSystem.ANIMATIONS.walking[carrying:getResource()][carrying:getAmount()]
+		targetAnimation = walkingBase[carrying:getResource()][carrying:getAmount()]
 		walking = true
 		assert(targetAnimation, "Missing carrying animation for villager")
 	elseif entity:has("WorkingComponent") then
@@ -182,11 +178,20 @@ function SpriteSystem:updateVillager(dt, entity)
 			       "Occupation: "..adult:getOccupationName()..", Direction: "..cardinalDir)
 		end
 	elseif entity:has("WalkingComponent") then
-		targetAnimation = SpriteSystem.ANIMATIONS.walking.nothing
+		targetAnimation = walkingBase.nothing
 		walking = true
 	else
-		targetAnimation = SpriteSystem.ANIMATIONS.idle
+		targetAnimation = walkingBase.nothing
 		animated = false
+
+		-- Cheeky check to make sure that the animation stops on the first or third frame (the recovery frame).
+		-- This will make sudden feet movement go away.
+		if animation:getAnimation() == targetAnimation then
+			if animation:getCurrentFrame() == animation:getAnimation().from + 1 or
+			   animation:getCurrentFrame() == animation:getAnimation().from + 3 then
+				animation:advance()
+			end
+		end
 	end
 
 	-- Modify the animation speed based on certain criteria.
@@ -239,29 +244,29 @@ function SpriteSystem:updateVillager(dt, entity)
 	local slice, sliceFrame, targetSprite, duration
 	local hairy = villager:isHairy() and "(Hairy) " or ""
 	if working then
-		slice = "Working"
-		sliceFrame = animation:getAnimation().from
-		targetSprite, duration = spriteSheet:getSprite("villagers-action "..hairy..frame, slice, targetAnimation.from)
+		slice = villager:getGender() .. " - working"
+		-- Pivot data is on the first frame of the animation.
+		sliceFrame = targetAnimation.from
+		targetSprite, duration = spriteSheet:getSprite("villagers-action "..hairy..frame, slice, sliceFrame)
 	else
 		if adult then
 			slice = villager:getGender() .. " - " .. cardinalDir
 			targetSprite, duration = spriteSheet:getSprite("villagers "..hairy..frame, slice)
 		else
-			slice = (villager:getGender() == "male" and "Boy" or "Girl") .. " - " .. cardinalDir
-			if entity:has("CarryingComponent") then
-				-- TODO: Convert to using the frames as the adults.
-				slice = slice .. " - Bread"
-			end
+			slice = (villager:getGender() == "male" and "boy" or "girl") .. " - " .. cardinalDir
 			targetSprite, duration = spriteSheet:getSprite("children "..frame, slice)
 		end
+		-- Pivot data is on the first frame of the image (the default one if no frame is specified).
+		--sliceFrame = nil
 	end
 
 	if newFrame then
 		animation:setTimer(duration / 1000 * durationModifier)
 	end
 
-	-- TODO: Improve?
+	-- Check if it's the contact frame.
 	if working and newFrame then
+		-- XXX: Value
 		-- Note: Zero indexed
 		local frameNum = frame - animation:getAnimation().from
 		if adult:getOccupation() == WorkComponent.BUILDER then

@@ -21,16 +21,17 @@
 --    * Definition/specification for buildings is split into multiple files, making it hard to add new ones.
 --  - Draw order:
 --    * Update sprites to be square.
---    * Villagers going diagonally are sometimes draw behind.
---      Maybe because the position is updated fairly late?
+--    * Still some problems with wrong draw order.
 --  - Particles:
 --    * "Button is next" for the tutorial.
 --    * When people die. (Probably easiest to do with a new sprite.)
 --  - More sprites:
 --    * Event button has a new event (maybe just want to add a text number?).
---    * Woman animations
 --    * Investigate and fix (or work around) aseprite sprite sheet bug
 --    * New blacksmith building.
+--    * More villager fixes
+--      - Shading when walking is off (for children at least).
+--      - Shadows for when villagers are carrying stuff.
 --  - Controls:
 --    * Assigning/selecting through double tap or hold?
 --      The details panel must have a "Deselect/Cancel/Close" button/icon so
@@ -55,11 +56,13 @@
 --      abandoning the attempt.
 --    * Clouds are a bit rough (sprites and particle system can remove sprites instantly).
 --    * Draw placing tile behind other tiles?
+--    * Villagers going diagonally are sometimes drawn behind.
+--      They're too wide for the grids.
 
 local Camera = require "lib.hump.camera"
 local Timer = require "lib.hump.timer"
 local lovetoys = require "lib.lovetoys.lovetoys"
-local fpsGraph = require("lib.FPSGraph")
+local fpsGraph = require "lib.FPSGraph"
 
 local Background = require "src.game.background"
 local GUI = require "src.game.gui"
