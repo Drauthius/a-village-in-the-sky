@@ -12,8 +12,9 @@
 --    * Freeing of dead villagers is not handled properly.
 --  - Next:
 --    * Proper fonts and font creation.
---    * Runestone logic.
+--    * Upgrading runestones.
 --    * Unselect things (in the GUI/detailspanel) that disappear (e.g. villager dies).
+--    * Tutorial mode.
 --  - Refactoring:
 --    * There is little reason to have the VillagerComponent be called "VillagerComponent", other than symmetry.
 --    * Either consolidate production/construction components (wrt input), or maybe add an "input" component?
@@ -33,7 +34,6 @@
 --      that villagers can be easily deselected.
 --  - Placing:
 --    * Indicators of valid positions (blue)
---    * Limit placement depending on runestones
 --    * Placing runestones
 --  - Info panel updates:
 --    * Make the info panel title bar thicker, and put the name there + a button to
@@ -146,19 +146,21 @@ function Game:enter()
 	self.map = Map()
 	self.level = DefaultLevel()
 	--self.level = require("src.game.level.hallway")()
+	--self.level = require("src.game.level.runestones")()
 	self.backgrounds = {
 		Background(self.camera, 0.05, 2),
 		Background(self.camera, 0.2, 3)
 	}
 	self.backgrounds[1]:setColor({ 0.8, 0.8, 0.95, 1 })
 	self.backgrounds[2]:setColor({ 0.9, 0.9, 1, 1 })
-	self.foreground = Background(self.camera, 10, 2)
+	self.foreground = Background(self.camera, 2, 2)
 
 	self.engine = lovetoys.Engine()
 	self.eventManager = lovetoys.EventManager()
 
 	local buildingSystem = BuildingSystem(self.engine)
 	local fieldSystem = FieldSystem(self.engine, self.eventManager, self.map)
+	local placingSystem = PlacingSystem(self.map)
 	local pregnancySystem = PregnancySystem(self.eventManager)
 	local renderSystem = RenderSystem()
 	local villagerSystem = VillagerSystem(self.engine, self.eventManager, self.map)
@@ -166,7 +168,7 @@ function Game:enter()
 
 	-- Updates
 	self.engine:addSystem(fieldSystem, "update")
-	self.engine:addSystem(PlacingSystem(self.map), "update")
+	self.engine:addSystem(placingSystem, "update")
 	self.engine:addSystem(workSystem, "update") -- Must be before the sprite system
 	self.engine:addSystem(villagerSystem, "update")
 	self.engine:addSystem(pregnancySystem, "update")
@@ -178,6 +180,7 @@ function Game:enter()
 
 	-- Draws
 	self.engine:addSystem(renderSystem, "draw")
+	self.engine:addSystem(placingSystem, "draw")
 	self.engine:addSystem(DebugSystem(self.map), "draw")
 
 	-- Not enabled by default.
@@ -197,19 +200,20 @@ function Game:enter()
 	self.eventManager:addListener("AssignedEvent", villagerSystem, villagerSystem.assignedEvent)
 	self.eventManager:addListener("BuildingCompletedEvent", buildingSystem, buildingSystem.buildingCompletedEvent)
 	self.eventManager:addListener("BuildingEnteredEvent", buildingSystem, buildingSystem.buildingEnteredEvent)
-	self.eventManager:addListener("BuildingEnteredEvent", villagerSystem, villagerSystem.buildingEnteredEvent)
 	self.eventManager:addListener("BuildingEnteredEvent", pregnancySystem, pregnancySystem.buildingEnteredEvent)
+	self.eventManager:addListener("BuildingEnteredEvent", villagerSystem, villagerSystem.buildingEnteredEvent)
 	self.eventManager:addListener("BuildingLeftEvent", buildingSystem, buildingSystem.buildingLeftEvent)
 	self.eventManager:addListener("BuildingLeftEvent", villagerSystem, villagerSystem.buildingLeftEvent)
-	self.eventManager:addListener("ChildbirthStartedEvent", villagerSystem, villagerSystem.childbirthStartedEvent)
 	self.eventManager:addListener("ChildbirthEndedEvent", villagerSystem, villagerSystem.childbirthEndedEvent)
+	self.eventManager:addListener("ChildbirthStartedEvent", villagerSystem, villagerSystem.childbirthStartedEvent)
 	self.eventManager:addListener("EntityMovedEvent", renderSystem, renderSystem.onEntityMoved)
+	self.eventManager:addListener("RunestoneUpgradedEvent", placingSystem, placingSystem.onRunestoneUpgraded)
 	self.eventManager:addListener("TargetReachedEvent", villagerSystem, villagerSystem.targetReachedEvent)
 	self.eventManager:addListener("TargetUnreachableEvent", villagerSystem, villagerSystem.targetUnreachableEvent)
 	self.eventManager:addListener("TileDroppedEvent", renderSystem, renderSystem.onTileDropped)
 	self.eventManager:addListener("TilePlacedEvent", renderSystem, renderSystem.onTilePlaced)
-	self.eventManager:addListener("VillagerAgedEvent", villagerSystem, villagerSystem.villagerAgedEvent)
 	self.eventManager:addListener("VillagerAgedEvent", pregnancySystem, pregnancySystem.villagerAgedEvent)
+	self.eventManager:addListener("VillagerAgedEvent", villagerSystem, villagerSystem.villagerAgedEvent)
 	self.eventManager:addListener("WorkEvent", fieldSystem, fieldSystem.workEvent)
 	self.eventManager:addListener("WorkEvent", workSystem, workSystem.workEvent)
 	self.eventManager:addListener("WorkCompletedEvent", villagerSystem, villagerSystem.workCompletedEvent)

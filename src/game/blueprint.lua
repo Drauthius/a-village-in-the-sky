@@ -52,14 +52,15 @@ function Blueprint:createPlacingBuilding(type)
 	return building
 end
 
-function Blueprint:createRunestone()
+function Blueprint:createRunestone(level)
+	level = level or 0
 	local runestone = lovetoys.Entity()
-	local sprite = spriteSheet:getSprite("monolith 0")
-	local collision = spriteSheet:getSprite("monolith (Grid information) 0")
+	local sprite = spriteSheet:getSprite("monolith "..(level*2))
+	local collision = spriteSheet:getSprite("monolith (Grid information) "..(level*2))
 
 	runestone:add(CollisionComponent(collision))
 	runestone:add(SpriteComponent(sprite))
-	runestone:add(RunestoneComponent())
+	runestone:add(RunestoneComponent(level))
 
 	return runestone
 end
