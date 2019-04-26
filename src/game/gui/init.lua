@@ -5,7 +5,11 @@ local DetailsPanel = require "src.game.gui.detailspanel"
 local InfoPanel = require "src.game.gui.infopanel"
 local Widget = require "src.game.gui.widget"
 
+local UnassignedEvent = require "src.game.unassignedevent"
+
+local AssignmentComponent = require "src.game.assignmentcomponent"
 local BuildingComponent = require "src.game.buildingcomponent"
+local ConstructionComponent = require "src.game.constructioncomponent"
 local ResourceComponent = require "src.game.resourcecomponent"
 local TileComponent = require "src.game.tilecomponent"
 local WorkComponent = require "src.game.workcomponent"
@@ -18,8 +22,9 @@ local state = require "src.game.state"
 
 local GUI = class("GUI")
 
-function GUI:initialize(engine)
+function GUI:initialize(engine, eventManager)
 	self.engine = engine
+	self.eventManager = eventManager
 
 	self.screenWidth, self.screenHeight = screen:getDimensions()
 
@@ -127,7 +132,9 @@ function GUI:initialize(engine)
 	self.infoPanel = InfoPanel(right - left)
 	self.infoPanel:hide()
 
-	self.detailsPanel = DetailsPanel(select(2, self.listBuildingButton:getPosition()) - padding)
+	self.detailsPanel = DetailsPanel(select(2, self.listBuildingButton:getPosition()) - padding, function(button)
+		self:_handleDetailsButtonPress(button)
+	end)
 	self.detailsPanel:hide()
 end
 
@@ -161,6 +168,7 @@ function GUI:update(dt)
 			widget.sprite = widget.closed
 		end
 	end
+	self.detailsPanel:update(dt)
 end
 
 function GUI:draw()
@@ -311,10 +319,10 @@ function GUI:updateInfoPanel()
 	end
 end
 
-function GUI:handlePress(x, y, dryrun)
+function GUI:handlePress(x, y, released)
 	for type,widget in pairs(self.widgets) do
 		if widget:isWithin(x, y) then
-			if not dryrun then
+			if released then
 				if self.infoPanel:isShown() and self.infoPanelShowing == type then
 					soundManager:playEffect("drawerClosed")
 					self.infoPanel:hide()
@@ -332,20 +340,35 @@ function GUI:handlePress(x, y, dryrun)
 	end
 
 	if self.infoPanel:isShown() and self.infoPanel:isWithin(x, y) then
-		if not dryrun then
+		if released then
 			soundManager:playEffect("drawerSelected")
 			-- Maybe add "self:_clearPlacing()" here?
 			self.infoPanel:handlePress(x, y)
 		end
 		return true
 	elseif self.detailsPanel:isShown() and self.detailsPanel:isWithin(x, y) then
-		if not dryrun then
-			self.detailsPanel:handlePress(x, y)
-		end
+		self.detailsPanel:handlePress(x, y, released)
 		return true
 	end
 
 	return false
+end
+
+function GUI:_handleDetailsButtonPress(button)
+	local selection = state:getSelection()
+	if button == "runestone-upgrade" then
+		selection:add(ConstructionComponent(BuildingComponent.RUNESTONE, selection:get("RunestoneComponent"):getLevel()))
+		selection:add(AssignmentComponent(4))
+		selection:get("SpriteComponent"):setNeedsRefresh(true)
+	elseif button == "runestone-upgrade-cancel" then
+		for _,assignee in ipairs(selection:get("AssignmentComponent"):getAssignees()) do
+			self.eventManager:fireEvent(UnassignedEvent(selection, assignee))
+		end
+		-- TODO: Handle added/committed resources
+		selection:remove("ConstructionComponent")
+		selection:remove("AssignmentComponent")
+		selection:get("SpriteComponent"):setNeedsRefresh(true)
+	end
 end
 
 function GUI:_clearPlacing()

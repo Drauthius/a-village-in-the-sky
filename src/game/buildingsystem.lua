@@ -1,5 +1,7 @@
 local lovetoys = require "lib.lovetoys.lovetoys"
 
+local RunestoneUpgradedEvent = require "src.game.runestoneupgradedevent"
+
 local AnimationComponent = require "src.game.animationcomponent"
 local AssignmentComponent = require "src.game.assignmentcomponent"
 local BuildingComponent = require "src.game.buildingcomponent"
@@ -23,10 +25,11 @@ function BuildingSystem.requires()
 	return {"BuildingComponent"}
 end
 
-function BuildingSystem:initialize(engine)
+function BuildingSystem:initialize(engine, eventManager)
 	lovetoys.System.initialize(self)
 
 	self.engine = engine
+	self.eventManager = eventManager
 end
 
 function BuildingSystem:update(dt)
@@ -78,6 +81,11 @@ function BuildingSystem:buildingCompletedEvent(event)
 
 		-- We'll save it here for now.
 		building.propeller = propeller
+	elseif type == BuildingComponent.RUNESTONE then
+		-- XXX: Might not want to handle it here?
+		entity:get("RunestoneComponent"):setLevel(entity:get("RunestoneComponent"):getLevel() + 1)
+		entity:get("SpriteComponent"):setNeedsRefresh(true)
+		self.eventManager:fireEvent(RunestoneUpgradedEvent(entity))
 	else
 		error("Dunno what to do with "..tostring(typeName).." :(")
 	end

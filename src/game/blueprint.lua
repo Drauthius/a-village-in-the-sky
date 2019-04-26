@@ -53,14 +53,17 @@ function Blueprint:createPlacingBuilding(type)
 end
 
 function Blueprint:createRunestone(level)
-	level = level or 0
+	level = level or 1
 	local runestone = lovetoys.Entity()
-	local sprite = spriteSheet:getSprite("monolith "..(level*2))
-	local collision = spriteSheet:getSprite("monolith (Grid information) "..(level*2))
+	-- XXX: Would be nice if the sprite could be added by a refresh, but the interactive component won't really have it.
+	local sprite = spriteSheet:getSprite("runestone "..((level-1)*2))
+	local collision = spriteSheet:getSprite("runestone (Grid information) 0")
 
 	runestone:add(CollisionComponent(collision))
 	runestone:add(SpriteComponent(sprite))
 	runestone:add(RunestoneComponent(level))
+	-- XXX: Don't really need this, but we do need it.
+	runestone:add(BuildingComponent(BuildingComponent.RUNESTONE))
 
 	return runestone
 end

@@ -355,6 +355,7 @@ function RenderSystem:_drawEntity(i, entity)
 	local sprite = entity:get("SpriteComponent")
 	sprite:setDrawIndex(i)
 	local dx, dy = sprite:getDrawPosition()
+	local oldViewport
 
 	local newColors
 	if entity:has("ColorSwapComponent") and next(entity:get("ColorSwapComponent"):getReplacedColors()) then
@@ -383,25 +384,29 @@ function RenderSystem:_drawEntity(i, entity)
 
 	-- Transparent background for buildings under construction, and setup for the non-transparent part.
 	if entity:has("ConstructionComponent") then
-		love.graphics.setColor(1, 1, 1, 0.5)
-		spriteSheet:draw(sprite:getSprite(), dx, dy)
+		local underConstruction = not entity:has("RunestoneComponent")
 
-		-- Draw the outline in full technicolor...
-		love.graphics.setColor(1, 1, 1, 1)
-		RenderSystem.COLOR_OUTLINE_SHADER:send("outlineOnly", true)
-		spriteSheet:draw(sprite:getSprite(), dx, dy)
-		RenderSystem.COLOR_OUTLINE_SHADER:send("outlineOnly", false)
+		if underConstruction then
+			love.graphics.setColor(1, 1, 1, 0.5)
+			spriteSheet:draw(sprite:getSprite(), dx, dy)
 
-		local percent = entity:get("ConstructionComponent"):getPercentDone()
-		local quad = sprite:getSprite():getQuad()
-		local x, y, w, h = quad:getViewport()
-		sprite.oldViewport = { x, y, w, h }
-		local _, ty, _, th = sprite:getSprite():getTrimmedDimensions()
+			-- Draw the outline in full technicolor...
+			love.graphics.setColor(1, 1, 1, 1)
+			RenderSystem.COLOR_OUTLINE_SHADER:send("outlineOnly", true)
+			spriteSheet:draw(sprite:getSprite(), dx, dy)
+			RenderSystem.COLOR_OUTLINE_SHADER:send("outlineOnly", false)
 
-		local deficit = th - th * percent / 100
-		deficit = math.floor(deficit) -- Looks a bit weird with fractions.
-		quad:setViewport(x, y + ty + deficit, w, th - deficit)
-		dy = dy + ty + deficit
+			local percent = entity:get("ConstructionComponent"):getPercentDone()
+			local quad = sprite:getSprite():getQuad()
+			local x, y, w, h = quad:getViewport()
+			oldViewport = { x, y, w, h }
+			local _, ty, _, th = sprite:getSprite():getTrimmedDimensions()
+
+			local deficit = th - th * percent / 100
+			deficit = math.floor(deficit) -- Looks a bit weird with fractions.
+			quad:setViewport(x, y + ty + deficit, w, th - deficit)
+			dy = dy + ty + deficit
+		end
 	end
 
 	love.graphics.setColor(sprite:getColor())
@@ -440,30 +445,32 @@ function RenderSystem:_drawEntity(i, entity)
 	-- Reset
 	RenderSystem.COLOR_OUTLINE_SHADER:send("numColorReplaces", 1)
 	RenderSystem.COLOR_OUTLINE_SHADER:send("newColor", RenderSystem.NEW_OUTLINE_COLOR)
+	if oldViewport then
+		-- Reset quad
+		local quad = sprite:getSprite():getQuad()
+		quad:setViewport(unpack(oldViewport))
+	end
 
 	-- Text overlay
 	if entity:has("ConstructionComponent") then
-		-- Reset quad
-		local quad = sprite:getSprite():getQuad()
-		quad:setViewport(unpack(sprite.oldViewport))
-		sprite.oldViewport = nil
-
-		-- Prepare text
 		local percent = entity:get("ConstructionComponent"):getPercentDone()
 		love.graphics.setFont(self.font)
-		local grid = entity:get("PositionComponent"):getGrid()
-		local gi, gj = grid.gi, grid.gj
-		-- XXX: HACK
-		local ox, oy = 4, 2
-		local Fx, Fy = (gi - gj) * ox, (gi + gj) * oy
-		Fy = Fy - oy * 2 - self.font:getHeight()
+		percent = percent .. "%"
+
+		local fw, fh = self.font:getWidth(percent), self.font:getHeight()
+
+		-- Calculate position
+		dx, dy = sprite:getDrawPosition()
+		local tx, ty, tw, th = sprite:getSprite():getTrimmedDimensions()
+		dx = dx + tx + (tw - fw) / 2
+		dy = dy + ty + (th - fh) / 1.5 -- Pull it down a bit
 
 		-- Drop shadow
 		love.graphics.setColor(0, 0, 0, 0.5)
-		love.graphics.print(percent .. "%", Fx + 1, Fy + 1)
+		love.graphics.print(percent, dx + 1, dy + 1)
 		-- Text
 		love.graphics.setColor(1, 1, 1, 1)
-		love.graphics.print(percent .. "%", Fx, Fy)
+		love.graphics.print(percent, dx, dy)
 	end
 end
 

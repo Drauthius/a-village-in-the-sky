@@ -12,9 +12,9 @@
 --    * Freeing of dead villagers is not handled properly.
 --  - Next:
 --    * Proper fonts and font creation.
---    * Upgrading runestones.
 --    * Unselect things (in the GUI/detailspanel) that disappear (e.g. villager dies).
 --    * Tutorial mode.
+--    * Cancelling/destroying buildings.
 --  - Refactoring:
 --    * There is little reason to have the VillagerComponent be called "VillagerComponent", other than symmetry.
 --    * Either consolidate production/construction components (wrt input), or maybe add an "input" component?
@@ -24,6 +24,7 @@
 --    * "Button is next" for the tutorial.
 --  - More sprites:
 --    * Event button has a new event (maybe just want to add a text number?).
+--    * Pressed/down layer.
 --    * New blacksmith building.
 --    * More villager fixes
 --      - Shading when walking is off (for children at least).
@@ -40,7 +41,11 @@
 --      minimize/maximize.
 --  - Details panel:
 --    * Fill up details panel with correct information
---      Villager stuff, Monolith, wait with other things.
+--      Villager stuff, wait with other things.
+--    * Runestone
+--      Cost to upgrade.
+--      Refund if cancelled.
+--      Confirmation dialogue when cancelling.
 --  - Localization:
 --    * Font support
 --    * Details panel
@@ -158,7 +163,7 @@ function Game:enter()
 	self.engine = lovetoys.Engine()
 	self.eventManager = lovetoys.EventManager()
 
-	local buildingSystem = BuildingSystem(self.engine)
+	local buildingSystem = BuildingSystem(self.engine, self.eventManager)
 	local fieldSystem = FieldSystem(self.engine, self.eventManager, self.map)
 	local placingSystem = PlacingSystem(self.map)
 	local pregnancySystem = PregnancySystem(self.eventManager)
@@ -212,14 +217,15 @@ function Game:enter()
 	self.eventManager:addListener("TargetUnreachableEvent", villagerSystem, villagerSystem.targetUnreachableEvent)
 	self.eventManager:addListener("TileDroppedEvent", renderSystem, renderSystem.onTileDropped)
 	self.eventManager:addListener("TilePlacedEvent", renderSystem, renderSystem.onTilePlaced)
+	self.eventManager:addListener("UnassignedEvent", villagerSystem, villagerSystem.unassignedEvent)
 	self.eventManager:addListener("VillagerAgedEvent", pregnancySystem, pregnancySystem.villagerAgedEvent)
 	self.eventManager:addListener("VillagerAgedEvent", villagerSystem, villagerSystem.villagerAgedEvent)
+	self.eventManager:addListener("WorkCompletedEvent", villagerSystem, villagerSystem.workCompletedEvent)
 	self.eventManager:addListener("WorkEvent", fieldSystem, fieldSystem.workEvent)
 	self.eventManager:addListener("WorkEvent", workSystem, workSystem.workEvent)
-	self.eventManager:addListener("WorkCompletedEvent", villagerSystem, villagerSystem.workCompletedEvent)
 
 	self.worldCanvas = love.graphics.newCanvas()
-	self.gui = GUI(self.engine)
+	self.gui = GUI(self.engine, self.eventManager)
 
 	self.level:initiate(self.engine, self.map)
 
@@ -346,7 +352,7 @@ function Game:mousepressed(x, y)
 	local sx, sy = screen:getCoordinate(x, y)
 
 	-- Don't allow dragging the camera when it starts on a GUI element.
-	if self.gui:handlePress(sx, sy, true) then
+	if self.gui:handlePress(sx, sy, false) then
 		return
 	end
 
@@ -386,7 +392,7 @@ function Game:mousereleased(x, y)
 	x, y = screen:getCoordinate(x, y)
 
 	if not self.dragging or not self.dragging.dragged or self.dragging.released then
-		if not self.gui:handlePress(x, y) then
+		if not self.gui:handlePress(x, y, true) then
 			if state:isPlacing() then
 				local placing = state:getPlacing()
 				if placing:has("TileComponent") then

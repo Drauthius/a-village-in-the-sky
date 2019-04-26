@@ -129,6 +129,12 @@ function SpriteSystem:update(dt)
 
 				entity:get("SpriteComponent"):setSprite(sprite)
 			end
+			if entity:has("RunestoneComponent") then
+				local offset = entity:has("ConstructionComponent") and 1 or 0
+				local sprite = spriteSheet:getSprite("runestone " .. ((entity:get("RunestoneComponent"):getLevel()-1) * 2 + offset))
+
+				entity:get("SpriteComponent"):setSprite(sprite)
+			end
 
 			entity:get("SpriteComponent"):setNeedsRefresh(false)
 		end

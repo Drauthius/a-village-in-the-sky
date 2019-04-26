@@ -27,12 +27,43 @@ ConstructionComponent.static.MATERIALS = {
 		[ResourceComponent.WOOD] = 15,
 		[ResourceComponent.IRON] = 3,
 		[ResourceComponent.TOOL] = 3
+	},
+	[BuildingComponent.RUNESTONE] = {
+		-- Stages
+		[1] = {
+			[ResourceComponent.WOOD] = 1,
+			[ResourceComponent.IRON] = 0,
+			[ResourceComponent.TOOL] = 2
+		},
+		[2] = {
+			[ResourceComponent.WOOD] = 2,
+			[ResourceComponent.IRON] = 2,
+			[ResourceComponent.TOOL] = 3
+		},
+		[3] = {
+			[ResourceComponent.WOOD] = 4,
+			[ResourceComponent.IRON] = 6,
+			[ResourceComponent.TOOL] = 4
+		},
+		[4] = {
+			[ResourceComponent.WOOD] = 8,
+			[ResourceComponent.IRON] = 14,
+			[ResourceComponent.TOOL] = 5
+		},
+		[5] = {
+			[ResourceComponent.WOOD] = 14,
+			[ResourceComponent.IRON] = 18,
+			[ResourceComponent.TOOL] = 6
+		}
 	}
 }
 
-function ConstructionComponent:initialize(type)
+function ConstructionComponent:initialize(type, level)
 	self.buildingType = type
 	self.resourcesLeft = table.clone(ConstructionComponent.MATERIALS[self.buildingType])
+	if level then
+		self.resourcesLeft = self.resourcesLeft[level]
+	end
 	assert(self.resourcesLeft, "Missing resource information for building type "..tostring(self.buildingType))
 
 	self.numCommittedResources = 0
@@ -108,7 +139,7 @@ end
 
 function ConstructionComponent:unreserveResource(resource, amount)
 	self.resourcesLeft[resource] = self.resourcesLeft[resource] + amount
-	assert(self.resourcesLeft[resource] <= ConstructionComponent.MATERIALS[self.buildingType][resource])
+	--assert(self.resourcesLeft[resource] <= ConstructionComponent.MATERIALS[self.buildingType][resource])
 end
 
 function ConstructionComponent:reserveGrid(villager, workGrid)

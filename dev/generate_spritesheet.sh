@@ -15,11 +15,22 @@ blacksmith.aseprite
 dwelling.aseprite
 field.aseprite
 iron.aseprite
-monolith.aseprite
+runestone.aseprite
 )
 
 split=(
 field-single.aseprite
+)
+
+hairy_layer='Hairy'
+villagers=(
+villagers-action.aseprite
+villagers.aseprite
+)
+
+down_layer='Down'
+buttons=(
+details-button.aseprite
 )
 
 other=(
@@ -54,12 +65,6 @@ wood-resource.aseprite
 year-panel.aseprite
 )
 
-hairy_layer='Hairy'
-villagers=(
-villagers-action.aseprite
-villagers.aseprite
-)
-
 cd "$dir"
 
 echo 'Verifying sprites.'
@@ -83,11 +88,26 @@ for variant in hairy unhairy; do
 	done
 done
 
+button_variants=()
+for variant in down up; do
+	if [ "$variant" = 'up' ]; then
+		button_variants+=(--ignore-layer "$down_layer")
+	fi
+	for button in "${buttons[@]}"; do
+		if ! $aseprite --list-layers "$button" | grep -q "^$down_layer$"; then
+			echo "$button is missing the '$down_layer' layer."
+		fi
+
+		button_variants+=( "$button" )
+	done
+done
+
 echo 'Creating spritesheet.'
 $aseprite --inner-padding 1 --list-tags --list-slices --ignore-empty \
 	--sheet "${output}.png" --data "${output}.json" --sheet-type packed \
 	"${buildings[@]}" "${other[@]}" \
 	"${villager_variants[@]}" \
+	"${button_variants[@]}" \
 	--split-layers "${split[@]}" \
 	--layer "$grid_info_layer" "${buildings[@]}" \
 	--color-mode rgb \
@@ -97,16 +117,31 @@ $aseprite --inner-padding 1 --list-tags --list-slices --ignore-empty \
 # The frames are counted starting from zero, and then reset when the non-hairy variant appears.
 gawk -i inplace 'BEGIN { normal=0; action=0; }
 {
-	if(match($0,/villagers ([0-9]+)/,m)) {
+	if(match($0,/villagers ([0-9]+).aseprite/,m)) {
 		if(m[1] == normal) {
 			gsub(m[1], "(Hairy) " m[1])
 			normal+=1
 		}
 	}
-	else if(match($0,/villagers-action ([0-9]+)/,m)) {
+	else if(match($0,/villagers-action ([0-9]+).aseprite/,m)) {
 		if(m[1] == action) {
 			gsub(m[1], "(Hairy) " m[1])
 			action+=1
+		}
+	}
+	print $0
+}' "${output}.json"
+
+# Same thing for the buttons, just that the default files are also renamed.
+gawk -i inplace '
+{
+	if(match($0,/details-button.aseprite/)) {
+		if(!map[$1]) {
+			map[$1]="true"
+			gsub("button", "& (Down)")
+		}
+		else {
+			gsub("button", "& (Up)")
 		}
 	}
 	print $0

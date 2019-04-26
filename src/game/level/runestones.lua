@@ -21,7 +21,7 @@ function RunestoneLevel:initiate(engine, map)
 		engine:addEntity(tile)
 		map:addTile(TileComponent.GRASS, unpack(tiles))
 
-		local runestone = blueprint:createRunestone(i-1)
+		local runestone = blueprint:createRunestone(i)
 		local x, y, minGrid, maxGrid = map:addObject(runestone, unpack(tiles))
 		runestone:get("SpriteComponent"):setDrawPosition(x, y)
 		runestone:add(PositionComponent(minGrid, maxGrid, unpack(tiles)))

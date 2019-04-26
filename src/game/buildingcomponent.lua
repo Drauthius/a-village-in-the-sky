@@ -6,12 +6,14 @@ BuildingComponent.static.DWELLING = 0
 BuildingComponent.static.BLACKSMITH = 1
 BuildingComponent.static.FIELD = 2
 BuildingComponent.static.BAKERY = 3
+BuildingComponent.static.RUNESTONE = 4 -- Not technically a building, but required for construction sites.
 
 BuildingComponent.static.BUILDING_NAME = {
 	[BuildingComponent.static.DWELLING] = "dwelling",
 	[BuildingComponent.static.BLACKSMITH] = "blacksmith",
 	[BuildingComponent.static.FIELD] = "field",
-	[BuildingComponent.static.BAKERY] = "bakery"
+	[BuildingComponent.static.BAKERY] = "bakery",
+	[BuildingComponent.static.RUNESTONE] = "runestone",
 }
 
 function BuildingComponent:initialize(type, ti, tj)

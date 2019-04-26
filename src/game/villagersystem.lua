@@ -5,6 +5,7 @@ local AssignedEvent = require "src.game.assignedevent"
 local BuildingEnteredEvent = require "src.game.buildingenteredevent"
 local BuildingLeftEvent = require "src.game.buildingleftevent"
 local ChildbirthStartedEvent = require "src.game.childbirthstartedevent"
+local UnassignedEvent = require "src.game.unassignedevent"
 local VillagerAgedEvent = require "src.game.villageragedevent"
 
 local AdultComponent = require "src.game.adultcomponent"
@@ -643,18 +644,6 @@ function VillagerSystem:assignedEvent(event)
 	local adult = entity:get("AdultComponent")
 	local villager = entity:get("VillagerComponent")
 
-	self.homeRelatedGoals = self.homeRelatedGoals or {
-		VillagerComponent.GOALS.FOOD_PICKUP,
-		VillagerComponent.GOALS.FOOD_DROPOFF,
-		VillagerComponent.GOALS.SLEEP,
-		VillagerComponent.GOALS.EAT,
-		VillagerComponent.GOALS.CHILDBIRTH
-	}
-	self.workRelatedGoals = self.workRelatedGoals or {
-		VillagerComponent.GOALS.WORK_PICKUP,
-		VillagerComponent.GOALS.WORK
-	}
-
 	if site:has("DwellingComponent") then
 		local oldHome = villager:getHome()
 
@@ -668,17 +657,7 @@ function VillagerSystem:assignedEvent(event)
 					site:get("DwellingComponent"):setNumGirls(site:get("DwellingComponent"):getNumGirls() - 1)
 				end
 			else
-				oldHome:get("AssignmentComponent"):unassign(entity)
-				oldHome:get("DwellingComponent"):setRelated(false) -- Can't be related to yourself!
-
-				for _,goal in ipairs(self.homeRelatedGoals) do
-					if villager:getGoal() == goal then
-						self:_stopAll(entity)
-						self:_prepare(entity)
-						villager:setGoal(VillagerComponent.GOALS.NONE)
-						break
-					end
-				end
+				self:unassignedEvent(UnassignedEvent(oldHome, entity))
 			end
 		end
 
@@ -781,18 +760,9 @@ function VillagerSystem:assignedEvent(event)
 		if workPlace == site then
 			-- If already working there, then nothing needs to be done.
 			return
+		elseif workPlace then
+			self:unassignedEvent(UnassignedEvent(workPlace, entity))
 		end
-
-		for _,goal in ipairs(self.workRelatedGoals) do
-			if villager:getGoal() == goal then
-				self:_stopAll(entity)
-				self:_prepare(entity)
-				villager:setGoal(VillagerComponent.GOALS.NONE)
-				break
-			end
-		end
-
-		self:_unassignWork(entity)
 
 		adult:setWorkArea(site:get("PositionComponent"):getTile())
 
@@ -823,6 +793,50 @@ function VillagerSystem:assignedEvent(event)
 	end
 
 	villager:setDelay(VillagerSystem.TIMERS.ASSIGNED_DELAY)
+end
+
+function VillagerSystem:unassignedEvent(event)
+	local entity = event:getAssignee()
+	local site = event:getAssigner()
+	local villager = entity:get("VillagerComponent")
+
+	self.homeRelatedGoals = self.homeRelatedGoals or {
+		VillagerComponent.GOALS.FOOD_PICKUP,
+		VillagerComponent.GOALS.FOOD_DROPOFF,
+		VillagerComponent.GOALS.SLEEP,
+		VillagerComponent.GOALS.EAT,
+		VillagerComponent.GOALS.CHILDBIRTH
+	}
+	self.workRelatedGoals = self.workRelatedGoals or {
+		VillagerComponent.GOALS.WORK_PICKUP,
+		VillagerComponent.GOALS.WORK
+	}
+
+
+	if site:has("DwellingComponent") then
+		site:get("AssignmentComponent"):unassign(entity)
+		site:get("DwellingComponent"):setRelated(false) -- Can't be related to yourself!
+
+		for _,goal in ipairs(self.homeRelatedGoals) do
+			if villager:getGoal() == goal then
+				self:_stopAll(entity)
+				self:_prepare(entity)
+				villager:setGoal(VillagerComponent.GOALS.NONE)
+				break
+			end
+		end
+	else
+		for _,goal in ipairs(self.workRelatedGoals) do
+			if villager:getGoal() == goal then
+				self:_stopAll(entity)
+				self:_prepare(entity)
+				villager:setGoal(VillagerComponent.GOALS.NONE)
+				break
+			end
+		end
+
+		self:_unassignWork(entity)
+	end
 end
 
 function VillagerSystem:buildingEnteredEvent(event)

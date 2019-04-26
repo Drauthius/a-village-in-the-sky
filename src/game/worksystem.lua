@@ -26,19 +26,35 @@ WorkSystem.static.DIR_CONV = {
 	NW = { -1, -1 }
 }
 
+-- How long it takes to perform one animation frame (guesstimate).
+WorkSystem.static.DEFAULT_ANIMATION_SPEED = 0.2 * 4
+-- How much completion is added per animation.
 WorkSystem.static.COMPLETION = {
 	-- How many animation frames to require before the resource is completed.
 	-- Applies to both trees and rocks, at the moment.
 	-- (45 seconds for 4 animations (1 cycle) with default 0.2 seconds for each animation)
-	RESOURCE = 100 / (45 / (0.2 * 4)),
+	RESOURCE = 100 / (45 / WorkSystem.DEFAULT_ANIMATION_SPEED),
 	BUILDING = {
 		-- (2 minutes for 4 animations (1 cycle) with default 0.2 seconds for each animation)
-		[BuildingComponent.DWELLING] = 100 / (120 / (0.2 * 4)),
-		[BuildingComponent.BLACKSMITH] = 100 / (120 / (0.2 * 4)),
+		[BuildingComponent.DWELLING] = 100 / (120 / WorkSystem.DEFAULT_ANIMATION_SPEED),
+		[BuildingComponent.BLACKSMITH] = 100 / (120 / WorkSystem.DEFAULT_ANIMATION_SPEED),
 		-- (1 minute)
-		[BuildingComponent.FIELD] = 100 / (60 / (0.2 * 4)),
+		[BuildingComponent.FIELD] = 100 / (60 / WorkSystem.DEFAULT_ANIMATION_SPEED),
 		-- (4 minutes)
-		[BuildingComponent.BAKERY] = 100 / (240 / (0.2 * 4))
+		[BuildingComponent.BAKERY] = 100 / (240 / WorkSystem.DEFAULT_ANIMATION_SPEED),
+		-- Different per level
+		[BuildingComponent.RUNESTONE] = {
+			-- (2 minutes)
+			[1] = 100 / (120 / WorkSystem.DEFAULT_ANIMATION_SPEED),
+			-- (3 minutes)
+			[2] = 100 / (180 / WorkSystem.DEFAULT_ANIMATION_SPEED),
+			-- (4 minutes)
+			[3] = 100 / (240 / WorkSystem.DEFAULT_ANIMATION_SPEED),
+			-- (6 minutes)
+			[4] = 100 / (360 / WorkSystem.DEFAULT_ANIMATION_SPEED),
+			-- (10 minutes)
+			[5] = 100 / (600 / WorkSystem.DEFAULT_ANIMATION_SPEED)
+		}
 	},
 	PRODUCING = {
 		-- Numbers are completion per second.
@@ -111,7 +127,11 @@ function WorkSystem:workEvent(event)
 
 	if workPlace:has("ConstructionComponent") then
 		local construction = workPlace:get("ConstructionComponent")
-		construction:commitResources(WorkSystem.COMPLETION.BUILDING[construction:getType()])
+		local committing = WorkSystem.COMPLETION.BUILDING[construction:getType()]
+		if workPlace:has("RunestoneComponent") then
+			committing = committing[workPlace:get("RunestoneComponent"):getLevel()]
+		end
+		construction:commitResources(committing)
 
 		soundManager:playEffect("building")
 

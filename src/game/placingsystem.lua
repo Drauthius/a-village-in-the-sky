@@ -27,7 +27,7 @@ PlacingSystem.static.OUTLINE_COLOR = { 0, 0.8, 0.8, 0.8 }
 PlacingSystem.static.OUTLINE_SIZE = 2
 
 function PlacingSystem.requires()
-	return {placing = {"PlacingComponent"}, runestones = {"RunestoneComponent"}}
+	return { placing = {"PlacingComponent"}, runestones = {"RunestoneComponent"} }
 end
 
 function PlacingSystem:initialize(map)
@@ -126,7 +126,7 @@ end
 
 function PlacingSystem:onAddEntity(entity)
 	if entity:has("RunestoneComponent") then
-		local reach = entity:get("RunestoneComponent"):getLevel() + 1
+		local reach = entity:get("RunestoneComponent"):getLevel()
 		local ti, tj = entity:get("PositionComponent"):getTile()
 
 		for oi=-reach,reach do
@@ -167,6 +167,7 @@ function PlacingSystem:_recalculateTileArea()
 	-- The border is a bit lazily calculated using filled polygons that then are limited to an outline using a shader.
 	-- This requires to draw to a canvas, instead of having a list of points that are drawn. A bit more computational
 	-- expensive, but easier to implement.
+	-- FIXME: Sharp corners (e.g. L-shaped) are somewhat cut off.
 	if not next(self.polygons) then
 		self.tileArea = nil
 		return
