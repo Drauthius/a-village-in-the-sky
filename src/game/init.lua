@@ -11,10 +11,39 @@
 --    * Villagers standing on a reserved grid can rotate around spastically trying to find a way to move.
 --    * Freeing of dead villagers is not handled properly.
 --  - Next:
+--    * Scale work time based on year (faster early on, slower later)
 --    * Proper fonts and font creation.
---    * Unselect things (in the GUI/detailspanel) that disappear (e.g. villager dies).
+--      Convert TTF to BMFont for crisp pixel graphics.
+--      Fallback fonts.
+--    * Unselect things (in the GUI/detailspanel) that disappear (e.g. villager dies, building destroyed).
 --    * Tutorial mode.
+--      Show panel.
+--      Options:
+--        - Passage of time
+--          Year count increasing
+--          Year panel shown
+--        - Homeless indicator
+--          Hide icon
+--        - Tile selection
+--          Limit to grass tile initially
+--        - Building selection
+--          Limit to dwelling initially
+--    * Indicator for building cost
+--      Either populate the details panel when hovering/selecting, or add small indicators next to the choices.
+--      - Small indicators might be hard to read/see on mobile.
+--      + Small indicators avoid having to click on the different things to see what they require.
+--    * Construction header
+--      Show icon for the type of building, or an icon showing that it is under construction?
+--      Show % complete in the header instead/also?
+--      Show needed/committed resources in the header and/or details panel.
+--    * Building header
+--      Show icon for the type of building?
+--      Show stored resources in the header and/or details panel?
+--      Show completion in the header and/or details panel?
+--        This can probably be done by using a circle thingy around the assigned villagers in the header.
 --    * Cancelling/destroying buildings.
+--      Refund some resources.
+--      Handle assigned villagers.
 --  - Refactoring:
 --    * There is little reason to have the VillagerComponent be called "VillagerComponent", other than symmetry.
 --    * Either consolidate production/construction components (wrt input), or maybe add an "input" component?

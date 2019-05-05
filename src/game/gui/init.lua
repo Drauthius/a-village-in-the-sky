@@ -3,6 +3,7 @@ local babel = require "lib.babel"
 
 local DetailsPanel = require "src.game.gui.detailspanel"
 local InfoPanel = require "src.game.gui.infopanel"
+local ResourcePanel = require "src.game.gui.resourcepanel"
 local Widget = require "src.game.gui.widget"
 
 local UnassignedEvent = require "src.game.unassignedevent"
@@ -10,9 +11,7 @@ local UnassignedEvent = require "src.game.unassignedevent"
 local AssignmentComponent = require "src.game.assignmentcomponent"
 local BuildingComponent = require "src.game.buildingcomponent"
 local ConstructionComponent = require "src.game.constructioncomponent"
-local ResourceComponent = require "src.game.resourcecomponent"
 local TileComponent = require "src.game.tilecomponent"
-local WorkComponent = require "src.game.workcomponent"
 
 local blueprint = require "src.game.blueprint"
 local screen = require "src.screen"
@@ -28,52 +27,12 @@ function GUI:initialize(engine, eventManager)
 
 	self.screenWidth, self.screenHeight = screen:getDimensions()
 
-	self.resourceFont = love.graphics.newFont("asset/font/Norse-Bold.otf", 16)
 	self.menuFont = love.graphics.newFont("asset/font/Norse.otf", 26)
 	self.yearPanel = spriteSheet:getSprite("year-panel")
 	self.yearPanel.number = spriteSheet:getData("year-number")
 	self.yearPanel.text = spriteSheet:getData("year-text")
 	self.menuButton = spriteSheet:getSprite("menu-button")
 	self.menuButton.data = spriteSheet:getData("menutext-position")
-
-	self.resourcePanel = {
-		sprite = spriteSheet:getSprite("resource-panel"),
-		resources = {
-			ResourceComponent.WOOD,
-			ResourceComponent.IRON,
-			ResourceComponent.TOOL,
-			ResourceComponent.GRAIN,
-			ResourceComponent.BREAD
-		}
-	}
-
-	for _,resource in ipairs(self.resourcePanel.resources) do
-		local res = ResourceComponent.RESOURCE_NAME[resource]
-		local resCapitalized = res:gsub("^%l", string.upper)
-		local work = WorkComponent.WORK_NAME[WorkComponent.RESOURCE_TO_WORK[resource]]
-
-		self.resourcePanel[res] = {
-			sprite =spriteSheet:getSprite("headers", work .. "-icon"),
-			icon = spriteSheet:getData(resCapitalized .. "-icon"),
-			text = spriteSheet:getData(resCapitalized .. "-text")
-		}
-		self.resourcePanel[work] = {
-			sprite = spriteSheet:getSprite("headers", "occupied-icon"),
-			icon = spriteSheet:getData(resCapitalized .. "-occupation-icon"),
-			text = spriteSheet:getData(resCapitalized .. "-occupation-text")
-		}
-	end
-
-	self.resourcePanel.villagers = {
-		sprite = spriteSheet:getSprite("headers", "occupied-icon"),
-		icon = spriteSheet:getData("Villagers-icon"),
-		text = spriteSheet:getData("Villagers-text")
-	}
-	self.resourcePanel.children = {
-		sprite = spriteSheet:getSprite("headers", "occupied-icon"),
-		icon = spriteSheet:getData("Children-icon"),
-		text = spriteSheet:getData("Children-text")
-	}
 
 	-- Between buttons
 	local padding = 5
@@ -123,6 +82,8 @@ function GUI:initialize(engine, eventManager)
 		listPeople = self.listPeopleButton,
 		listBuilding = self.listBuildingButton
 	}
+
+	self.resourcePanel = ResourcePanel()
 
 	local leftx = self.tileButton:getPosition()
 	local left = self.tileButton:getDimensions()
@@ -174,59 +135,6 @@ end
 function GUI:draw()
 	love.graphics.setColor(1, 1, 1)
 
-	do -- Resource panel
-		local x = (self.screenWidth - self.resourcePanel.sprite:getWidth()) / 2
-		spriteSheet:draw(self.resourcePanel.sprite, x, 0)
-
-		for _,resource in ipairs(self.resourcePanel.resources) do
-			local res = ResourceComponent.RESOURCE_NAME[resource]
-			local work = WorkComponent.WORK_NAME[WorkComponent.RESOURCE_TO_WORK[resource]]
-
-			spriteSheet:draw(
-				self.resourcePanel[res].sprite,
-				x + self.resourcePanel[res].icon.bounds.x,
-				self.resourcePanel[res].icon.bounds.y)
-
-			spriteSheet:draw(
-				self.resourcePanel[work].sprite,
-				x + self.resourcePanel[work].icon.bounds.x,
-				self.resourcePanel[work].icon.bounds.y)
-
-			love.graphics.setFont(self.resourceFont)
-			love.graphics.setColor(0, 0, 0)
-			love.graphics.print(tostring(state:getNumResources(resource)),
-				x + self.resourcePanel[res].text.bounds.x,
-				self.resourcePanel[res].text.bounds.y)
-
-			love.graphics.print("0",
-				x + self.resourcePanel[work].text.bounds.x,
-				self.resourcePanel[work].text.bounds.y)
-
-			love.graphics.setColor(1, 1, 1)
-		end
-
-		spriteSheet:draw(
-			self.resourcePanel.villagers.sprite,
-			x + self.resourcePanel.villagers.icon.bounds.x,
-			self.resourcePanel.villagers.icon.bounds.y)
-		spriteSheet:draw(
-			self.resourcePanel.children.sprite,
-			x + self.resourcePanel.children.icon.bounds.x,
-			self.resourcePanel.children.icon.bounds.y)
-
-		love.graphics.setFont(self.resourceFont)
-		love.graphics.setColor(0, 0, 0)
-		love.graphics.print(tostring(state:getNumMaleVillagers() + state:getNumFemaleVillagers()),
-			x + self.resourcePanel.villagers.text.bounds.x,
-			self.resourcePanel.villagers.text.bounds.y)
-
-		love.graphics.print(tostring(state:getNumMaleChildren() + state:getNumFemaleChildren()),
-			x + self.resourcePanel.children.text.bounds.x,
-			self.resourcePanel.children.text.bounds.y)
-
-		love.graphics.setColor(1, 1, 1)
-	end
-
 	do -- Year panel
 		local x, y = 1, 1
 		spriteSheet:draw(self.yearPanel, x, y)
@@ -271,6 +179,7 @@ function GUI:draw()
 		widget:draw()
 	end
 
+	self.resourcePanel:draw()
 	self.infoPanel:draw()
 	self.detailsPanel:draw()
 end

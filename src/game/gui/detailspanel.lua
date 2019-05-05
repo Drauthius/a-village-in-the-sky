@@ -1,4 +1,4 @@
-local class = require "lib.middleclass"
+local Widget = require "src.game.gui.widget"
 
 local Button = require "src.game.gui.button"
 
@@ -6,7 +6,7 @@ local screen = require "src.screen"
 local spriteSheet = require "src.game.spritesheet"
 local state = require "src.game.state"
 
-local DetailsPanel = class("DetailsPanel")
+local DetailsPanel = Widget:subclass("DetailsPanel")
 
 function DetailsPanel:initialize(y, buttonEvents)
 	self.buttonEvents = buttonEvents
@@ -14,19 +14,14 @@ function DetailsPanel:initialize(y, buttonEvents)
 	self.font = love.graphics.newFont("asset/font/Norse.otf", 16)
 	self.fontBold = love.graphics.newFont("asset/font/Norse-Bold.otf", 16)
 
-	self.background = spriteSheet:getSprite("details-panel")
+	local background = spriteSheet:getSprite("details-panel")
 
 	local screenWidth, _ = screen:getDimensions()
-	self.bounds = {
-		x = screenWidth - self.background:getWidth(),
-		y = y - self.background:getHeight(),
-		w = self.background:getWidth(),
-		h = self.background:getHeight()
-	}
+	Widget.initialize(self, screenWidth - background:getWidth(), y - background:getHeight(), 0, 0, background)
 
 	local buttonSprite = spriteSheet:getSprite("details-button (Up)")
-	self.button = Button(self.bounds.x + (self.bounds.w - buttonSprite:getWidth()) / 2,
-	                     self.bounds.y + self.bounds.h - buttonSprite:getHeight() * 2,
+	self.button = Button(self.x + 2 + (background:getWidth() - buttonSprite:getWidth()) / 2,
+	                     self.y + background:getHeight() - buttonSprite:getHeight() - self.font:getHeight() - 6,
 	                     1, 5, "details-button", self.fontBold)
 
 	self.villagerDetails = {
@@ -38,6 +33,14 @@ function DetailsPanel:initialize(y, buttonEvents)
 		{ "Occupation", "getOccupationName", true },
 		{ "Strength", "getStrength" },
 		{ "Craftsmanship", "getCraftsmanship" }
+	}
+
+	local woodPalette = spriteSheet:getSprite("wood-palette")
+	self.woodPalette = {
+		outline = { woodPalette:getPixel(1, 0) },
+		bright = { woodPalette:getPixel(2, 0) },
+		medium = { woodPalette:getPixel(3, 0) },
+		dark = { woodPalette:getPixel(4, 0) }
 	}
 end
 
@@ -70,17 +73,22 @@ function DetailsPanel:draw()
 		return
 	end
 
-	spriteSheet:draw(self.background, self.bounds.x, self.bounds.y)
+	Widget.draw(self)
 
-	local x, y = self.bounds.x + 5, self.bounds.y + 13
+	-- XXX:
+	local RenderSystem = require "src.game.rendersystem"
 
-	love.graphics.setColor(0, 0, 0)
+	-- Start of the text stuff
+	local x, y = self.x + 5, self.y + 13
 
 	local selection = state:getSelection()
 
 	if selection:has("VillagerComponent") then
 		local villager = selection:get("VillagerComponent")
 		local adult = selection:has("AdultComponent") and selection:get("AdultComponent")
+
+		--love.graphics.setColor(0, 0, 0)
+		love.graphics.setColor(RenderSystem.NEW_OUTLINE_COLOR) -- XXX: True pixel font won't have this problem.
 
 		for _,details in ipairs(self.villagerDetails) do
 			local key, value, adultComp = details[1], details[2], details[3]
@@ -106,20 +114,63 @@ function DetailsPanel:draw()
 				y = y + math.floor(self.fontBold:getHeight() * 1.5)
 			end
 		end
+
+		love.graphics.setColor(1, 1, 1)
 	elseif selection:has("RunestoneComponent") then
 		local runestone = selection:get("RunestoneComponent")
 
+		--love.graphics.setColor(0, 0, 0)
+		love.graphics.setColor(RenderSystem.NEW_OUTLINE_COLOR) -- XXX: True pixel font won't have this problem.
 		love.graphics.setFont(self.fontBold)
 		love.graphics.print("Stage: ", x, y)
 
 		love.graphics.setFont(self.font)
 		love.graphics.print(tostring(runestone:getLevel()), x + self.fontBold:getWidth("Stage: "), y)
 
+		x, y = self.button:getPosition()
+		local w, h = self.button:getDimensions()
+		local ox = -1
+		local oy = self.font:getHeight() + 1
+		--love.graphics.setColor(self.woodPalette.medium)
+		--love.graphics.rectangle("fill", x - ox, y + 1, w + ox, h + oy)
+
+		love.graphics.setColor(self.woodPalette.outline)
+		love.graphics.setLineWidth(1)
+		love.graphics.setLineStyle("rough")
+		love.graphics.rectangle("line", x - ox, y + 1, w + ox, h + oy)
+
+		if not selection:has("ConstructionComponent") then
+			x = x - ox + 1
+			y = y + h + 2
+			love.graphics.print("Cost:", x, y)
+			x = x + self.font:getWidth("Cost: ")
+
+			-- XXX: Too much logic in the GUI?
+			local BuildingComponent = require "src.game.buildingcomponent"
+			local ConstructionComponent = require "src.game.constructioncomponent"
+			local ResourceComponent = require "src.game.resourcecomponent"
+			--local WorkComponent = require "src.game.workcomponent"
+			for resource,amount in pairs(ConstructionComponent.MATERIALS[BuildingComponent.RUNESTONE][runestone:getLevel()]) do
+				if amount > 0 then
+					love.graphics.setColor(RenderSystem.NEW_OUTLINE_COLOR) -- XXX: True pixel font won't have this problem.
+					love.graphics.print(amount.."x", x, y)
+					x = x + self.font:getWidth(amount.."x") + 1
+					--local name = WorkComponent.WORK_NAME[WorkComponent.RESOURCE_TO_WORK[resource]] -- XXX: This is silly
+					local name = ResourceComponent.RESOURCE_NAME[resource]
+					local sprite = spriteSheet:getSprite("headers", name.."-icon")
+					if not self.apa then
+						self.apa = 1
+					end
+					love.graphics.setColor(1, 1, 1)
+					spriteSheet:draw(sprite, x, math.floor(y - (self.font:getHeight() - sprite:getHeight()) / 2) + 1)
+					x = x + sprite:getWidth() + self.font:getWidth(" ")
+				end
+			end
+		end
+
 		love.graphics.setColor(1, 1, 1)
 		self.button:draw()
 	end
-
-	love.graphics.setColor(1, 1, 1)
 end
 
 function DetailsPanel:hide()
@@ -128,13 +179,6 @@ end
 
 function DetailsPanel:isShown()
 	return state:getSelection() ~= nil
-end
-
-function DetailsPanel:isWithin(x, y)
-	return x >= self.bounds.x and
-		   y >= self.bounds.y and
-		   x <= self.bounds.x + self.bounds.w and
-		   y <= self.bounds.y + self.bounds.h
 end
 
 function DetailsPanel:handlePress(x, y, released)

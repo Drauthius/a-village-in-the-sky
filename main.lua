@@ -9,13 +9,15 @@ local Game = require "src.game"
 local screen = require "src.screen"
 
 function love.load()
-	-- WTF. Default error handle apparently doesn't work.
-	love.errorhandler = love.errhand
-
 	--local Bound = require "lib.gui.bound"
 	--Bound.static.debug = true
 
+	-- Too lazy to specify all callbacks except the error handler.
+	-- (Why is the error handler even overridden?)
+	local errorhandler = love.errorhandler
 	GameState.registerEvents()
+	-- Restore the default error handler.
+	love.errorhandler = errorhandler
 
 	screen:setUp()
 	babel.init({

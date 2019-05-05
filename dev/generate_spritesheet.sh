@@ -61,6 +61,7 @@ spark.aseprite
 tool-resource.aseprite
 villagers-palette.aseprite
 windmill-blades.aseprite
+wood-palette.aseprite
 wood-resource.aseprite
 year-panel.aseprite
 )
