@@ -71,7 +71,6 @@ function DetailsPanel:draw()
 	end
 
 	spriteSheet:draw(self.background, self.bounds.x, self.bounds.y)
-	spriteSheet:draw(spriteSheet:getSprite("details-button (Down)"))
 
 	local x, y = self.bounds.x + 5, self.bounds.y + 13
 
