@@ -3171,6 +3171,7 @@
    { "name": "wood-icon", "color": "#0000ffff", "keys": [{ "frame": 0, "bounds": {"x": 154, "y": 0, "w": 13, "h": 13 } }] },
    { "name": "iron-icon", "color": "#0000ffff", "keys": [{ "frame": 0, "bounds": {"x": 154, "y": 14, "w": 13, "h": 13 } }] },
    { "name": "tool-icon", "color": "#0000ffff", "keys": [{ "frame": 0, "bounds": {"x": 154, "y": 28, "w": 13, "h": 13 } }] },
+   { "name": "arrow", "color": "#0000ffff", "keys": [{ "frame": 0, "bounds": {"x": 128, "y": 14, "w": 7, "h": 7 } }] },
    { "name": "menutext-position", "color": "#0000ffff", "keys": [{ "frame": 0, "bounds": {"x": 3, "y": 3, "w": 58, "h": 26 } }] },
    { "name": "Wood-icon", "color": "#0000ffff", "keys": [{ "frame": 0, "bounds": {"x": 43, "y": 18, "w": 13, "h": 13 } }] },
    { "name": "Wood-occupation-icon", "color": "#0000ffff", "keys": [{ "frame": 0, "bounds": {"x": 43, "y": 33, "w": 13, "h": 13 } }] },
