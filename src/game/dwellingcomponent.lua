@@ -7,6 +7,7 @@ function DwellingComponent:initialize()
 	self.gettingFood = false
 	self.numBoys = 0
 	self.numGirls = 0
+	self.children = {}
 	self.related = false
 end
 
@@ -40,6 +41,23 @@ end
 
 function DwellingComponent:setNumGirls(numGirls)
 	self.numGirls = numGirls
+end
+
+function DwellingComponent:addChild(child)
+	table.insert(self.children, child)
+end
+
+function DwellingComponent:removeChild(child)
+	for k,v in ipairs(self.children) do
+		if child == v then
+			table.remove(self.children, k)
+			return
+		end
+	end
+end
+
+function DwellingComponent:getChildren()
+	return self.children
 end
 
 function DwellingComponent:isRelated()

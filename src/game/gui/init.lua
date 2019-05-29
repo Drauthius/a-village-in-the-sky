@@ -1,5 +1,6 @@
-local class = require "lib.middleclass"
 local babel = require "lib.babel"
+local class = require "lib.middleclass"
+local vector = require "lib.hump.vector"
 
 local DetailsPanel = require "src.game.gui.detailspanel"
 local InfoPanel = require "src.game.gui.infopanel"
@@ -12,6 +13,7 @@ local AssignmentComponent = require "src.game.assignmentcomponent"
 local BuildingComponent = require "src.game.buildingcomponent"
 local ConstructionComponent = require "src.game.constructioncomponent"
 local TileComponent = require "src.game.tilecomponent"
+local WorkComponent = require "src.game.workcomponent"
 
 local blueprint = require "src.game.blueprint"
 local screen = require "src.screen"
@@ -21,9 +23,10 @@ local state = require "src.game.state"
 
 local GUI = class("GUI")
 
-function GUI:initialize(engine, eventManager)
+function GUI:initialize(engine, eventManager, map)
 	self.engine = engine
 	self.eventManager = eventManager
+	self.map = map
 
 	self.screenWidth, self.screenHeight = screen:getDimensions()
 
@@ -130,9 +133,100 @@ function GUI:update(dt)
 		end
 	end
 	self.detailsPanel:update(dt)
+
+	-- Update the arrows.
+	if state:getSelection() then
+		local selection = state:getSelection()
+		if true then --FIXME: Cache? -- if not self.arrows or self.arrows.selection ~= selection then
+			self.arrows = {}
+
+			self._getVillagerPosition = self._getVillagerPosition or function(villager, out)
+				out.x, out.y = villager:get("GroundComponent"):getIsometricPosition()
+
+				if not villager:has("PositionComponent") then -- Inside something
+					out.alwaysShow = true
+				end
+			end
+
+			local buildingIcon = spriteSheet:getSprite("headers", "house-icon")
+			local childIcon = spriteSheet:getSprite("headers", "child-icon")
+			local villagerIcon = spriteSheet:getSprite("headers", "occupied-icon")
+
+			if selection:has("VillagerComponent") then
+				local villager = {}
+				if selection:has("AdultComponent") then
+					villager.icon = villagerIcon
+				else
+					villager.icon = childIcon
+				end
+
+				self._getVillagerPosition(selection, villager)
+
+				table.insert(self.arrows, villager)
+
+				if selection:get("VillagerComponent"):getHome() then
+					local home = {
+						icon = buildingIcon,
+						alwaysShow = true
+					}
+
+					local targetGrid = selection:get("VillagerComponent"):getHome():get("PositionComponent"):getToGrid()
+					home.x, home.y = self.map:gridToWorldCoords(targetGrid.gi, targetGrid.gj)
+
+					table.insert(self.arrows, home)
+				end
+
+				if selection:has("AdultComponent") then
+					local adult = selection:get("AdultComponent")
+					local workPlace = adult:getWorkPlace()
+					local ti, tj = adult:getWorkArea()
+
+					if workPlace or ti then
+						local work = {
+							icon = spriteSheet:getSprite("headers", WorkComponent.WORK_NAME[adult:getOccupation()].."-icon"),
+							alwaysShow = true
+						}
+
+						if workPlace then
+							local targetGrid = workPlace:get("PositionComponent"):getToGrid()
+							work.x, work.y = self.map:gridToWorldCoords(targetGrid.gi, targetGrid.gj)
+						elseif ti and tj then
+							work.x, work.y = self.map:tileToWorldCoords(ti + 0.5, tj + 0.5)
+						end
+
+						table.insert(self.arrows, work)
+					end
+				end
+			elseif selection:has("AssignmentComponent") then
+				for _,assignee in ipairs(selection:get("AssignmentComponent"):getAssignees()) do
+					local villager = {
+						icon = villagerIcon,
+						alwaysShow = true
+					}
+					self._getVillagerPosition(assignee, villager)
+
+					table.insert(self.arrows, villager)
+				end
+
+				if selection:has("DwellingComponent") then
+					for _,child in ipairs(selection:get("DwellingComponent"):getChildren()) do
+						local villager = {
+							icon = childIcon,
+							alwaysShow = true
+						}
+						self._getVillagerPosition(child, villager)
+
+						table.insert(self.arrows, villager)
+					end
+				end
+			end
+		end
+	else
+		self.arrows = nil
+	end
 end
 
-function GUI:draw()
+function GUI:draw(camera)
 	love.graphics.setColor(1, 1, 1)
 
 	do -- Year panel
@@ -175,13 +269,99 @@ function GUI:draw()
 		love.graphics.setColor(1, 1, 1)
 	end
 
+	-- Buttons
 	for _,widget in pairs(self.widgets) do
 		widget:draw()
 	end
 
+	-- Misc widgets
 	self.resourcePanel:draw()
 	self.infoPanel:draw()
 	self.detailsPanel:draw()
+
+	-- Point an arrow to the selected thing.
+	-- Drawn above the UI, but in the world (for proper zoom effect).
+	-- XXX: Move this to somewhere else?
+	if self.arrows then
+		local drawArea = screen:getDrawArea()
+		camera:draw(drawArea.x, drawArea.y, drawArea.width, drawArea.height, function()
+			local arrowIcon = spriteSheet:getSprite("headers", "arrow")
+
+			for _,arrow in ipairs(self.arrows) do
+				-- Only point if it is off screen or close to the edges.
+				local cx, cy = camera:cameraCoords(arrow.x, arrow.y, drawArea.x, drawArea.y, drawArea.width, drawArea.height)
+				local ox, oy = drawArea.width / 5, drawArea.height / 5
+				if arrow.alwaysShow or
+				   cx <= drawArea.x + ox or cy <= drawArea.y + oy or cx >= drawArea.width - ox or cy >= drawArea.height - oy then
+					local halfWidth = drawArea.width / 2
+					local halfHeight = drawArea.height / 2
+
+					-- Centre of the screen (in screen/camera coordinates).
+					local center = vector(camera:worldCoords(halfWidth, halfHeight,
+					                                              drawArea.x, drawArea.y, drawArea.width, drawArea.height))
+					local x, y, angle
+
+					-- Angle between the points, with 3 o'clock being being zero degrees.
+					angle = math.atan2(arrow.x - center.x, -(arrow.y - center.y))
+					if angle < 0 then
+						angle = math.abs(angle)
+					else
+						angle = 2 * math.pi - angle
+					end
+
+					love.graphics.setColor(1, 1, 1, 1)
+					-- If inside the viewport
+					if cx >= drawArea.x and cy >= drawArea.y and cx <= drawArea.width and cy <= drawArea.height then
+						-- Draw the arrow (a bit away from the centre)
+						love.graphics.draw(spriteSheet:getImage(), arrowIcon:getQuad(), arrow.x, arrow.y, -angle + math.pi/4,
+						                   1, 1,
+						                   -arrow.icon:getWidth()/4 + 2, -arrow.icon:getHeight()/4 + 2)
+						-- Don't ask me about the different offsets and values.
+						local offset = arrow.icon:getWidth()/2 + arrowIcon:getWidth()
+						spriteSheet:draw(arrow.icon,
+						                 arrow.x - arrow.icon:getWidth()/2 + math.cos(-angle + math.pi/2) * offset,
+						                 arrow.y - arrow.icon:getHeight()/2 + math.sin(-angle + math.pi/2) * offset)
+					else -- Outside the viewport. Calculate which edge to put the arrow.
+						-- How far from the edge the arrow should be drawn (midpoint).
+						local offset = ((arrow.icon:getHeight() + arrowIcon:getHeight())/2) * camera.scale
+
+						-- Uses trigonometry to calculate where to put the arrow (in screen space).
+						local degrees = (math.deg(angle) + 360) % 360 -- For ease of use.
+						if degrees >= 300 or degrees <= 60 then -- Top
+							local top = offset
+							local w = (top - halfHeight) * math.tan(angle)
+							x = halfWidth + w
+							y = top
+						elseif degrees >= 240 then -- Right
+							local right = drawArea.width - offset
+							local h = (right - halfWidth) * math.tan(angle + 3*math.pi/2)
+							x = right
+							y = halfHeight - h
+						elseif degrees >= 120 then -- Bottom
+							local bottom = drawArea.height - offset
+							local w = (bottom - halfHeight) * math.tan(angle + math.pi)
+							x = halfWidth + w
+							y = bottom
+						elseif degrees > 60 then -- Left
+							local left = offset
+							local h = (left - halfWidth) * math.tan(angle + math.pi/2)
+							x = left
+							y = halfHeight - h
+						end
+
+						-- Convert to world coordinates.
+						x, y = camera:worldCoords(x, y, drawArea.x, drawArea.y, drawArea.width, drawArea.height)
+
+						-- Draw the arrow and icon.
+						love.graphics.draw(spriteSheet:getImage(), arrowIcon:getQuad(), x, y, -angle + math.pi/4,
+						                   1, 1,
+						                   arrow.icon:getWidth()/2 + 2, arrow.icon:getHeight()/2 + 2)
+						spriteSheet:draw(arrow.icon, x - arrow.icon:getWidth()/2, y - arrow.icon:getHeight()/2)
+					end
+				end
+			end
+		end)
+	end
 end
 
 function GUI:updateInfoPanel()

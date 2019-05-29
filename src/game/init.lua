@@ -33,16 +33,6 @@
 --      Either populate the details panel when hovering/selecting, or add small indicators next to the choices.
 --      - Small indicators might be hard to read/see on mobile.
 --      + Small indicators avoid having to click on the different things to see what they require.
---    * Arrows pointing to selected thing and relevant things.
---      Selecting a villager points to
---        Themselves (so they can be found in the world). Maybe hide this if on screen?
---        Their house
---        Their work site
---        Their spouse?
---        Their children/parents?
---      Selecting a building points to
---        Itself? Maybe hide this if on screen?
---        Their assignees
 --    * Selecting a runestone:
 --      Shows the area of influence?
 --      Shows the increased area of influence if upgraded?
@@ -274,7 +264,7 @@ function Game:enter()
 	self.eventManager:addListener("WorkEvent", workSystem, workSystem.workEvent)
 
 	self.worldCanvas = love.graphics.newCanvas()
-	self.gui = GUI(self.engine, self.eventManager)
+	self.gui = GUI(self.engine, self.eventManager, self.map)
 
 	self.level:initiate(self.engine, self.map)
 
@@ -362,106 +352,11 @@ function Game:draw()
 
 	self.foreground:draw()
 
-	self.gui:draw()
+	self.gui:draw(self.camera)
 
 	if self.debug then
 		love.graphics.setLineWidth(1)
 		fpsGraph.drawGraphs({ self.fpsGraph, self.memGraph })
-	end
-
-	-- Point an arrow to the selected thing.
-	-- Drawn above the UI, but in the world (for proper zoom effect).
-	-- XXX: Move this to somewhere else?
-	--      Maybe a specific system? :^|
-	if state:getSelection() then
-		self.camera:draw(drawArea.x, drawArea.y, drawArea.width, drawArea.height, function()
-			local spriteSheet = require "src.game.spritesheet"
-			local vector = require "lib.hump.vector"
-
-			local selection = state:getSelection()
-
-			local icon = spriteSheet:getSprite("headers", "occupied-icon")
-			local arrow = spriteSheet:getSprite("headers", "arrow")
-
-			local target
-			if selection:has("GroundComponent") then
-				target = vector(selection:get("GroundComponent"):getIsometricPosition())
-			else
-				local targetGrid = selection:get("PositionComponent"):getGrid()
-				target = vector(self.map:gridToWorldCoords(targetGrid.gi + 0.5, targetGrid.gj + 0.5))
-			end
-
-			-- Only point if it is off screen or close to the edges.
-			local cx, cy = self.camera:cameraCoords(target.x, target.y, drawArea.x, drawArea.y, drawArea.width, drawArea.height)
-			local ox, oy = drawArea.width / 5, drawArea.height / 5
-			if cx <= drawArea.x + ox or cy <= drawArea.y + oy or cx >= drawArea.width - ox or cy >= drawArea.height - oy then
-				local halfWidth = drawArea.width / 2
-				local halfHeight = drawArea.height / 2
-
-				-- Centre of the screen (in screen/camera coordinates).
-				local center = vector(self.camera:worldCoords(halfWidth, halfHeight,
-				                                              drawArea.x, drawArea.y, drawArea.width, drawArea.height))
-				local x, y, angle
-
-				-- Angle between the points, with 3 o'clock being being zero degrees.
-				angle = math.atan2(target.x - center.x, -(target.y - center.y))
-				if angle < 0 then
-					angle = math.abs(angle)
-				else
-					angle = 2 * math.pi - angle
-				end
-
-				love.graphics.setColor(1, 1, 1, 1)
-				-- If inside the viewport
-				if cx >= drawArea.x and cy >= drawArea.y and cx <= drawArea.width and cy <= drawArea.height then
-					-- Draw the arrow (a bit away from the centre)
-					love.graphics.draw(spriteSheet:getImage(), arrow:getQuad(), target.x, target.y, -angle + math.pi/4,
-					                   1, 1,
-					                   -icon:getWidth()/4 + 2, -icon:getHeight()/4 + 2)
-					-- Don't ask me about the different offsets and values.
-					local offset = icon:getWidth()/2 + arrow:getWidth()
-					spriteSheet:draw(icon,
-					                 target.x - icon:getWidth()/2 + math.cos(-angle + math.pi/2) * offset,
-					                 target.y - icon:getHeight()/2 + math.sin(-angle + math.pi/2) * offset)
-				else -- Outside the viewport. Calculate which edge to put the arrow.
-					-- How far from the edge the arrow should be drawn (midpoint).
-					local offset = ((icon:getHeight() + arrow:getHeight())/2) * self.camera.scale
-
-					-- Uses trigonometry to calculate where to put the arrow (in screen space).
-					local degrees = (math.deg(angle) + 360) % 360 -- For ease of use.
-					if degrees >= 300 or degrees <= 60 then -- Top
-						local top = offset
-						local w = (top - halfHeight) * math.tan(angle)
-						x = halfWidth + w
-						y = top
-					elseif degrees >= 240 then -- Right
-						local right = drawArea.width - offset
-						local h = (right - halfWidth) * math.tan(angle + 3*math.pi/2)
-						x = right
-						y = halfHeight - h
-					elseif degrees >= 120 then -- Bottom
-						local bottom = drawArea.height - offset
-						local w = (bottom - halfHeight) * math.tan(angle + math.pi)
-						x = halfWidth + w
-						y = bottom
-					elseif degrees > 60 then -- Left
-						local left = offset
-						local h = (left - halfWidth) * math.tan(angle + math.pi/2)
-						x = left
-						y = halfHeight - h
-					end
-
-					-- Convert to world coordinates.
-					x, y = self.camera:worldCoords(x, y, drawArea.x, drawArea.y, drawArea.width, drawArea.height)
-
-					-- Draw the arrow and icon.
-					love.graphics.draw(spriteSheet:getImage(), arrow:getQuad(), x, y, -angle + math.pi/4,
-									   1, 1,
-									   icon:getWidth()/2 + 2, icon:getHeight()/2 + 2)
-					spriteSheet:draw(icon, x - icon:getWidth()/2, y - icon:getHeight()/2)
-				end
-			end
-		end)
 	end
 end
 

@@ -651,6 +651,7 @@ function VillagerSystem:assignedEvent(event)
 			-- Check whether the villager is living with their parents.
 			-- (This event is only sent if the villager was not previously assigned.)
 			if oldHome == site then
+				site:get("DwellingComponent"):removeChild(villager)
 				if villager:getGender() == "male" then
 					site:get("DwellingComponent"):setNumBoys(site:get("DwellingComponent"):getNumBoys() - 1)
 				else
@@ -685,6 +686,7 @@ function VillagerSystem:assignedEvent(event)
 				end
 
 				if moveIn then
+					oldHome:get("DwellingComponent"):removeChild(child)
 					if child:get("VillagerComponent"):getGender() == "male" then
 						oldHome:get("DwellingComponent"):setNumBoys(oldHome:get("DwellingComponent"):getNumBoys() - 1)
 					else
@@ -698,6 +700,7 @@ function VillagerSystem:assignedEvent(event)
 
 			if moveIn then
 				child:get("VillagerComponent"):setHome(site)
+				site:get("DwellingComponent"):addChild(child)
 				if child:get("VillagerComponent"):getGender() == "male" then
 					site:get("DwellingComponent"):setNumBoys(site:get("DwellingComponent"):getNumBoys() + 1)
 				else
@@ -939,6 +942,7 @@ function VillagerSystem:childbirthEndedEvent(event)
 		child:get("VillagerComponent"):setIsHome(true)
 
 		local dwelling = villager:getHome():get("DwellingComponent")
+		dwelling:addChild(child)
 		if child:getGender() == "male" then
 			dwelling:setNumBoys(dwelling:getNumBoys() + 1)
 		else
@@ -1022,6 +1026,7 @@ function VillagerSystem:onRemoveEntity(entity)
 		else
 			-- Probably a child.
 			local dwelling = villager:getHome():get("DwellingComponent")
+			dwelling:removeChild(villager)
 			if villager:getGender() == "male" then
 				dwelling:setNumBoys(dwelling:getNumBoys() - 1)
 			else
@@ -1359,6 +1364,8 @@ function VillagerSystem:workCompletedEvent(event)
 	local entity = event:getVillager()
 	local villager = entity:get("VillagerComponent")
 	local adult = entity:get("AdultComponent")
+
+	local builder = adult:getOccupation() == WorkComponent.BUILDER
 	local farmer = adult:getOccupation() == WorkComponent.FARMER
 
 	-- XXX: Messy
@@ -1369,6 +1376,10 @@ function VillagerSystem:workCompletedEvent(event)
 		end
 	elseif event:getWorkSite():has("ProductionComponent") then
 		villager:setSleepiness(1.0)
+	end
+
+	if builder then
+		adult:setWorkArea(nil)
 	end
 
 	if entity:has("WorkingComponent") then -- Might not be actively working on the site (e.g. resource already covered)
