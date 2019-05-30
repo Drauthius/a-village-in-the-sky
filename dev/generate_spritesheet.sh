@@ -30,7 +30,9 @@ villagers.aseprite
 
 down_layer='Down'
 buttons=(
+close-button.aseprite
 details-button.aseprite
+minimize-button.aseprite
 )
 
 other=(
@@ -58,6 +60,8 @@ mountain-tile.aseprite
 resource-panel.aseprite
 smoke.aseprite
 spark.aseprite
+text-background-left.aseprite
+text-background-centre.aseprite
 tool-resource.aseprite
 villagers-palette.aseprite
 windmill-blades.aseprite
@@ -114,6 +118,8 @@ $aseprite --inner-padding 1 --list-tags --list-slices --ignore-empty \
 	--color-mode rgb \
 	>/dev/null
 
+echo 'Modifying spritesheet data.'
+
 # Couldn't get aseprite to distinguish the hairy and non-hairy villagers :(
 # The frames are counted starting from zero, and then reset when the non-hairy variant appears.
 gawk -i inplace 'BEGIN { normal=0; action=0; }
@@ -134,15 +140,18 @@ gawk -i inplace 'BEGIN { normal=0; action=0; }
 }' "${output}.json"
 
 # Same thing for the buttons, just that the default files are also renamed.
-gawk -i inplace '
+gawk -v buttons="${buttons[*]}" -i inplace 'BEGIN { split(buttons, buttonsArray, / /) }
 {
-	if(match($0,/details-button.aseprite/)) {
-		if(!map[$1]) {
-			map[$1]="true"
-			gsub("button", "& (Down)")
-		}
-		else {
-			gsub("button", "& (Up)")
+	for(i in buttonsArray) {
+		if($0 ~ buttonsArray[i]) {
+			if(!map[$1]) {
+				map[$1]="true"
+				gsub("button", "& (Down)")
+			}
+			else {
+				gsub("button", "& (Up)")
+			}
+			break
 		}
 	}
 	print $0

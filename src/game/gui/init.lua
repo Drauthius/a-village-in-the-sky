@@ -79,11 +79,11 @@ function GUI:initialize(engine, eventManager, map)
 	self.listBuildingButton.opened = spriteSheet:getSprite("button 7")
 
 	self.widgets = {
-		tile = self.tileButton,
-		building = self.buildingButton,
-		listEvent = self.listEventButton,
-		listPeople = self.listPeopleButton,
-		listBuilding = self.listBuildingButton
+		terrain = self.tileButton,
+		build = self.buildingButton,
+		events = self.listEventButton,
+		villagers = self.listPeopleButton,
+		buildings = self.listBuildingButton
 	}
 
 	self.resourcePanel = ResourcePanel()
@@ -132,6 +132,7 @@ function GUI:update(dt)
 			widget.sprite = widget.closed
 		end
 	end
+	self.infoPanel:update(dt)
 	self.detailsPanel:update(dt)
 
 	-- Update the arrows.
@@ -371,7 +372,7 @@ function GUI:updateInfoPanel()
 			margin = 5,
 			items = {}
 		}
-		if self.infoPanelShowing == "tile" then
+		if self.infoPanelShowing == "terrain" then
 			for i,type in ipairs({ TileComponent.GRASS, TileComponent.FOREST, TileComponent.MOUNTAIN}) do
 				table.insert(content.items, (spriteSheet:getSprite(TileComponent.TILE_NAME[type] .. "-tile")))
 				content.items[i].onPress = function(item)
@@ -386,7 +387,7 @@ function GUI:updateInfoPanel()
 					end
 				end
 			end
-		elseif self.infoPanelShowing == "building" then
+		elseif self.infoPanelShowing == "build" then
 			for i,type in ipairs({ BuildingComponent.DWELLING, BuildingComponent.BLACKSMITH,
 			                       BuildingComponent.FIELD, BuildingComponent.BAKERY}) do
 				local name = BuildingComponent.BUILDING_NAME[type]
@@ -431,8 +432,15 @@ function GUI:handlePress(x, y, released)
 	if self.infoPanel:isShown() and self.infoPanel:isWithin(x, y) then
 		if released then
 			soundManager:playEffect("drawerSelected")
-			-- Maybe add "self:_clearPlacing()" here?
-			self.infoPanel:handlePress(x, y)
+		end
+		self.infoPanel:handlePress(x, y, released)
+
+		-- Check whether the panel was closed by the click.
+		if not self.infoPanel:isShown() then
+			self:_clearPlacing()
+			soundManager:playEffect("drawerClosed")
+			self.infoPanel:hide()
+			self.infoPanelShowing = nil
 		end
 		return true
 	elseif self.detailsPanel:isShown() and self.detailsPanel:isWithin(x, y) then

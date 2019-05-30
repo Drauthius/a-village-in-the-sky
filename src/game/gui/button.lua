@@ -7,13 +7,15 @@ local Button = Widget:subclass("Button")
 function Button:initialize(x, y, ox, oy, type, font)
 	self.spriteUp = spriteSheet:getSprite(type.." (Up)")
 	self.spriteDown = spriteSheet:getSprite(type.." (Down)")
-	self.data = spriteSheet:getData(type.."-textposition")
 	self.isDown = false
 
 	Widget.initialize(self, x, y, ox, oy, self.spriteUp)
 
-	local oyText = (self.data.bounds.h - font:getHeight()) / 2 + self.data.bounds.y
-	self:addText("", font, { 0, 0, 0, 1 }, self.data.bounds.x, oyText, self.data.bounds.w, "center")
+	if font ~= false then
+		self.data = spriteSheet:getData(type.."-textposition")
+		local oyText = (self.data.bounds.h - font:getHeight()) / 2 + self.data.bounds.y
+		self:addText("", font, { 0, 0, 0, 1 }, self.data.bounds.x, oyText, self.data.bounds.w, "center")
+	end
 end
 
 function Button:setPressed(pressed)
@@ -28,6 +30,14 @@ end
 
 function Button:isPressed()
 	return self.isDown
+end
+
+function Button:getAction()
+	return self.action
+end
+
+function Button:setAction(action)
+	self.action = action
 end
 
 return Button
