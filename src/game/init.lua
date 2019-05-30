@@ -282,6 +282,12 @@ function Game:update(dt)
 	local drawArea = screen:getDrawArea()
 	state:setMousePosition(self.camera:worldCoords(mx, my, drawArea.x, drawArea.y, drawArea.width, drawArea.height))
 
+	local left, top = self.camera:worldCoords(0, 0,
+	                                          drawArea.x, drawArea.y, drawArea.width, drawArea.height)
+	local right, bottom = self.camera:worldCoords(drawArea.width, drawArea.height,
+	                                              drawArea.x, drawArea.y, drawArea.width, drawArea.height)
+	state:setViewport(left, top, right, bottom)
+
 	if self.dragging and self.dragging.dragged then
 		self.camera:lockPosition(
 				self.dragging.cx,

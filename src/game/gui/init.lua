@@ -351,6 +351,8 @@ function GUI:draw(camera)
 						end
 
 						-- Convert to world coordinates.
+						-- FIXME: The state now has the top left and bottom right corners in world coordinates, so it
+						--        might be more efficient to calculate the positions there directly.
 						x, y = camera:worldCoords(x, y, drawArea.x, drawArea.y, drawArea.width, drawArea.height)
 
 						-- Draw the arrow and icon.

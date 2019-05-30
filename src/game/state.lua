@@ -9,6 +9,12 @@ function State:initialize()
 		x = 0,
 		y = 0
 	}
+	self.viewport = {
+		sx = 0,
+		sy = 0,
+		ex = 0,
+		ey = 0
+	}
 	self.year = 0.0
 	self.placing = nil
 	self.selected = nil
@@ -35,7 +41,7 @@ function State:initialize()
 end
 
 --
--- Mouse position (in world coordinates)
+-- Positions in world coordinates.
 --
 
 function State:getMousePosition()
@@ -44,6 +50,14 @@ end
 
 function State:setMousePosition(x, y)
 	self.mouseCoords.x, self.mouseCoords.y = x, y
+end
+
+function State:getViewport()
+	return self.viewport.sx, self.viewport.sy, self.viewport.ex, self.viewport.ey
+end
+
+function State:setViewport(sx, sy, ex, ey)
+	self.viewport.sx, self.viewport.sy, self.viewport.ex, self.viewport.ey = sx, sy, ex, ey
 end
 
 --

@@ -355,7 +355,13 @@ function RenderSystem:_drawEntity(i, entity)
 	local sprite = entity:get("SpriteComponent")
 	sprite:setDrawIndex(i)
 	local dx, dy = sprite:getDrawPosition()
-	local oldViewport
+	local vpsx, vpsy, vpex, vpey = state:getViewport()
+
+	-- Check if the entity is outside the screen.
+	if dx > vpex or dy > vpey or
+	   dx + sprite:getSprite():getWidth() < vpsx or dy + sprite:getSprite():getHeight() < vpsy then
+		return
+	end
 
 	local newColors
 	if entity:has("ColorSwapComponent") and next(entity:get("ColorSwapComponent"):getReplacedColors()) then
@@ -382,6 +388,7 @@ function RenderSystem:_drawEntity(i, entity)
 		RenderSystem.COLOR_OUTLINE_SHADER:send("noShadow", true)
 	end
 
+	local oldViewport
 	-- Transparent background for buildings under construction, and setup for the non-transparent part.
 	if entity:has("ConstructionComponent") then
 		local underConstruction = not entity:has("RunestoneComponent")
