@@ -7,6 +7,7 @@ local InfoPanel = require "src.game.gui.infopanel"
 local ResourcePanel = require "src.game.gui.resourcepanel"
 local Widget = require "src.game.gui.widget"
 
+local SelectionChangedEvent = require "src.game.selectionchangedevent"
 local UnassignedEvent = require "src.game.unassignedevent"
 
 local AssignmentComponent = require "src.game.assignmentcomponent"
@@ -104,8 +105,11 @@ end
 
 function GUI:back()
 	if not self:_clearPlacing() then
-		if self.infoPanel:isShown() or self.detailsPanel:isShown() then
+		if self.infoPanel:isShown() then
 			self:_closeInfoPanel()
+		elseif state:hasSelection() then
+			state:clearSelection()
+			self.eventManager:fireEvent(SelectionChangedEvent(nil))
 		else
 			print("toggle main menu")
 			soundManager:playEffect("toggleMainMenu")
@@ -380,7 +384,11 @@ function GUI:updateInfoPanel()
 
 					if selected ~= i then
 						local entity = blueprint:createPlacingTile(type)
+
 						state:setPlacing(entity)
+						state:clearSelection()
+						self.eventManager:fireEvent(SelectionChangedEvent(nil))
+
 						self.engine:addEntity(entity)
 						content.selected = i
 					end
@@ -397,7 +405,11 @@ function GUI:updateInfoPanel()
 
 					if selected ~= i then
 						local entity = blueprint:createPlacingBuilding(type)
+
 						state:setPlacing(entity)
+						state:clearSelection()
+						self.eventManager:fireEvent(SelectionChangedEvent(nil))
+
 						self.engine:addEntity(entity)
 						content.selected = i
 					end

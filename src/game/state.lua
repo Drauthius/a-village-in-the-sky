@@ -88,7 +88,6 @@ end
 
 function State:setPlacing(placeable)
 	self.placing = placeable
-	self:clearSelection()
 end
 
 function State:clearPlacing()

@@ -33,8 +33,7 @@
 --      - Small indicators might be hard to read/see on mobile.
 --      + Small indicators avoid having to click on the different things to see what they require.
 --    * Selecting a runestone:
---      Shows the area of influence?
---      Shows the increased area of influence if upgraded?
+--      Shows the increased area of influence if upgraded/during upgrade?
 --    * Construction header
 --      Show icon for the type of building, or an icon showing that it is under construction?
 --      Show % complete in the header instead/also?
@@ -116,6 +115,7 @@ local PositionComponent = require "src.game.positioncomponent"
 local TimerComponent = require "src.game.timercomponent"
 -- Events
 local AssignedEvent = require "src.game.assignedevent"
+local SelectionChangedEvent = require "src.game.selectionchangedevent"
 local TileDroppedEvent = require "src.game.tiledroppedevent"
 local TilePlacedEvent = require "src.game.tileplacedevent"
 -- Systems
@@ -251,6 +251,7 @@ function Game:enter()
 	self.eventManager:addListener("ChildbirthStartedEvent", villagerSystem, villagerSystem.childbirthStartedEvent)
 	self.eventManager:addListener("EntityMovedEvent", renderSystem, renderSystem.onEntityMoved)
 	self.eventManager:addListener("RunestoneUpgradedEvent", placingSystem, placingSystem.onRunestoneUpgraded)
+	self.eventManager:addListener("SelectionChangedEvent", placingSystem, placingSystem.onSelectionChanged)
 	self.eventManager:addListener("TargetReachedEvent", villagerSystem, villagerSystem.targetReachedEvent)
 	self.eventManager:addListener("TargetUnreachableEvent", villagerSystem, villagerSystem.targetUnreachableEvent)
 	self.eventManager:addListener("TileDroppedEvent", renderSystem, renderSystem.onTileDropped)
@@ -522,6 +523,7 @@ function Game:_handleClick(x, y)
 	if not clicked then
 		soundManager:playEffect("clearSelection")
 		state:clearSelection()
+		self.eventManager:fireEvent(SelectionChangedEvent(nil))
 		return
 	end
 
@@ -569,6 +571,7 @@ function Game:_handleClick(x, y)
 	else
 		soundManager:playEffect("selecting") -- TODO: Different sounds depending on what is selected.
 		state:setSelection(clicked)
+		self.eventManager:fireEvent(SelectionChangedEvent(clicked))
 	end
 end
 

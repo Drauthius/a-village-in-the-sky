@@ -91,13 +91,17 @@ function PlacingSystem:update(dt)
 	end
 
 	if self.recalculateTileArea then
-		self:_recalculateTileArea()
+		if not state:isPlacing() and state:hasSelection() and state:getSelection():has("RunestoneComponent") then
+			self:_recalculateTileArea({ self.polygons[state:getSelection()] })
+		else
+			self:_recalculateTileArea(self.polygons)
+		end
 		self.recalculateTileArea = false
 	end
 end
 
 function PlacingSystem:draw()
-	if not state:isPlacing() then
+	if not state:isPlacing() and (not state:hasSelection() or not state:getSelection():has("RunestoneComponent")) then
 		return
 	end
 
@@ -152,30 +156,48 @@ function PlacingSystem:onAddEntity(entity)
 	end
 end
 
+--
+-- Events
+--
 function PlacingSystem:onRunestoneUpgraded(event)
 	self:onAddEntity(event:getRunestone())
 end
 
+function PlacingSystem:onSelectionChanged(event)
+	local selection = event:getSelection()
+
+	if selection and selection:has("RunestoneComponent") then
+		self.recalculateTileArea = true
+	elseif self.tileArea and self.tileArea.polygons ~= self.polygons then
+		self.recalculateTileArea = true
+	end
+end
+
+--
+-- Internal functions
+--
 function PlacingSystem:_addValidTile(ti, tj)
 	self.validTiles[ti] = self.validTiles[ti] or {}
 	self.validTiles[ti][tj] = true
 end
 
-function PlacingSystem:_recalculateTileArea()
+function PlacingSystem:_recalculateTileArea(polygons)
+	polygons = polygons or self.polygons
+
 	-- The area limits the placement of the tiles.
 	-- This only calculates the border, the actual placement of tiles is handled above.
 	-- The border is a bit lazily calculated using filled polygons that then are limited to an outline using a shader.
 	-- This requires to draw to a canvas, instead of having a list of points that are drawn. A bit more computational
 	-- expensive, but easier to implement.
 	-- FIXME: Sharp corners (e.g. L-shaped) are somewhat cut off.
-	if not next(self.polygons) then
+	if not next(polygons) then
 		self.tileArea = nil
 		return
 	end
-	self.tileArea = {}
+	self.tileArea = { polygons = polygons }
 
 	local minX, minY, maxX, maxY = math.huge, math.huge, -math.huge, -math.huge
-	for _,polygon in pairs(self.polygons) do
+	for _,polygon in pairs(polygons) do
 		for i=1,#polygon,2 do
 			if polygon[i] < minX then
 				minX = polygon[i]
@@ -201,7 +223,7 @@ function PlacingSystem:_recalculateTileArea()
 
 	self.tileArea.x, self.tileArea.y = minX - PlacingSystem.OUTLINE_SIZE, minY - PlacingSystem.OUTLINE_SIZE
 	love.graphics.translate(-self.tileArea.x, -self.tileArea.y)
-	for _,polygon in pairs(self.polygons) do
+	for _,polygon in pairs(polygons) do
 		love.graphics.polygon("fill", polygon)
 	end
 

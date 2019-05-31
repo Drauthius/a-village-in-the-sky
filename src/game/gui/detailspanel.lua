@@ -174,7 +174,6 @@ function DetailsPanel:draw()
 end
 
 function DetailsPanel:hide()
-	state:clearSelection()
 end
 
 function DetailsPanel:isShown()
