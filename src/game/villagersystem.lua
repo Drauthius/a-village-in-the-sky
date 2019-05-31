@@ -274,25 +274,38 @@ function VillagerSystem:_takeAction(entity)
 			local construction = workPlace:get("ConstructionComponent")
 
 			-- Make a first pass to determine if any work can be carried out.
-			-- TODO: Builders should work on buildings that can be completed.
-			local blacklist, resource = {}
+			local getMaterials, blacklist, resource = true, {}
 			repeat
 				resource = construction:getRemainingResources(blacklist)
 				if not resource then
-					adult:setWorkPlace(nil)
-					return
+					-- Determine whether the construction needs any materials.
+					if not construction:getRemainingResources() and construction:canBuild() then
+						-- No additional materials needed, but might as well go there and help build it.
+						getMaterials = false
+					else
+						-- Needs materials, but either blacklisted (not available) or in transit to the work site.
+						villager:setDelay(VillagerSystem.TIMERS.NO_RESOURCE_DELAY)
+						return
+					end
 				end
 
 				-- Don't count that resource again, in case we go round again.
-				blacklist[resource] = true
-			until state:getNumAvailableResources(resource) > 0
+				if resource then
+					blacklist[resource] = true
+				end
+			until resource and state:getNumAvailableResources(resource) > 0
 
 			-- For things being built, update the places where builders can stand, so that rubbish can
 			-- be cleared around the build site after placing the building.
 			construction:updateWorkGrids(self.map:getAdjacentGrids(workPlace))
 
-			entity:add(WalkingComponent(ti, tj, construction:getFreeWorkGrids(), WalkingComponent.INSTRUCTIONS.BUILD))
-			villager:setGoal(VillagerComponent.GOALS.WORK_PICKUP)
+			if getMaterials then
+				entity:add(WalkingComponent(ti, tj, construction:getFreeWorkGrids(), WalkingComponent.INSTRUCTIONS.BUILD))
+				villager:setGoal(VillagerComponent.GOALS.WORK_PICKUP)
+			else
+				entity:add(WalkingComponent(ti, tj, construction:getFreeWorkGrids(), WalkingComponent.INSTRUCTIONS.WORK))
+				villager:setGoal(VillagerComponent.GOALS.WORK)
+			end
 		elseif workPlace:has("ProductionComponent") then
 			local production = workPlace:get("ProductionComponent")
 

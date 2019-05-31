@@ -6,7 +6,6 @@
 --    * Villagers heading the exact opposite direction can get stuck in a two-grid gridlock.
 --    * Removing a villager from a production job can leave resources "locked in limbo".
 --      The same goes for building jobs.
---    * It is possible to starve a construction site by moving villagers at inopportune times.
 --    * Display bug with the bottom panel???
 --    * Villagers standing on a reserved grid can rotate around spastically trying to find a way to move.
 --    * Freeing of dead villagers is not handled properly.
