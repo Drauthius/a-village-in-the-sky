@@ -897,8 +897,8 @@ function VillagerSystem:buildingLeftEvent(event)
 
 	villager:setIsHome(false)
 	villager:setGoal(VillagerComponent.GOALS.NONE)
-	entity:add(SpriteComponent())
 	entity:add(PositionComponent(entranceGrid, nil, building:get("PositionComponent"):getTile()))
+	entity:add(SpriteComponent()) -- XXX: Must be added after the position component.
 
 	villager:setDelay(VillagerSystem.TIMERS.BUILDING_LEFT_DELAY)
 end
@@ -1368,18 +1368,19 @@ function VillagerSystem:workCompletedEvent(event)
 	local builder = adult:getOccupation() == WorkComponent.BUILDER
 	local farmer = adult:getOccupation() == WorkComponent.FARMER
 
-	-- XXX: Messy
-	if not event:isTemporary() or farmer then
+	if farmer then
+		-- Don't increase the sleepiness of farmers (handled by the natural sleepiness).
 		adult:setWorkPlace(nil)
-		if not event:isTemporary() then
-			villager:setSleepiness(1.0)
+	elseif not event:isTemporary() then
+		villager:setSleepiness(1.0)
+		adult:setWorkPlace(nil)
+
+		-- Clear the work area for the builder, since there isn't anything else to do there.
+		if builder then
+			adult:setWorkArea(nil)
 		end
 	elseif event:getWorkSite():has("ProductionComponent") then
 		villager:setSleepiness(1.0)
-	end
-
-	if builder then
-		adult:setWorkArea(nil)
 	end
 
 	if entity:has("WorkingComponent") then -- Might not be actively working on the site (e.g. resource already covered)

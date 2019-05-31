@@ -141,12 +141,14 @@ function RenderSystem:draw()
 	end
 end
 
--- Fired only when tiles are created by a level.
 function RenderSystem:onAddEntity(entity)
 	if entity:has("TileComponent") then
+		-- Fired only when tiles are created by a level.
 		self:_recalculateTerrain()
 	elseif entity:has("PositionComponent") then
 		self.recalculateObjects = true
+	elseif not entity:has("PlacingComponent") then
+		print(entity, "is not a tile or placing, nor has a position component")
 	end
 end
 
