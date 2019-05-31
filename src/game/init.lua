@@ -538,10 +538,7 @@ function Game:_handleClick(x, y)
 		local valid = alreadyAdded or assignment:getNumAssignees() < assignment:getMaxAssignees()
 		local skipWorkPlace = false
 
-		if clicked:has("FieldEnclosureComponent") then
-			-- Never work the enclosure, only the fields.
-			skipWorkPlace = true
-		elseif not valid and clicked:has("WorkComponent") then
+		if not valid and clicked:has("WorkComponent") then
 			-- Assign to work the grid instead of to the specific resource.
 			valid = true
 			skipWorkPlace = true

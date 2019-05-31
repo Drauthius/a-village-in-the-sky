@@ -105,10 +105,7 @@ end
 function GUI:back()
 	if not self:_clearPlacing() then
 		if self.infoPanel:isShown() or self.detailsPanel:isShown() then
-			soundManager:playEffect("drawerClosed")
-			self.infoPanel:hide()
-			self.infoPanelShowing = nil
-			self.detailsPanel:hide()
+			self:_closeInfoPanel()
 		else
 			print("toggle main menu")
 			soundManager:playEffect("toggleMainMenu")
@@ -416,16 +413,18 @@ function GUI:handlePress(x, y, released)
 		if widget:isWithin(x, y) then
 			if released then
 				if self.infoPanel:isShown() and self.infoPanelShowing == type then
-					soundManager:playEffect("drawerClosed")
-					self.infoPanel:hide()
-					self.infoPanelShowing = nil
+					self:_closeInfoPanel()
 				else
+					self:_clearPlacing()
+
 					soundManager:playEffect("drawerOpened")
 					self.infoPanelShowing = type
 					self.infoPanel:show()
 					self:updateInfoPanel()
+
+					state:showBuildingHeaders(type == "buildings")
+					state:showVillagerHeaders(type == "villagers")
 				end
-				self:_clearPlacing()
 			end
 			return true
 		end
@@ -439,10 +438,7 @@ function GUI:handlePress(x, y, released)
 
 		-- Check whether the panel was closed by the click.
 		if not self.infoPanel:isShown() then
-			self:_clearPlacing()
-			soundManager:playEffect("drawerClosed")
-			self.infoPanel:hide()
-			self.infoPanelShowing = nil
+			self:_closeInfoPanel()
 		end
 		return true
 	elseif self.detailsPanel:isShown() and self.detailsPanel:isWithin(x, y) then
@@ -478,6 +474,17 @@ function GUI:_clearPlacing()
 		state:clearPlacing()
 		return true
 	end
+end
+
+function GUI:_closeInfoPanel()
+	self:_clearPlacing()
+
+	soundManager:playEffect("drawerClosed")
+	self.infoPanel:hide()
+	self.infoPanelShowing = nil
+
+	state:showBuildingHeaders(false)
+	state:showVillagerHeaders(false)
 end
 
 return GUI

@@ -18,6 +18,10 @@ function State:initialize()
 	self.year = 0.0
 	self.placing = nil
 	self.selected = nil
+	self.headers = {
+		buildings = false,
+		villagers = false
+	}
 	self.resources = {
 		[ResourceComponent.WOOD] = 0,
 		[ResourceComponent.IRON] = 0,
@@ -108,6 +112,27 @@ end
 
 function State:clearSelection()
 	self.selected = nil
+end
+
+--
+-- Headers
+-- (Misplaced?)
+--
+
+function State:getShowBuildingHeaders()
+	return self.headers.buildings
+end
+
+function State:showBuildingHeaders(show)
+	self.headers.buildings = show
+end
+
+function State:getShowVillagerHeaders()
+	return self.headers.villagers
+end
+
+function State:showVillagerHeaders(show)
+	self.headers.villagers = show
 end
 
 --

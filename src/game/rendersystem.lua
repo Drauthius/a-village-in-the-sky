@@ -1,6 +1,8 @@
 local lovetoys = require "lib.lovetoys.lovetoys"
 local table = require "lib.table"
 
+local BuildingComponent = require "src.game.buildingcomponent"
+
 local spriteSheet = require "src.game.spritesheet"
 local state = require "src.game.state"
 
@@ -90,11 +92,6 @@ function RenderSystem:draw()
 	-- Draw the ground.
 	love.graphics.draw(self.terrain)
 
-	-- Draw the stuff on the cursor
-	if state:isPlacing() then
-		self:_drawEntity(0, state:getPlacing())
-	end
-
 	-- Draw things connected to the ground.
 	for i,entity in ipairs(self.objects[1]) do
 		self:_drawEntity(i, entity)
@@ -103,6 +100,11 @@ function RenderSystem:draw()
 	-- Draw things above ground.
 	for i,entity in ipairs(self.objects[2]) do
 		self:_drawEntity(i, entity)
+	end
+
+	-- Draw the stuff on the cursor
+	if state:isPlacing() then
+		self:_drawEntity(0, state:getPlacing())
 	end
 
 	-- Draw the outline of things behind other things.
@@ -127,110 +129,15 @@ function RenderSystem:draw()
 		RenderSystem.COLOR_OUTLINE_SHADER:send("outlineOnly", false)
 		RenderSystem.COLOR_OUTLINE_SHADER:send("newColor", RenderSystem.NEW_OUTLINE_COLOR)
 	end
-
 	love.graphics.setColor(1, 1, 1, 1)
 
-	-- Headers
+	-- Headers for things connected to the ground.
+	for _,entity in ipairs(self.objects[1]) do
+		self:_drawHeader(entity)
+	end
+	-- Headers for things above ground.
 	for _,entity in ipairs(self.objects[2]) do
-		local sprite = entity:get("SpriteComponent")
-
-		if entity:has("VillagerComponent") then
-			local villager = entity:get("VillagerComponent")
-
-			if not villager:getHome() then
-				local header = spriteSheet:getSprite("headers", "no-home-icon")
-				local w, _ = header:getDimensions()
-
-				local x, y = entity:get("GroundComponent"):getIsometricPosition()
-				x = x - w / 2
-				y = y - 28 -- TODO: Guesswork, not true for children.
-				spriteSheet:draw(header, x, y)
-			end
-
-			--[[
-			local header = spriteSheet:getSprite("headers", "person-header")
-			local x, y = sprite:getDrawPosition()
-			x = x - 5
-			if entity:has("AdultComponent") then
-				y = y - 10
-			else
-				y = y - 8
-			end
-			--self.font = love.graphics.newFont("asset/font/Norse-Bold.otf", 16)
-			local font = love.graphics.newFont("asset/font/Norse.otf", 14)
-			font:setFilter("linear", "linear", 1)
-			--print(font:getFilter())
-			love.graphics.setFont(font)
-			spriteSheet:draw(header, x, y)
-			love.graphics.print("Lars Larsson", x, y)
-			--]]
-		elseif entity:has("ConstructionComponent") then
-			local header = spriteSheet:getSprite("headers", "4-spot-building-header")
-			local x, y = sprite:getOriginalDrawPosition()
-			local w, h = header:getDimensions()
-			local tw = sprite:getSprite():getWidth()
-
-			x = x + (tw - w) / 2
-			y = y - h / 2
-			spriteSheet:draw(header, x, y)
-
-			local icon = spriteSheet:getSprite("headers", "occupied-icon")
-			for i=1,entity:get("AssignmentComponent"):getNumAssignees() do
-				-- XXX: Value
-				spriteSheet:draw(icon, 9 + x + ((i - 1) * (icon:getWidth() + 1)), y + 1)
-			end
-		elseif entity:has("DwellingComponent") then
-			local dwelling = entity:get("DwellingComponent")
-			local header = spriteSheet:getSprite("headers", "dwelling-header")
-			local x, y = sprite:getOriginalDrawPosition()
-			local w, h = header:getDimensions()
-			local tw = sprite:getSprite():getWidth()
-
-			x = x + (tw - w) / 2
-			y = y - h / 2
-			spriteSheet:draw(header, x, y)
-
-			if dwelling:isRelated() then
-				-- XXX: Value
-				spriteSheet:draw(spriteSheet:getSprite("headers", "family-ties-icon"), x + 22, y)
-			end
-
-			local headerData = spriteSheet:getData("dwelling-header")
-			for _,type in ipairs({ "boys", "girls", "food" }) do
-				local data = spriteSheet:getData(type .. "-count")
-				local Fx, Fy = x + data.bounds.x - headerData.bounds.x, y + data.bounds.y - headerData.bounds.y
-
-				local amount
-				if type == "food" then
-					love.graphics.setFont(love.graphics.newFont("asset/font/Norse.otf", data.bounds.h))
-					amount = dwelling:getFood()
-				else
-					love.graphics.setFont(love.graphics.newFont(data.bounds.h))
-					if type == "boys" then
-						amount = dwelling:getNumBoys()
-					else
-						amount = dwelling:getNumGirls()
-					end
-				end
-
-				-- Drop shadow
-				--love.graphics.setColor(0, 0, 0, 0.5)
-				love.graphics.setColor(RenderSystem.NEW_OUTLINE_COLOR)
-				love.graphics.print(tostring(amount), Fx + 1, Fy + 1)
-				-- Text
-				love.graphics.setColor(RenderSystem.BEHIND_OUTLINE_COLOR)
-				love.graphics.print(tostring(amount), Fx, Fy)
-			end
-			love.graphics.setColor(1, 1, 1, 1)
-
-			local maleIcon = spriteSheet:getSprite("headers", "male-icon")
-			local femaleIcon = spriteSheet:getSprite("headers", "female-icon")
-			local villagers = entity:get("AssignmentComponent"):getAssignees()
-			for i=1,#villagers do
-				local icon = villagers[i]:get("VillagerComponent"):getGender() == "male" and maleIcon or femaleIcon
-				spriteSheet:draw(icon, 10 + x + ((i - 1) * (icon:getWidth() + 1)), y + 1)
-			end
-		end
+		self:_drawHeader(entity)
 	end
 end
 
@@ -478,6 +385,160 @@ function RenderSystem:_drawEntity(i, entity)
 		-- Text
 		love.graphics.setColor(1, 1, 1, 1)
 		love.graphics.print(percent, dx, dy)
+	end
+end
+
+function RenderSystem:_drawHeader(entity)
+	local sprite = entity:get("SpriteComponent")
+	local isSelected = state:getSelection() == entity
+
+	-- FIXME: Headers are shown even when the entity is outside of the screen and has been culled.
+
+	if entity:has("VillagerComponent") then
+		local villager = entity:get("VillagerComponent")
+
+		-- Homeless icon.
+		if not villager:getHome() then
+			local header = spriteSheet:getSprite("headers", "no-home-icon")
+			local w, _ = header:getDimensions()
+
+			local x, y = entity:get("GroundComponent"):getIsometricPosition()
+			x = x - w / 2
+			y = y - 28 -- XXX: Guesswork, not true for children.
+			spriteSheet:draw(header, x, y)
+		end
+
+		--[[
+		local header = spriteSheet:getSprite("headers", "person-header")
+		local x, y = sprite:getDrawPosition()
+		x = x - 5
+		if entity:has("AdultComponent") then
+			y = y - 10
+		else
+			y = y - 8
+		end
+		--self.font = love.graphics.newFont("asset/font/Norse-Bold.otf", 16)
+		local font = love.graphics.newFont("asset/font/Norse.otf", 14)
+		font:setFilter("linear", "linear", 1)
+		--print(font:getFilter())
+		love.graphics.setFont(font)
+		spriteSheet:draw(header, x, y)
+		love.graphics.print("Lars Larsson", x, y)
+		--]]
+	elseif entity:has("DwellingComponent") then
+		local dwelling = entity:get("DwellingComponent")
+
+		-- Check whether the header should be hidden.
+		if not isSelected and not state:getShowBuildingHeaders() and
+		   entity:get("AssignmentComponent"):getNumAssignees() == entity:get("AssignmentComponent"):getMaxAssignees() and
+		   not dwelling:isRelated() and dwelling:getFood() > 0 then
+			return
+		end
+
+		local header = spriteSheet:getSprite("headers", "dwelling-header")
+		local x, y = sprite:getOriginalDrawPosition()
+		local w, h = header:getDimensions()
+		local tw = sprite:getSprite():getWidth()
+
+		x = x + (tw - w) / 2
+		y = y - h / 2
+		spriteSheet:draw(header, x, y)
+
+		if dwelling:isRelated() then
+			-- XXX: Value
+			spriteSheet:draw(spriteSheet:getSprite("headers", "family-ties-icon"), x + 22, y)
+		end
+
+		local headerData = spriteSheet:getData("dwelling-header")
+		for _,type in ipairs({ "boys", "girls", "food" }) do
+			local data = spriteSheet:getData(type .. "-count")
+			local Fx, Fy = x + data.bounds.x - headerData.bounds.x, y + data.bounds.y - headerData.bounds.y
+
+			local amount
+			if type == "food" then
+				love.graphics.setFont(love.graphics.newFont("asset/font/Norse.otf", data.bounds.h))
+				amount = dwelling:getFood()
+			else
+				love.graphics.setFont(love.graphics.newFont(data.bounds.h))
+				if type == "boys" then
+					amount = dwelling:getNumBoys()
+				else
+					amount = dwelling:getNumGirls()
+				end
+			end
+
+			-- Drop shadow
+			--love.graphics.setColor(0, 0, 0, 0.5)
+			love.graphics.setColor(RenderSystem.NEW_OUTLINE_COLOR)
+			love.graphics.print(tostring(amount), Fx + 1, Fy + 1)
+			-- Text
+			love.graphics.setColor(RenderSystem.BEHIND_OUTLINE_COLOR)
+			love.graphics.print(tostring(amount), Fx, Fy)
+		end
+		love.graphics.setColor(1, 1, 1, 1)
+
+		local maleIcon = spriteSheet:getSprite("headers", "male-icon")
+		local femaleIcon = spriteSheet:getSprite("headers", "female-icon")
+		local villagers = entity:get("AssignmentComponent"):getAssignees()
+		local j = 1
+		for i=1,#villagers do
+			local icon = villagers[i]:get("VillagerComponent"):getGender() == "male" and maleIcon or femaleIcon
+			spriteSheet:draw(icon, 10 + x + ((i - 1) * (icon:getWidth() + 1)), y + 1)
+			j = j + 1
+		end
+
+		local vacantIcon = spriteSheet:getSprite("headers", "vacant-icon")
+		for i=j,2 do
+			spriteSheet:draw(vacantIcon, 10 + x + ((i - 1) * (vacantIcon:getWidth() + 1)), y + 1)
+		end
+	elseif entity:has("AssignmentComponent") and entity:has("BuildingComponent") then
+		local spots = entity:get("AssignmentComponent"):getMaxAssignees()
+
+		-- Check whether the header should be hidden.
+		if not isSelected and not state:getShowBuildingHeaders() and
+		   entity:get("AssignmentComponent"):getNumAssignees() == entity:get("AssignmentComponent"):getMaxAssignees() then
+			return
+		end
+
+		local header = spriteSheet:getSprite("headers", spots .. "-spot-building-header")
+		local x, y = sprite:getOriginalDrawPosition()
+		local w, h = header:getDimensions()
+		local tw = sprite:getSprite():getWidth()
+
+		x = x + (tw - w) / 2
+		y = y - h / 2
+		spriteSheet:draw(header, x, y)
+
+		local typeSlice
+		local type = entity:get("BuildingComponent"):getType()
+		if type == BuildingComponent.DWELLING then
+			typeSlice = "house-icon"
+		elseif type == BuildingComponent.BLACKSMITH then
+			typeSlice = "blacksmith-icon"
+		elseif type == BuildingComponent.FIELD then
+			typeSlice = "farmer-icon"
+		elseif type == BuildingComponent.BAKERY then
+			typeSlice = "baker-icon"
+		elseif type == BuildingComponent.RUNESTONE then
+			error("TODO: No runestone icon") -- TODO
+		else
+			error("Unknown building type '" .. tostring(type) .. "'")
+		end
+		local typeIcon = spriteSheet:getSprite("headers", typeSlice)
+		spriteSheet:draw(typeIcon, x - typeIcon:getWidth() / 2 - 1, y + (h - typeIcon:getHeight()) / 2)
+
+		local occupiedIcon = spriteSheet:getSprite("headers", "occupied-icon")
+		local j = 1
+		for i=1,entity:get("AssignmentComponent"):getNumAssignees() do
+			-- XXX: Value
+			spriteSheet:draw(occupiedIcon, 9 + x + ((i - 1) * (occupiedIcon:getWidth() + 1)), y + 1)
+			j = j + 1
+		end
+
+		local vacantIcon = spriteSheet:getSprite("headers", "vacant-icon")
+		for i=j,spots do
+			spriteSheet:draw(vacantIcon, 9 + x + ((i - 1) * (vacantIcon:getWidth() + 1)), y + 1)
+		end
 	end
 end
 

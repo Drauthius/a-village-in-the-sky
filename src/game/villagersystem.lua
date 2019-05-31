@@ -770,7 +770,8 @@ function VillagerSystem:assignedEvent(event)
 		adult:setWorkArea(site:get("PositionComponent"):getTile())
 
 		-- The villager might be assigned to the same work area, but not the same work site.
-		if site:get("AssignmentComponent"):isAssigned(entity) then
+		-- Fields are special little snowflakes, and should not be assigned as a work place.
+		if not site:has("FieldEnclosureComponent") and site:get("AssignmentComponent"):isAssigned(entity) then
 			adult:setWorkPlace(site)
 		end
 
@@ -814,7 +815,6 @@ function VillagerSystem:unassignedEvent(event)
 		VillagerComponent.GOALS.WORK_PICKUP,
 		VillagerComponent.GOALS.WORK
 	}
-
 
 	if site:has("DwellingComponent") then
 		site:get("AssignmentComponent"):unassign(entity)
