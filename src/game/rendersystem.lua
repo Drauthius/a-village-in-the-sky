@@ -502,7 +502,8 @@ function RenderSystem:_drawHeader(entity)
 			return
 		end
 
-		local header = spriteSheet:getSprite("headers", spots .. "-spot-building-header")
+		local header = spriteSheet:getSprite("headers",
+			entity:has("ConstructionComponent") and "construction-header" or (spots .. "-spot-building-header"))
 		local x, y = sprite:getOriginalDrawPosition()
 		local w, h = header:getDimensions()
 		local tw = sprite:getSprite():getWidth()
@@ -522,7 +523,7 @@ function RenderSystem:_drawHeader(entity)
 		elseif type == BuildingComponent.BAKERY then
 			typeSlice = "baker-icon"
 		elseif type == BuildingComponent.RUNESTONE then
-			error("TODO: No runestone icon") -- TODO
+			typeSlice = "runestone-icon"
 		else
 			error("Unknown building type '" .. tostring(type) .. "'")
 		end
