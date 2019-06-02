@@ -512,6 +512,26 @@ function RenderSystem:_drawHeader(entity)
 		y = y - h / 2
 		spriteSheet:draw(header, x, y)
 
+		-- For constructions, use the header as a progress bar.
+		if entity:has("ConstructionComponent") then
+			header = spriteSheet:getSprite("headers", spots .. "-spot-building-header")
+
+			local percent = entity:get("ConstructionComponent"):getPercentDone()
+			local quad = header:getQuad()
+			local qx, qy, qw, qh = quad:getViewport()
+
+			local ox = 3 -- Remove some of the outline and spiky things
+			local ow = 2 -- Remove some pixels at the end
+			local deficit = (qw - ox - ow) - (qw - ox - ow) * percent / 100
+			deficit = math.floor(deficit) -- Looks a bit weird with fractions.
+			quad:setViewport(qx + ox, qy, qw - deficit - ox - ow, qh)
+
+			spriteSheet:draw(header, x + ox, y)
+
+			-- Reset quad
+			quad:setViewport(qx, qy, qw, qh)
+		end
+
 		local typeSlice
 		local type = entity:get("BuildingComponent"):getType()
 		if type == BuildingComponent.DWELLING then
