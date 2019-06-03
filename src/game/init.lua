@@ -35,8 +35,6 @@
 --    * Selecting a runestone:
 --      Shows the increased area of influence if upgraded/during upgrade?
 --    * Construction header
---      Show icon for the type of building, or an icon showing that it is under construction?
---      Show % complete in the header instead/also?
 --      Show needed/committed resources in the header and/or details panel.
 --    * Cancelling/destroying buildings.
 --      Refund some resources.
