@@ -1,4 +1,5 @@
 local class = require "lib.middleclass"
+local Timer = require "lib.hump.timer"
 
 local Button = require "src.game.gui.button"
 
@@ -8,6 +9,9 @@ local spriteSheet = require "src.game.spritesheet"
 local InfoPanel = class("InfoPanel")
 
 InfoPanel.static.panelWidth = 32
+InfoPanel.static.scrollTime = 0.005 -- Pixels per second
+InfoPanel.static.scrollMove = 75
+InfoPanel.static.scrollEase = "in-out-sine"
 
 function InfoPanel:initialize(width)
 	self.hidden = false
@@ -24,22 +28,18 @@ function InfoPanel:initialize(width)
 
 	local panel = 0
 	for x=InfoPanel.panelWidth,(width - centre:getWidth()) / 2,InfoPanel.panelWidth do
-		local flipRight = false
 		if x + InfoPanel.panelWidth > (width - centre:getWidth()) / 2 then
-			panel = "left"
-			flipRight = true
+			panel = "left (Up)"
 		else
 			panel = panel > 6 and 1 or panel + 1
 		end
 
 		local sprite = spriteSheet:getSprite("info-panel-"..panel)
 
-		self.spriteBatch:add(assert(sprite:getQuad(), "No quad for info-panel-"..tostring(panel)), -x)
-		if flipRight then
-			self.spriteBatch:add(sprite:getQuad(),
-				centre:getWidth() + x,
-				0, 0, -1, 1)
-		else
+		if panel ~= "left (Up)" then -- The left/right buttons are handled elsewhere.
+			-- Place to the left
+			self.spriteBatch:add(assert(sprite:getQuad(), "No quad for info-panel-"..tostring(panel)), -x)
+			-- Place to the right
 			self.spriteBatch:add(sprite:getQuad(),
 				centre:getWidth() + x - InfoPanel.panelWidth)
 		end
@@ -48,21 +48,13 @@ function InfoPanel:initialize(width)
 		self.bounds.w = self.bounds.w + sprite:getWidth() * 2
 	end
 
-	-- Buttons
-	--[[local closeButton = spriteSheet:getSprite("close-button (Up)")
-	local buttonX = (self.bounds.w + centre:getWidth()) / 2 - closeButton:getWidth() - 1
-	self.spriteBatch:add(closeButton:getQuad(), buttonX, 1)
-	local minimizeButton = spriteSheet:getSprite("minimize-button (Up)")
-	buttonX = buttonX - minimizeButton:getWidth()
-	self.spriteBatch:add(minimizeButton:getQuad(), buttonX, 1)
-	]]
-
 	local screenWidth, screenHeight = screen:getDimensions()
 	self.x, self.y = (screenWidth - centre:getWidth() ) / 2, screenHeight - centre:getHeight()
 
 	self.bounds.x = self.x + self.bounds.x
 	self.bounds.y = self.y
 	self.oldY = self.y
+	self.ox = 0
 
 	self.barHeight = 23
 	self.contentBounds = {
@@ -73,6 +65,37 @@ function InfoPanel:initialize(width)
 	}
 
 	do -- Buttons
+		self.leftButton = Button(self.bounds.x, self.bounds.y, 0, 0, "info-panel-left", false)
+		self.leftButton:setAction(function()
+			local limit = 0
+			local target = math.min(limit, self.ox + InfoPanel.scrollMove)
+			Timer.tween(InfoPanel.scrollTime * math.abs(target - self.ox), self, {ox = target}, InfoPanel.scrollEase, function()
+				if math.floor(self.ox) <= limit then
+					self.ox = limit
+					self.leftButton:setDisabled(true)
+					self.leftButton:setPressed(true)
+				end
+				self.rightButton:setDisabled(false)
+				self.rightButton:setPressed(false)
+			end)
+		end)
+
+		self.rightButton = Button(self.bounds.x + self.bounds.w, self.bounds.y, 0, 0, "info-panel-left", false)
+		self.rightButton:setScale(-1, 1) -- Flip
+		self.rightButton:setAction(function()
+			local limit = self.contentBounds.w - self.contentBounds.length
+			local target = math.max(limit, self.ox - InfoPanel.scrollMove)
+			Timer.tween(InfoPanel.scrollTime * math.abs(target - self.ox), self, {ox = target}, InfoPanel.scrollEase, function()
+				if math.ceil(self.ox) >= limit then
+					self.ox = limit
+					self.rightButton:setDisabled(true)
+					self.rightButton:setPressed(true)
+				end
+				self.leftButton:setDisabled(false)
+				self.leftButton:setPressed(false)
+			end)
+		end)
+
 		local closeButton = spriteSheet:getSprite("close-button (Up)")
 		local buttonX = (self.bounds.w + centre:getWidth()) / 2 - closeButton:getWidth() - 1
 		local buttonY = 1
@@ -88,8 +111,9 @@ function InfoPanel:initialize(width)
 			self:minimize(not self.minimized)
 		end)
 
+		-- Prioritize the close/minimize button for interaction.
 		self.buttons = {
-			self.closeButton, self.minimizeButton
+			self.closeButton, self.minimizeButton, self.leftButton, self.rightButton
 		}
 	end
 
@@ -105,7 +129,9 @@ function InfoPanel:update(dt)
 
 	for _,button in ipairs(self.buttons) do
 		-- FIXME: DRY (Same in detailspanel)
-		if button:isPressed() and not button:isWithin(screen:getCoordinate(love.mouse.getPosition())) then
+		if button:isPressed() and
+		   not button:isDisabled() and
+		   not button:isWithin(screen:getCoordinate(love.mouse.getPosition())) then
 			button:setPressed(false)
 		end
 	end
@@ -116,32 +142,51 @@ function InfoPanel:draw()
 		return
 	end
 
-	love.graphics.draw(self.spriteBatch, self.x, self.y)
-
-	--local start = self.contentBounds.x
-	--for _,widget in ipairs(self.content.items) do
-	--	spriteSheet:draw(widget,
-	--			start + self.content.margin,
-	--			self.contentBounds.y + (self.contentBounds.h - widget:getHeight()) / 2)
-	--	start = start + widget:getWidth() + self.content.margin * 2
-	--end
+	love.graphics.stencil(function()
+		love.graphics.setColorMask()
+		love.graphics.draw(self.spriteBatch, self.x, self.y)
+	end)
 
 	if not self.minimized then
+		love.graphics.setStencilTest("greater", 0)
+
 		for i,item in ipairs(self.content.items) do
-			spriteSheet:draw(item,
-					item.bounds.x + self.content.margin,
-					item.bounds.y + (item.bounds.h - item:getHeight()) / 2)
+			spriteSheet:draw(item.sprite,
+					item.bounds.x + self.content.margin + self.ox,
+					item.bounds.y + (item.bounds.h - item.sprite:getHeight()) / 2)
+			if self.content.overlay then
+				self.content.overlay(item, self.ox)
+			end
 			if self.content.selected == i then
 				local thickness = 3
 				love.graphics.setLineWidth(thickness)
 				love.graphics.setColor(1, 0.5, 0)
 				love.graphics.rectangle("line",
-						item.bounds.x, item.bounds.y,
+						item.bounds.x + self.ox,
+						item.bounds.y,
 						item.bounds.w - thickness, item.bounds.h - thickness)
 				love.graphics.setColor(1, 1, 1)
 			end
 		end
+
+		love.graphics.setStencilTest()
 	end
+
+	self.leftButton:draw()
+	self.rightButton:draw()
+
+	-- Draw a shadow "behind" the left/right buttons.
+	love.graphics.setColor(0, 0, 0, 0.25)
+	local shadowWidth = 2
+	love.graphics.rectangle("fill",
+		self.leftButton.x + self.leftButton.w - 1,
+		self.leftButton.y + self.barHeight - 2,
+		shadowWidth, self.leftButton.h)
+	love.graphics.rectangle("fill",
+		self.rightButton.x - self.rightButton.w + 1 - shadowWidth,
+		self.rightButton.y + self.barHeight - 2,
+		shadowWidth, self.rightButton.h)
+	love.graphics.setColor(1, 1, 1, 1)
 
 	local x, y = self.bounds.x + 1, self.bounds.y + 1
 	spriteSheet:draw(self.textBackgroundLeft, x, y)
@@ -182,16 +227,29 @@ function InfoPanel:setContent(content)
 		item.bounds = {
 			x = nextX,
 			y = self.contentBounds.y,
-			w = item:getWidth() + 2 * margin,
+			w = item.sprite:getWidth() + 2 * margin,
 			h = self.contentBounds.h
 		}
 		nextX = nextX + item.bounds.w + margin
+	end
+	self.contentBounds.length = nextX - self.contentBounds.x
+
+	self.leftButton:setDisabled(true)
+	self.leftButton:setPressed(true)
+
+	if self.contentBounds.length < self.contentBounds.w then
+		self.rightButton:setDisabled(true)
+		self.rightButton:setPressed(true)
+	else
+		self.rightButton:setDisabled(false)
+		self.rightButton:setPressed(false)
 	end
 end
 
 function InfoPanel:show()
 	self.hidden = false
 	self:minimize(false)
+	self.ox = 0
 end
 
 function InfoPanel:hide()
@@ -206,14 +264,31 @@ function InfoPanel:minimize(min)
 	self.minimized = min
 	if self.minimized then
 		self.y = select(2, screen:getDimensions()) - self.barHeight + 5
+
+		for _,button in ipairs(self.buttons) do
+			if not button.oldY then
+				button.oldY = button.y
+			end
+			button.y = button.oldY + (self.y - self.oldY)
+		end
+
+		self.leftButton:setDisabled(true)
+		self.rightButton:setDisabled(true)
 	else
 		self.y = self.oldY
+
+		for _,button in ipairs(self.buttons) do
+			if not button.oldY then
+				button.oldY = button.y
+			end
+			button.y = button.oldY
+		end
+
+		self.leftButton:setDisabled(false)
+		self.rightButton:setDisabled(false)
 	end
 
 	self.bounds.y = self.y
-	for _,button in ipairs(self.buttons) do
-		button.y = self.y + 1
-	end
 end
 
 function InfoPanel:isWithin(x, y)
@@ -224,22 +299,23 @@ function InfoPanel:isWithin(x, y)
 end
 
 function InfoPanel:handlePress(x, y, released)
-	if released and not self.minimized then
-		for _,item in ipairs(self.content.items) do
-			if x >= item.bounds.x and y >= item.bounds.y and
-			   x <= item.bounds.x + item.bounds.w and y <= item.bounds.y + item.bounds.h then
-				item:onPress()
-				return
-		   end
-		end
-	end
-
 	for _,button in ipairs(self.buttons) do
-		if button:isWithin(x, y) then
+		if button:isWithin(x, y) and not button:isDisabled() then
 			if released and button:isPressed() then
 				button:getAction()()
 			end
 			button:setPressed(not released)
+			return
+		end
+	end
+
+	if released and not self.minimized then
+		for _,item in ipairs(self.content.items) do
+			if x >= item.bounds.x + self.ox and y >= item.bounds.y and
+			   x <= item.bounds.x + item.bounds.w + self.ox and y <= item.bounds.y + item.bounds.h then
+				item:onPress()
+				return
+		   end
 		end
 	end
 end

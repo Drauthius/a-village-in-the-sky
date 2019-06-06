@@ -149,18 +149,13 @@ function DetailsPanel:draw()
 			local BuildingComponent = require "src.game.buildingcomponent"
 			local ConstructionComponent = require "src.game.constructioncomponent"
 			local ResourceComponent = require "src.game.resourcecomponent"
-			--local WorkComponent = require "src.game.workcomponent"
 			for resource,amount in pairs(ConstructionComponent.MATERIALS[BuildingComponent.RUNESTONE][runestone:getLevel()]) do
 				if amount > 0 then
 					love.graphics.setColor(RenderSystem.NEW_OUTLINE_COLOR) -- XXX: True pixel font won't have this problem.
 					love.graphics.print(amount.."x", x, y)
 					x = x + self.font:getWidth(amount.."x") + 1
-					--local name = WorkComponent.WORK_NAME[WorkComponent.RESOURCE_TO_WORK[resource]] -- XXX: This is silly
 					local name = ResourceComponent.RESOURCE_NAME[resource]
 					local sprite = spriteSheet:getSprite("headers", name.."-icon")
-					if not self.apa then
-						self.apa = 1
-					end
 					love.graphics.setColor(1, 1, 1)
 					spriteSheet:draw(sprite, x, math.floor(y - (self.font:getHeight() - sprite:getHeight()) / 2) + 1)
 					x = x + sprite:getWidth() + self.font:getWidth(" ")

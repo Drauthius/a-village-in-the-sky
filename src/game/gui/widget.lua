@@ -13,7 +13,11 @@ function Widget:initialize(x, y, ox, oy, sprite)
 end
 
 function Widget:draw()
-	spriteSheet:draw(self.sprite, self.x, self.y)
+	if not self.sx then
+		spriteSheet:draw(self.sprite, self.x, self.y)
+	else
+		love.graphics.draw(spriteSheet:getImage(), self.sprite:getQuad(), self.x, self.y, 0, self.sx, self.sy)
+	end
 
 	if self.text then
 		love.graphics.setFont(self.text.font)
@@ -41,6 +45,10 @@ function Widget:setText(text)
 
 end
 
+function Widget:setScale(sx, sy)
+	self.sx, self.sy = sx, sy
+end
+
 function Widget:getPosition()
 	return self.x, self.y
 end
@@ -50,10 +58,15 @@ function Widget:getDimensions()
 end
 
 function Widget:isWithin(x, y)
-	return x >= self.x - self.ox and
-	       y >= self.y - self.oy and
-	       x <= self.x + self.w + self.ox and
-	       y <= self.y + self.h + self.oy
+	local x1 = self.x - self.ox
+	local y1 = self.y - self.oy
+	local x2 = self.x + (self.w * (self.sx or 1)) + self.ox
+	local y2 = self.y + (self.h * (self.sy or 1)) + self.oy
+
+	return x >= math.min(x1, x2) and
+	       y >= math.min(y1, y2) and
+	       x <= math.max(x1, x2) and
+	       y <= math.max(y1, y2)
 end
 
 return Widget

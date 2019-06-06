@@ -348,7 +348,7 @@ function Game:draw()
 		end
 	end)
 
-	love.graphics.setCanvas(oldCanvas)
+	love.graphics.setCanvas({oldCanvas, stencil = true})
 	love.graphics.setColor(1, 1, 1)
 	love.graphics.setBlendMode("alpha", "premultiplied")
 	love.graphics.draw(self.worldCanvas)

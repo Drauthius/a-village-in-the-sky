@@ -32,6 +32,7 @@ down_layer='Down'
 buttons=(
 close-button.aseprite
 details-button.aseprite
+info-panel-left.aseprite
 minimize-button.aseprite
 )
 
@@ -53,7 +54,6 @@ info-panel-4.aseprite
 info-panel-5.aseprite
 info-panel-6.aseprite
 info-panel-centre.aseprite
-info-panel-left.aseprite
 iron-resource.aseprite
 menu-button.aseprite
 mountain-tile.aseprite
@@ -146,10 +146,10 @@ gawk -v buttons="${buttons[*]}" -i inplace 'BEGIN { split(buttons, buttonsArray,
 		if($0 ~ buttonsArray[i]) {
 			if(!map[$1]) {
 				map[$1]="true"
-				gsub("button", "& (Down)")
+				gsub(".aseprite", " (Down)&")
 			}
 			else {
-				gsub("button", "& (Up)")
+				gsub(".aseprite", " (Up)&")
 			}
 			break
 		}

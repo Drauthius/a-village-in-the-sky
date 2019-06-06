@@ -18,6 +18,14 @@ function Button:initialize(x, y, ox, oy, type, font)
 	end
 end
 
+function Button:setDisabled(disabled)
+	self.disabled = disabled
+end
+
+function Button:isDisabled()
+	return self.disabled == true
+end
+
 function Button:setPressed(pressed)
 	if pressed then
 		self.sprite = self.spriteDown

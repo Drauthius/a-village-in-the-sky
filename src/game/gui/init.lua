@@ -13,6 +13,7 @@ local UnassignedEvent = require "src.game.unassignedevent"
 local AssignmentComponent = require "src.game.assignmentcomponent"
 local BuildingComponent = require "src.game.buildingcomponent"
 local ConstructionComponent = require "src.game.constructioncomponent"
+local ResourceComponent = require "src.game.resourcecomponent"
 local TileComponent = require "src.game.tilecomponent"
 local WorkComponent = require "src.game.workcomponent"
 
@@ -32,6 +33,7 @@ function GUI:initialize(engine, eventManager, map)
 	self.screenWidth, self.screenHeight = screen:getDimensions()
 
 	self.menuFont = love.graphics.newFont("asset/font/Norse.otf", 26)
+	self.contentFont = love.graphics.newFont("asset/font/Norse.otf", 16)
 	self.yearPanel = spriteSheet:getSprite("year-panel")
 	self.yearPanel.number = spriteSheet:getData("year-number")
 	self.yearPanel.text = spriteSheet:getData("year-text")
@@ -101,6 +103,14 @@ function GUI:initialize(engine, eventManager, map)
 		self:_handleDetailsButtonPress(button)
 	end)
 	self.detailsPanel:hide()
+
+	local woodPalette = spriteSheet:getSprite("wood-palette")
+	self.woodPalette = {
+		outline = { woodPalette:getPixel(1, 0) },
+		bright = { woodPalette:getPixel(2, 0) },
+		medium = { woodPalette:getPixel(3, 0) },
+		dark = { woodPalette:getPixel(4, 0) }
+	}
 end
 
 function GUI:back()
@@ -377,8 +387,11 @@ function GUI:updateInfoPanel()
 		}
 		if self.infoPanelShowing == "terrain" then
 			for i,type in ipairs({ TileComponent.GRASS, TileComponent.FOREST, TileComponent.MOUNTAIN}) do
-				table.insert(content.items, (spriteSheet:getSprite(TileComponent.TILE_NAME[type] .. "-tile")))
-				content.items[i].onPress = function(item)
+				local item = {
+					type = type,
+					sprite = spriteSheet:getSprite(TileComponent.TILE_NAME[type] .. "-tile")
+				}
+				item.onPress = function()
 					local selected = content.selected
 					self:_clearPlacing()
 
@@ -393,13 +406,17 @@ function GUI:updateInfoPanel()
 						content.selected = i
 					end
 				end
+				table.insert(content.items, item)
 			end
 		elseif self.infoPanelShowing == "build" then
 			for i,type in ipairs({ BuildingComponent.DWELLING, BuildingComponent.BLACKSMITH,
 			                       BuildingComponent.FIELD, BuildingComponent.BAKERY}) do
 				local name = BuildingComponent.BUILDING_NAME[type]
-				table.insert(content.items, (spriteSheet:getSprite(name .. (type == BuildingComponent.FIELD and "" or " 0"))))
-				content.items[i].onPress = function(item)
+				local item = {
+					type = type,
+					sprite = (spriteSheet:getSprite(name .. (type == BuildingComponent.FIELD and "" or " 0")))
+				}
+				item.onPress = function()
 					local selected = content.selected
 					self:_clearPlacing()
 
@@ -414,6 +431,49 @@ function GUI:updateInfoPanel()
 						content.selected = i
 					end
 				end
+				table.insert(content.items, item)
+			end
+
+			content.overlay = function(item, xOffset)
+				local materials = ConstructionComponent.MATERIALS[item.type]
+				love.graphics.setFont(self.contentFont)
+
+				-- First pass to get the proper dimensions
+				local width, height = 0, 0
+				for resource,amount in pairs(materials) do
+					if amount > 0 then
+						local icon = spriteSheet:getSprite("headers", ResourceComponent.RESOURCE_NAME[resource] .. "-icon")
+						width = math.max(width, self.contentFont:getWidth(amount.."x") + 1 + icon:getWidth())
+						height = height + math.max(self.contentFont:getHeight() + 1, icon:getHeight())
+					end
+				end
+
+				local sx, sy = item.bounds.x + xOffset + 5, item.bounds.y + 5
+
+				local dark = self.woodPalette.dark
+				love.graphics.setColor(dark[1], dark[2], dark[3], 0.5)
+				love.graphics.rectangle("fill", sx, sy, width, height)
+				love.graphics.setColor(self.woodPalette.outline)
+				love.graphics.setLineWidth(1)
+				love.graphics.setLineStyle("rough")
+				love.graphics.rectangle("line", sx, sy, width + 1, height + 1)
+
+				local oy = 2
+				for resource,amount in pairs(materials) do
+					if amount > 0 then
+						local icon = spriteSheet:getSprite("headers", ResourceComponent.RESOURCE_NAME[resource] .. "-icon")
+						local ox = icon:getWidth() + 1
+
+						love.graphics.setColor(1, 1, 1)
+						spriteSheet:draw(icon, sx + width - ox + 1, sy + oy + 1)
+
+						love.graphics.setColor(require("src.game.rendersystem").NEW_OUTLINE_COLOR) -- XXX
+						love.graphics.printf(amount.."x", sx + 1, sy + oy, width - ox, "right")
+
+						oy = oy + icon:getHeight() + 1
+					end
+				end
+				love.graphics.setColor(1, 1, 1)
 			end
 		end
 		self.infoPanel:setContent(content)
