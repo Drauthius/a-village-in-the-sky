@@ -124,6 +124,25 @@ function SpriteSheet:getImageData()
 	return self.imageData
 end
 
+function SpriteSheet:getWoodPalette()
+	if not self.woodPalette then
+		local woodPalette = self:getSprite("wood-palette")
+		self.woodPalette = {
+			outline = { woodPalette:getPixel(1, 0) },
+			bright = { woodPalette:getPixel(2, 0) },
+			medium = { woodPalette:getPixel(3, 0) },
+			dark = { woodPalette:getPixel(4, 0) }
+		}
+	end
+
+	return self.woodPalette
+end
+
+-- TODO: Only needed because the current font isn't a pixel font.
+function SpriteSheet:getOutlineColor()
+	return require("src.game.rendersystem").NEW_OUTLINE_COLOR
+end
+
 function SpriteSheet:draw(sprite, x, y)
 	sprite:draw(self.image, x, y)
 end

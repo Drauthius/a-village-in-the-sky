@@ -7,17 +7,13 @@ local InfoPanel = require "src.game.gui.infopanel"
 local ResourcePanel = require "src.game.gui.resourcepanel"
 local Widget = require "src.game.gui.widget"
 
-local SelectionChangedEvent = require "src.game.selectionchangedevent"
 local UnassignedEvent = require "src.game.unassignedevent"
 
 local AssignmentComponent = require "src.game.assignmentcomponent"
 local BuildingComponent = require "src.game.buildingcomponent"
 local ConstructionComponent = require "src.game.constructioncomponent"
-local ResourceComponent = require "src.game.resourcecomponent"
-local TileComponent = require "src.game.tilecomponent"
 local WorkComponent = require "src.game.workcomponent"
 
-local blueprint = require "src.game.blueprint"
 local screen = require "src.screen"
 local soundManager = require "src.soundmanager"
 local spriteSheet = require "src.game.spritesheet"
@@ -33,7 +29,6 @@ function GUI:initialize(engine, eventManager, map)
 	self.screenWidth, self.screenHeight = screen:getDimensions()
 
 	self.menuFont = love.graphics.newFont("asset/font/Norse.otf", 26)
-	self.contentFont = love.graphics.newFont("asset/font/Norse.otf", 16)
 	self.yearPanel = spriteSheet:getSprite("year-panel")
 	self.yearPanel.number = spriteSheet:getData("year-number")
 	self.yearPanel.text = spriteSheet:getData("year-text")
@@ -82,11 +77,11 @@ function GUI:initialize(engine, eventManager, map)
 	self.listBuildingButton.opened = spriteSheet:getSprite("button 7")
 
 	self.widgets = {
-		terrain = self.tileButton,
-		build = self.buildingButton,
-		events = self.listEventButton,
-		villagers = self.listPeopleButton,
-		buildings = self.listBuildingButton
+		[InfoPanel.CONTENT.PLACE_TERRAIN] = self.tileButton,
+		[InfoPanel.CONTENT.PLACE_BUILDING] = self.buildingButton,
+		[InfoPanel.CONTENT.LIST_EVENTS] = self.listEventButton,
+		[InfoPanel.CONTENT.LIST_VILLAGERS] = self.listPeopleButton,
+		[InfoPanel.CONTENT.LIST_BUILDINGS] = self.listBuildingButton
 	}
 
 	self.resourcePanel = ResourcePanel()
@@ -96,36 +91,21 @@ function GUI:initialize(engine, eventManager, map)
 	left = left + leftx + 3
 	local right = self.listEventButton:getPosition()
 	right = right - 3
-	self.infoPanel = InfoPanel(right - left)
+	self.infoPanel = InfoPanel(self.engine, self.eventManager, right - left)
 	self.infoPanel:hide()
 
 	self.detailsPanel = DetailsPanel(select(2, self.listBuildingButton:getPosition()) - padding, function(button)
 		self:_handleDetailsButtonPress(button)
 	end)
 	self.detailsPanel:hide()
-
-	local woodPalette = spriteSheet:getSprite("wood-palette")
-	self.woodPalette = {
-		outline = { woodPalette:getPixel(1, 0) },
-		bright = { woodPalette:getPixel(2, 0) },
-		medium = { woodPalette:getPixel(3, 0) },
-		dark = { woodPalette:getPixel(4, 0) }
-	}
 end
 
 function GUI:back()
-	if not self:_clearPlacing() then
-		if self.infoPanel:isShown() then
-			self:_closeInfoPanel()
-		elseif state:hasSelection() then
-			state:clearSelection()
-			self.eventManager:fireEvent(SelectionChangedEvent(nil))
-		else
-			print("toggle main menu")
-			soundManager:playEffect("toggleMainMenu")
-		end
+	if self.infoPanel:isShown() then
+		self:_closeInfoPanel()
 	else
-		soundManager:playEffect("placingCleared")
+		print("toggle main menu")
+		soundManager:playEffect("toggleMainMenu")
 	end
 end
 
@@ -136,8 +116,8 @@ function GUI:placed()
 end
 
 function GUI:update(dt)
-	for type,widget in pairs(self.widgets) do
-		if type == self.infoPanelShowing then
+	for type,widget in ipairs(self.widgets) do
+		if type == self.infoPanel:getContentType() then
 			widget.sprite = widget.opened
 		else
 			widget.sprite = widget.closed
@@ -282,7 +262,7 @@ function GUI:draw(camera)
 	end
 
 	-- Buttons
-	for _,widget in pairs(self.widgets) do
+	for _,widget in ipairs(self.widgets) do
 		widget:draw()
 	end
 
@@ -378,121 +358,16 @@ function GUI:draw(camera)
 	end
 end
 
-function GUI:updateInfoPanel()
-	if self.infoPanel:isShown() then
-		local content = {
-			name = self.infoPanelShowing,
-			margin = 5,
-			items = {}
-		}
-		if self.infoPanelShowing == "terrain" then
-			for i,type in ipairs({ TileComponent.GRASS, TileComponent.FOREST, TileComponent.MOUNTAIN}) do
-				local item = {
-					type = type,
-					sprite = spriteSheet:getSprite(TileComponent.TILE_NAME[type] .. "-tile")
-				}
-				item.onPress = function()
-					local selected = content.selected
-					self:_clearPlacing()
-
-					if selected ~= i then
-						local entity = blueprint:createPlacingTile(type)
-
-						state:setPlacing(entity)
-						state:clearSelection()
-						self.eventManager:fireEvent(SelectionChangedEvent(nil))
-
-						self.engine:addEntity(entity)
-						content.selected = i
-					end
-				end
-				table.insert(content.items, item)
-			end
-		elseif self.infoPanelShowing == "build" then
-			for i,type in ipairs({ BuildingComponent.DWELLING, BuildingComponent.BLACKSMITH,
-			                       BuildingComponent.FIELD, BuildingComponent.BAKERY}) do
-				local name = BuildingComponent.BUILDING_NAME[type]
-				local item = {
-					type = type,
-					sprite = (spriteSheet:getSprite(name .. (type == BuildingComponent.FIELD and "" or " 0")))
-				}
-				item.onPress = function()
-					local selected = content.selected
-					self:_clearPlacing()
-
-					if selected ~= i then
-						local entity = blueprint:createPlacingBuilding(type)
-
-						state:setPlacing(entity)
-						state:clearSelection()
-						self.eventManager:fireEvent(SelectionChangedEvent(nil))
-
-						self.engine:addEntity(entity)
-						content.selected = i
-					end
-				end
-				table.insert(content.items, item)
-			end
-
-			content.overlay = function(item, xOffset)
-				local materials = ConstructionComponent.MATERIALS[item.type]
-				love.graphics.setFont(self.contentFont)
-
-				-- First pass to get the proper dimensions
-				local width, height = 0, 0
-				for resource,amount in pairs(materials) do
-					if amount > 0 then
-						local icon = spriteSheet:getSprite("headers", ResourceComponent.RESOURCE_NAME[resource] .. "-icon")
-						width = math.max(width, self.contentFont:getWidth(amount.."x") + 1 + icon:getWidth())
-						height = height + math.max(self.contentFont:getHeight() + 1, icon:getHeight())
-					end
-				end
-
-				local sx, sy = item.bounds.x + xOffset + 5, item.bounds.y + 5
-
-				local dark = self.woodPalette.dark
-				love.graphics.setColor(dark[1], dark[2], dark[3], 0.5)
-				love.graphics.rectangle("fill", sx, sy, width, height)
-				love.graphics.setColor(self.woodPalette.outline)
-				love.graphics.setLineWidth(1)
-				love.graphics.setLineStyle("rough")
-				love.graphics.rectangle("line", sx, sy, width + 1, height + 1)
-
-				local oy = 2
-				for resource,amount in pairs(materials) do
-					if amount > 0 then
-						local icon = spriteSheet:getSprite("headers", ResourceComponent.RESOURCE_NAME[resource] .. "-icon")
-						local ox = icon:getWidth() + 1
-
-						love.graphics.setColor(1, 1, 1)
-						spriteSheet:draw(icon, sx + width - ox + 1, sy + oy + 1)
-
-						love.graphics.setColor(require("src.game.rendersystem").NEW_OUTLINE_COLOR) -- XXX
-						love.graphics.printf(amount.."x", sx + 1, sy + oy, width - ox, "right")
-
-						oy = oy + icon:getHeight() + 1
-					end
-				end
-				love.graphics.setColor(1, 1, 1)
-			end
-		end
-		self.infoPanel:setContent(content)
-	end
-end
-
 function GUI:handlePress(x, y, released)
-	for type,widget in pairs(self.widgets) do
+	for type,widget in ipairs(self.widgets) do
 		if widget:isWithin(x, y) then
 			if released then
-				if self.infoPanel:isShown() and self.infoPanelShowing == type then
+				if self.infoPanel:isShown() and self.infoPanel:getContentType() == type then
 					self:_closeInfoPanel()
 				else
-					self:_clearPlacing()
-
 					soundManager:playEffect("drawerOpened")
-					self.infoPanelShowing = type
+					self.infoPanel:setContent(type)
 					self.infoPanel:show()
-					self:updateInfoPanel()
 
 					state:showBuildingHeaders(type == "buildings")
 					state:showVillagerHeaders(type == "villagers")
@@ -521,6 +396,18 @@ function GUI:handlePress(x, y, released)
 	return false
 end
 
+--
+-- Events
+--
+
+function GUI:onSelectionChanged(event)
+	self.infoPanel:onSelectionChanged(event)
+end
+
+--
+-- Internal functions
+--
+
 function GUI:_handleDetailsButtonPress(button)
 	local selection = state:getSelection()
 	if button == "runestone-upgrade" then
@@ -538,22 +425,10 @@ function GUI:_handleDetailsButtonPress(button)
 	end
 end
 
-function GUI:_clearPlacing()
-	-- Make sure no entity is left when changing between different panels.
-	if state:isPlacing() then
-		self.infoPanel.content.selected = nil
-		self.engine:removeEntity(state:getPlacing(), true)
-		state:clearPlacing()
-		return true
-	end
-end
-
 function GUI:_closeInfoPanel()
-	self:_clearPlacing()
-
 	soundManager:playEffect("drawerClosed")
 	self.infoPanel:hide()
-	self.infoPanelShowing = nil
+	--self.infoPanelShowing = nil
 
 	state:showBuildingHeaders(false)
 	state:showVillagerHeaders(false)

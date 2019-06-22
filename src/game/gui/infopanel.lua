@@ -1,22 +1,52 @@
+local babel = require "lib.babel"
 local class = require "lib.middleclass"
 local Timer = require "lib.hump.timer"
 
+local BuildItem = require "src.game.gui.builditem"
 local Button = require "src.game.gui.button"
+local VillagerItem = require "src.game.gui.villageritem"
+local ScaledSprite = require "src.game.scaledsprite"
 
+local SelectionChangedEvent = require "src.game.selectionchangedevent"
+
+local BuildingComponent = require "src.game.buildingcomponent"
+local TileComponent = require "src.game.tilecomponent"
+
+local blueprint = require "src.game.blueprint"
 local screen = require "src.screen"
 local spriteSheet = require "src.game.spritesheet"
 
 local InfoPanel = class("InfoPanel")
 
-InfoPanel.static.panelWidth = 32
-InfoPanel.static.scrollTime = 0.005 -- Pixels per second
-InfoPanel.static.scrollMove = 75
+InfoPanel.static.panelWidth = 32 -- The width of each panel sprite.
+InfoPanel.static.scrollTime = 0.0030 -- Seconds per pixel??
+InfoPanel.static.scrollMove = 150
 InfoPanel.static.scrollEase = "in-out-sine"
 
-function InfoPanel:initialize(width)
+InfoPanel.static.CONTENT = {
+	PLACE_TERRAIN = 1,
+	PLACE_BUILDING = 2,
+	LIST_EVENTS = 3,
+	LIST_VILLAGERS = 4,
+	LIST_BUILDINGS = 5
+}
+
+InfoPanel.static.CONTENT_NAME = {
+	[InfoPanel.CONTENT.PLACE_TERRAIN] = "Terrain",
+	[InfoPanel.CONTENT.PLACE_BUILDING] = "Build",
+	[InfoPanel.CONTENT.LIST_EVENTS] = "Events",
+	[InfoPanel.CONTENT.LIST_VILLAGERS] = "Villagers",
+	[InfoPanel.CONTENT.LIST_BUILDINGS] = "Buildings"
+}
+
+function InfoPanel:initialize(engine, eventManager, width)
+	self.engine = engine
+	self.eventManager = eventManager
 	self.hidden = false
 	self.minimized = false
 	self.content = {}
+	self.selected = nil
+	self.type = nil
 	self.spriteBatch = love.graphics.newSpriteBatch(spriteSheet:getImage(), 16, "static")
 
 	local centre = spriteSheet:getSprite("info-panel-centre")
@@ -69,8 +99,11 @@ function InfoPanel:initialize(width)
 		self.leftButton:setAction(function()
 			local limit = 0
 			local target = math.min(limit, self.ox + InfoPanel.scrollMove)
-			Timer.tween(InfoPanel.scrollTime * math.abs(target - self.ox), self, {ox = target}, InfoPanel.scrollEase, function()
-				if math.floor(self.ox) <= limit then
+			if self.scroll then
+				Timer.cancel(self.scroll)
+			end
+			self.scroll = Timer.tween(InfoPanel.scrollTime * math.abs(target - self.ox), self, {ox = target}, InfoPanel.scrollEase, function()
+				if math.ceil(self.ox) >= limit then
 					self.ox = limit
 					self.leftButton:setDisabled(true)
 					self.leftButton:setPressed(true)
@@ -85,8 +118,11 @@ function InfoPanel:initialize(width)
 		self.rightButton:setAction(function()
 			local limit = self.contentBounds.w - self.contentBounds.length
 			local target = math.max(limit, self.ox - InfoPanel.scrollMove)
-			Timer.tween(InfoPanel.scrollTime * math.abs(target - self.ox), self, {ox = target}, InfoPanel.scrollEase, function()
-				if math.ceil(self.ox) >= limit then
+			if self.scroll then
+				Timer.cancel(self.scroll)
+			end
+			self.scroll = Timer.tween(InfoPanel.scrollTime * math.abs(target - self.ox), self, {ox = target}, InfoPanel.scrollEase, function()
+				if math.floor(self.ox) <= limit then
 					self.ox = limit
 					self.rightButton:setDisabled(true)
 					self.rightButton:setPressed(true)
@@ -119,7 +155,9 @@ function InfoPanel:initialize(width)
 
 	self.textBackgroundLeft = spriteSheet:getSprite("text-background-left")
 	self.textBackgroundCentre = spriteSheet:getSprite("text-background-centre")
-	self.font = love.graphics.newFont("asset/font/Norse.otf", self.barHeight - 2)
+	self.headerFont = love.graphics.newFont("asset/font/Norse-Bold.otf", 18)
+	self.itemFont = love.graphics.newFont("asset/font/Norse.otf", 16)
+	self.itemFontBold = love.graphics.newFont("asset/font/Norse-Bold.otf", 16)
 end
 
 function InfoPanel:update(dt)
@@ -128,7 +166,7 @@ function InfoPanel:update(dt)
 	end
 
 	for _,button in ipairs(self.buttons) do
-		-- FIXME: DRY (Same in detailspanel)
+		-- FIXME: DRY (Almost identical to the button in detailspanel)
 		if button:isPressed() and
 		   not button:isDisabled() and
 		   not button:isWithin(screen:getCoordinate(love.mouse.getPosition())) then
@@ -147,31 +185,19 @@ function InfoPanel:draw()
 		love.graphics.draw(self.spriteBatch, self.x, self.y)
 	end)
 
+	-- Draw all the items.
 	if not self.minimized then
+		-- Don't draw outside the content bounds (this takes care of scrolling)
 		love.graphics.setStencilTest("greater", 0)
 
-		for i,item in ipairs(self.content.items) do
-			spriteSheet:draw(item.sprite,
-					item.bounds.x + self.content.margin + self.ox,
-					item.bounds.y + (item.bounds.h - item.sprite:getHeight()) / 2)
-			if self.content.overlay then
-				self.content.overlay(item, self.ox)
-			end
-			if self.content.selected == i then
-				local thickness = 3
-				love.graphics.setLineWidth(thickness)
-				love.graphics.setColor(1, 0.5, 0)
-				love.graphics.rectangle("line",
-						item.bounds.x + self.ox,
-						item.bounds.y,
-						item.bounds.w - thickness, item.bounds.h - thickness)
-				love.graphics.setColor(1, 1, 1)
-			end
+		for _,item in ipairs(self.content) do
+			item:draw(self.ox)
 		end
 
 		love.graphics.setStencilTest()
 	end
 
+	-- Draw the scroll buttons.
 	self.leftButton:draw()
 	self.rightButton:draw()
 
@@ -188,23 +214,25 @@ function InfoPanel:draw()
 		shadowWidth, self.rightButton.h)
 	love.graphics.setColor(1, 1, 1, 1)
 
+	-- Draw the header background.
+	love.graphics.setFont(self.headerFont)
+	local label = babel.translate(InfoPanel.CONTENT_NAME[self:getContentType()])
 	local x, y = self.bounds.x + 1, self.bounds.y + 1
 	spriteSheet:draw(self.textBackgroundLeft, x, y)
 	x = x + self.textBackgroundLeft:getWidth()
 	love.graphics.draw(spriteSheet:getImage(), self.textBackgroundCentre:getQuad(), x, y,
-		0, self.font:getWidth(self.content.name) * 0.8, 1) -- XXX: ???
-	x = x + self.font:getWidth(self.content.name) * 0.8 + 4 -- XXX: ???
+		0, self.headerFont:getWidth(label), 1)
+	x = x + self.headerFont:getWidth(label) + self.textBackgroundLeft:getWidth()
 	love.graphics.draw(spriteSheet:getImage(), self.textBackgroundLeft:getQuad(), x, y,
 		0, -1, 1)
 
-	--spriteSheet:draw(self.textBackgroundLeft, self.bounds.x + 1, self.bounds.y + 1)
-	--love.graphics.setColor(0, 0, 0)
-	-- XXX: True pixel font won't have this problem.
-	love.graphics.setColor(require("src.game.rendersystem").NEW_OUTLINE_COLOR)
-	love.graphics.print(self.content.name,
-		self.bounds.x + 5, self.y + math.ceil((self.barHeight - self.font:getHeight()) / 2) + 3)
+	-- Draw the header text.
+	love.graphics.setColor(spriteSheet:getOutlineColor())
+	love.graphics.print(label,
+		self.bounds.x + 5, self.y + math.floor((self.barHeight - self.headerFont:getHeight()) / 2))
 	love.graphics.setColor(1, 1, 1)
 
+	-- Lastly, draw the bar buttons.
 	self.closeButton:draw()
 	self.minimizeButton:draw()
 
@@ -219,20 +247,68 @@ function InfoPanel:draw()
 	--love.graphics.setColor(1, 1, 1)
 end
 
-function InfoPanel:setContent(content)
-	self.content = content
-	local margin = self.content.margin or 0
-	local nextX = self.contentBounds.x
-	for _,item in ipairs(self.content.items) do
-		item.bounds = {
-			x = nextX,
-			y = self.contentBounds.y,
-			w = item.sprite:getWidth() + 2 * margin,
-			h = self.contentBounds.h
-		}
-		nextX = nextX + item.bounds.w + margin
+function InfoPanel:getContentType()
+	return self.type
+end
+
+function InfoPanel:setContent(type)
+	self.type = type
+	self.ox = 0
+
+	local content = {}
+	local margin = 10
+	local mysteryOffset = 3 -- Probably something to do with the line thickness of items??
+	local x = self.contentBounds.x + mysteryOffset
+
+	if type == InfoPanel.CONTENT.PLACE_TERRAIN then
+		for _,terrain in pairs({ TileComponent.GRASS, TileComponent.FOREST, TileComponent.MOUNTAIN }) do
+			local sprite = spriteSheet:getSprite(TileComponent.TILE_NAME[terrain] .. "-tile")
+			local w, h = sprite:getWidth() + margin, self.contentBounds.h -- We assume that all sprites are the same width.
+
+			local item = BuildItem(x, self.contentBounds.y, w, h, sprite, self.itemFont, terrain, false, function(it)
+				return blueprint:createPlacingTile(it:getType())
+			end)
+
+			x = x + item:getDimensions() + margin
+			table.insert(content, item)
+		end
+	elseif type == InfoPanel.CONTENT.PLACE_BUILDING then
+		for _,building in pairs({ BuildingComponent.DWELLING, BuildingComponent.BLACKSMITH,
+		                          BuildingComponent.FIELD, BuildingComponent.BAKERY }) do
+			local sprite = spriteSheet:getSprite(BuildingComponent.BUILDING_NAME[building] ..
+			                                     (building == BuildingComponent.FIELD and "" or " 0"))
+			local w, h = sprite:getWidth() + margin, self.contentBounds.h -- We assume that all sprites are the same width.
+
+			local item = BuildItem(x, self.contentBounds.y, w, h, sprite, self.itemFont, building, true, function(it)
+				return blueprint:createPlacingBuilding(it:getType())
+			end)
+
+			x = x + item:getDimensions() + margin
+			table.insert(content, item)
+		end
+	elseif type == InfoPanel.CONTENT.LIST_VILLAGERS then
+		margin = 5 -- ?
+		for _,villager in pairs(self.engine:getEntitiesWithComponent("VillagerComponent")) do
+			local sprite
+			if villager:has("AdultComponent") then
+				local hairy = villager:get("VillagerComponent"):isHairy() and "(Hairy) " or ""
+				sprite = spriteSheet:getSprite("villagers "..hairy.."0",
+					villager:get("VillagerComponent"):getGender() .. " - S")
+			else
+				sprite = spriteSheet:getSprite("children 0",
+					(villager:get("VillagerComponent"):getGender() == "male" and "boy" or "girl") .. " - S")
+			end
+
+			local item = VillagerItem(x, self.contentBounds.y, self.contentBounds.h,
+				ScaledSprite:fromSprite(sprite, 4), self.itemFont, self.itemFontBold, villager)
+
+			x = x + item:getDimensions() + margin
+			table.insert(content, item)
+		end
 	end
-	self.contentBounds.length = nextX - self.contentBounds.x
+
+	self.content = content
+	self.contentBounds.length = x - self.contentBounds.x - mysteryOffset
 
 	self.leftButton:setDisabled(true)
 	self.leftButton:setPressed(true)
@@ -254,6 +330,12 @@ end
 
 function InfoPanel:hide()
 	self.hidden = true
+	self.type = nil
+
+	if self.selected ~= nil then
+		self.selected = nil
+		self.eventManager:fireEvent(SelectionChangedEvent(nil))
+	end
 end
 
 function InfoPanel:isShown()
@@ -284,8 +366,12 @@ function InfoPanel:minimize(min)
 			button.y = button.oldY
 		end
 
-		self.leftButton:setDisabled(false)
-		self.rightButton:setDisabled(false)
+		if self.ox > 0 then
+			self.leftButton:setDisabled(false)
+		end
+		if self.contentBounds.length > self.contentBounds.w then
+			self.rightButton:setDisabled(false)
+		end
 	end
 
 	self.bounds.y = self.y
@@ -300,23 +386,44 @@ end
 
 function InfoPanel:handlePress(x, y, released)
 	for _,button in ipairs(self.buttons) do
-		if button:isWithin(x, y) and not button:isDisabled() then
+		if button:isWithin(x, y) then
+			if button:isDisabled() then
+				return
+			end
 			if released and button:isPressed() then
 				button:getAction()()
 			end
-			button:setPressed(not released)
-			return
+			return button:setPressed(not released)
 		end
 	end
 
 	if released and not self.minimized then
-		for _,item in ipairs(self.content.items) do
-			if x >= item.bounds.x + self.ox and y >= item.bounds.y and
-			   x <= item.bounds.x + item.bounds.w + self.ox and y <= item.bounds.y + item.bounds.h then
-				item:onPress()
-				return
-		   end
+		for i,item in ipairs(self.content) do
+			if item:isWithin(x - self.ox, y) then
+				if self.selected then
+					self.content[self.selected]:unselect()
+				end
+
+				local selection, isPlacing = nil, false
+
+				if self.selected ~= i then
+					selection = item:select()
+					self.selected = i
+					isPlacing = self.type == InfoPanel.CONTENT.PLACE_TERRAIN or self.type == InfoPanel.CONTENT.PLACE_BUILDING
+				else
+					-- Clear the selection when clicking the same thing again.
+					self.selected = nil
+				end
+
+				return self.eventManager:fireEvent(SelectionChangedEvent(selection, isPlacing))
+			end
 		end
+	end
+end
+
+function InfoPanel:onSelectionChanged(event)
+	if event:isPlacing() then
+		return -- Probably originated from us, yeah?
 	end
 end
 

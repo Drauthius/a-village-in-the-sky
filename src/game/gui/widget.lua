@@ -58,10 +58,10 @@ function Widget:getDimensions()
 end
 
 function Widget:isWithin(x, y)
-	local x1 = self.x - self.ox
-	local y1 = self.y - self.oy
-	local x2 = self.x + (self.w * (self.sx or 1)) + self.ox
-	local y2 = self.y + (self.h * (self.sy or 1)) + self.oy
+	local x1 = self.x + self.ox
+	local y1 = self.y + self.oy
+	local x2 = self.x + (self.w * (self.sx or 1)) - self.ox
+	local y2 = self.y + (self.h * (self.sy or 1)) - self.oy
 
 	return x >= math.min(x1, x2) and
 	       y >= math.min(y1, y2) and

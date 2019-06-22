@@ -98,11 +98,11 @@ function Sprite:getDimensions()
 end
 
 function Sprite:getWidth()
-	return self.w
+	return (select(1, self:getDimensions()))
 end
 
 function Sprite:getHeight()
-	return self.h
+	return (select(2, self:getDimensions()))
 end
 
 return Sprite

@@ -34,14 +34,6 @@ function DetailsPanel:initialize(y, buttonEvents)
 		{ "Strength", "getStrength" },
 		{ "Craftsmanship", "getCraftsmanship" }
 	}
-
-	local woodPalette = spriteSheet:getSprite("wood-palette")
-	self.woodPalette = {
-		outline = { woodPalette:getPixel(1, 0) },
-		bright = { woodPalette:getPixel(2, 0) },
-		medium = { woodPalette:getPixel(3, 0) },
-		dark = { woodPalette:getPixel(4, 0) }
-	}
 end
 
 function DetailsPanel:update(dt)
@@ -75,9 +67,6 @@ function DetailsPanel:draw()
 
 	Widget.draw(self)
 
-	-- XXX:
-	local RenderSystem = require "src.game.rendersystem"
-
 	-- Start of the text stuff
 	local x, y = self.x + 5, self.y + 13
 
@@ -87,8 +76,7 @@ function DetailsPanel:draw()
 		local villager = selection:get("VillagerComponent")
 		local adult = selection:has("AdultComponent") and selection:get("AdultComponent")
 
-		--love.graphics.setColor(0, 0, 0)
-		love.graphics.setColor(RenderSystem.NEW_OUTLINE_COLOR) -- XXX: True pixel font won't have this problem.
+		love.graphics.setColor(spriteSheet:getOutlineColor())
 
 		for _,details in ipairs(self.villagerDetails) do
 			local key, value, adultComp = details[1], details[2], details[3]
@@ -119,8 +107,7 @@ function DetailsPanel:draw()
 	elseif selection:has("RunestoneComponent") then
 		local runestone = selection:get("RunestoneComponent")
 
-		--love.graphics.setColor(0, 0, 0)
-		love.graphics.setColor(RenderSystem.NEW_OUTLINE_COLOR) -- XXX: True pixel font won't have this problem.
+		love.graphics.setColor(spriteSheet:getOutlineColor())
 		love.graphics.setFont(self.fontBold)
 		love.graphics.print("Stage: ", x, y)
 
@@ -131,10 +118,10 @@ function DetailsPanel:draw()
 		local w, h = self.button:getDimensions()
 		local ox = -1
 		local oy = self.font:getHeight() + 1
-		--love.graphics.setColor(self.woodPalette.medium)
+		--love.graphics.setColor(spriteSheet:getWoodPalette().medium)
 		--love.graphics.rectangle("fill", x - ox, y + 1, w + ox, h + oy)
 
-		love.graphics.setColor(self.woodPalette.outline)
+		love.graphics.setColor(spriteSheet:getWoodPalette().outline)
 		love.graphics.setLineWidth(1)
 		love.graphics.setLineStyle("rough")
 		love.graphics.rectangle("line", x - ox, y + 1, w + ox, h + oy)
@@ -151,7 +138,7 @@ function DetailsPanel:draw()
 			local ResourceComponent = require "src.game.resourcecomponent"
 			for resource,amount in pairs(ConstructionComponent.MATERIALS[BuildingComponent.RUNESTONE][runestone:getLevel()]) do
 				if amount > 0 then
-					love.graphics.setColor(RenderSystem.NEW_OUTLINE_COLOR) -- XXX: True pixel font won't have this problem.
+					love.graphics.setColor(spriteSheet:getOutlineColor())
 					love.graphics.print(amount.."x", x, y)
 					x = x + self.font:getWidth(amount.."x") + 1
 					local name = ResourceComponent.RESOURCE_NAME[resource]

@@ -199,6 +199,10 @@ function Game:enter()
 	self.engine = lovetoys.Engine()
 	self.eventManager = lovetoys.EventManager()
 
+	self.worldCanvas = love.graphics.newCanvas()
+	self.gui = GUI(self.engine, self.eventManager, self.map)
+
+	-- Systems that listen to events
 	local buildingSystem = BuildingSystem(self.engine, self.eventManager)
 	local fieldSystem = FieldSystem(self.engine, self.eventManager, self.map)
 	local placingSystem = PlacingSystem(self.map)
@@ -233,9 +237,13 @@ function Game:enter()
 	self.engine:stopSystem("BuildingSystem")
 	self.engine:stopSystem("PositionSystem")
 
-	-- Event handling for logging/the player.
-	self.eventManager:addListener("ChildbirthStartedEvent", self, self.childbirthStartedEvent)
+	-- Event handling for logging/the player, and state handling.
 	self.eventManager:addListener("ChildbirthEndedEvent", self, self.childbirthEndedEvent)
+	self.eventManager:addListener("ChildbirthStartedEvent", self, self.childbirthStartedEvent)
+	self.eventManager:addListener("SelectionChangedEvent", self, self.onSelectionChanged)
+
+	-- Event handling by the GUI
+	self.eventManager:addListener("SelectionChangedEvent", self.gui, self.gui.onSelectionChanged)
 
 	-- Events between the systems.
 	self.eventManager:addListener("AssignedEvent", villagerSystem, villagerSystem.assignedEvent)
@@ -260,9 +268,6 @@ function Game:enter()
 	self.eventManager:addListener("WorkCompletedEvent", villagerSystem, villagerSystem.workCompletedEvent)
 	self.eventManager:addListener("WorkEvent", fieldSystem, fieldSystem.workEvent)
 	self.eventManager:addListener("WorkEvent", workSystem, workSystem.workEvent)
-
-	self.worldCanvas = love.graphics.newCanvas()
-	self.gui = GUI(self.engine, self.eventManager, self.map)
 
 	self.level:initiate(self.engine, self.map)
 
@@ -374,7 +379,11 @@ function Game:keyreleased(key, scancode)
 	elseif scancode == "g" then
 		self.debug = not self.debug
 	elseif scancode == "escape" then
-		self.gui:back()
+		if state:isPlacing() or state:hasSelection() then
+			self.eventManager:fireEvent(SelectionChangedEvent(nil))
+		else
+			self.gui:back()
+		end
 	elseif scancode == "`" then
 		self.speed = 0.5
 	elseif scancode == "1" then
@@ -519,10 +528,7 @@ function Game:_handleClick(x, y)
 	end
 
 	if not clicked then
-		soundManager:playEffect("clearSelection")
-		state:clearSelection()
-		self.eventManager:fireEvent(SelectionChangedEvent(nil))
-		return
+		return self.eventManager:fireEvent(SelectionChangedEvent(nil))
 	end
 
 	local selected = state:getSelection()
@@ -567,8 +573,6 @@ function Game:_handleClick(x, y)
 			BlinkComponent:makeBlinking(clicked, { 0.70, 0.15, 0.15, 1.0 }) -- TODO: Colour value
 		end
 	else
-		soundManager:playEffect("selecting") -- TODO: Different sounds depending on what is selected.
-		state:setSelection(clicked)
 		self.eventManager:fireEvent(SelectionChangedEvent(clicked))
 	end
 end
@@ -777,6 +781,31 @@ function Game:childbirthEndedEvent(event)
 	print("Childbirth ended. Mother "..
 		(event:didMotherSurvive() and "survived" or "died").." and child "..
 		(event:didChildSurvive() and "survived" or "died"))
+end
+
+function Game:onSelectionChanged(event)
+	local selection = event:getSelection()
+	local isPlacing = event:isPlacing()
+
+	if state:isPlacing() then
+		soundManager:playEffect("placingCleared")
+		self.engine:removeEntity(state:getPlacing(), true)
+		state:clearPlacing()
+	end
+
+	if selection then
+		if isPlacing then
+			self.engine:addEntity(selection)
+			state:setPlacing(selection)
+			state:clearSelection()
+		else
+			soundManager:playEffect("selecting") -- TODO: Different sounds depending on what is selected.
+			state:setSelection(selection)
+		end
+	elseif state:hasSelection() then
+		soundManager:playEffect("clearSelection")
+		state:clearSelection()
+	end
 end
 
 return Game
