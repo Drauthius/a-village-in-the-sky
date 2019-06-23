@@ -371,19 +371,17 @@ end
 
 function Blueprint:createDeathParticle(villager)
 	local entity = lovetoys.Entity()
-	local sprite, key
+	local sprite
 
 	if villager:has("AdultComponent") then
 		local hairy = villager:get("VillagerComponent"):isHairy() and "(Hairy) " or ""
 		sprite = spriteSheet:getSprite("villagers "..hairy.."1", villager:get("VillagerComponent"):getGender().." - SE")
-		key = "ADULT_DEATH"
 	else
 		sprite = spriteSheet:getSprite("children 1",
 			(villager:get("VillagerComponent"):getGender() == "male" and "boy" or "girl").." - SE")
-		key = "CHILD_DEATH"
 	end
 
-	local particleSystem = Blueprint.PARTICLE_SYSTEMS[key]
+	local particleSystem = Blueprint.PARTICLE_SYSTEMS.DEATH
 	if not particleSystem then
 		particleSystem = love.graphics.newParticleSystem(spriteSheet:getImage(), 1)
 		particleSystem:setQuads(sprite:getQuad())
@@ -399,10 +397,12 @@ function Blueprint:createDeathParticle(villager)
 		particleSystem:setParticleLifetime(3)
 		particleSystem:emit(1)
 
-		Blueprint.PARTICLE_SYSTEMS[key] = particleSystem
+		Blueprint.PARTICLE_SYSTEMS.DEATH = particleSystem
 	end
 
 	entity:add(ParticleComponent(particleSystem:clone(), true))
+	-- The quad has to be replaced in the particle system as well.
+	entity:get("ParticleComponent"):getParticleSystem():setQuads(sprite:getQuad())
 	entity:add(SpriteComponent(sprite))
 	-- TODO: Either color swap to more phantasmal colours, or create new sprites.
 

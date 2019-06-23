@@ -102,7 +102,8 @@ function InfoPanel:initialize(engine, eventManager, width)
 			if self.scroll then
 				Timer.cancel(self.scroll)
 			end
-			self.scroll = Timer.tween(InfoPanel.scrollTime * math.abs(target - self.ox), self, {ox = target}, InfoPanel.scrollEase, function()
+			self.scroll = Timer.tween(InfoPanel.scrollTime * math.abs(target - self.ox),
+			                          self, {ox = target}, InfoPanel.scrollEase, function()
 				if math.ceil(self.ox) >= limit then
 					self.ox = limit
 					self.leftButton:setDisabled(true)
@@ -121,7 +122,8 @@ function InfoPanel:initialize(engine, eventManager, width)
 			if self.scroll then
 				Timer.cancel(self.scroll)
 			end
-			self.scroll = Timer.tween(InfoPanel.scrollTime * math.abs(target - self.ox), self, {ox = target}, InfoPanel.scrollEase, function()
+			self.scroll = Timer.tween(InfoPanel.scrollTime * math.abs(target - self.ox),
+			                          self, {ox = target}, InfoPanel.scrollEase, function()
 				if math.floor(self.ox) <= limit then
 					self.ox = limit
 					self.rightButton:setDisabled(true)
@@ -254,6 +256,11 @@ end
 function InfoPanel:setContent(type)
 	self.type = type
 	self.ox = 0
+
+	if self.selected ~= nil then
+		self.selected = nil
+		self.eventManager:fireEvent(SelectionChangedEvent(nil))
+	end
 
 	local content = {}
 	local margin = 10

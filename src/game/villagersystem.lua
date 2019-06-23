@@ -992,6 +992,7 @@ function VillagerSystem:onRemoveEntity(entity)
 
 	self:_stopAll(entity)
 	self:_prepare(entity, true)
+	self:_dropCarrying(entity)
 
 	state:decreaseNumVillagers(villager:getGender(), entity:has("AdultComponent"))
 
