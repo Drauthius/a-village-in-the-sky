@@ -2,6 +2,8 @@ local babel = require "lib.babel"
 
 local InfoPanelItem = require "src.game.gui.infopanelitem"
 
+local ScaledSprite = require "src.game.scaledsprite"
+
 local spriteSheet = require "src.game.spritesheet"
 
 local VillagerItem = InfoPanelItem:subclass("VillagerItem")
@@ -17,9 +19,20 @@ VillagerItem.static.DETAILS = {
 	{ "Craftsmanship", "getCraftsmanship" }
 }
 
-function VillagerItem:initialize(x, y, h, sprite, fontNormal, fontBold, entity)
+function VillagerItem:initialize(x, y, h, fontNormal, fontBold, entity)
 	InfoPanelItem.initialize(self, x, y, 160, h)
-	self.sprite = sprite
+
+	local sprite
+	if entity:has("AdultComponent") then
+		local hairy = entity:get("VillagerComponent"):isHairy() and "(Hairy) " or ""
+		sprite = spriteSheet:getSprite("villagers "..hairy.."0",
+			entity:get("VillagerComponent"):getGender() .. " - S")
+	else
+		sprite = spriteSheet:getSprite("children 0",
+			(entity:get("VillagerComponent"):getGender() == "male" and "boy" or "girl") .. " - S")
+	end
+
+	self.sprite = ScaledSprite:fromSprite(sprite, 4)
 	self.fontNormal = fontNormal
 	self.fontBold = fontBold
 	self.entity = entity

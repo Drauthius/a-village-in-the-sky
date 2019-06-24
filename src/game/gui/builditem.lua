@@ -6,10 +6,24 @@ local BuildingComponent = require "src.game.buildingcomponent"
 local ConstructionComponent = require "src.game.constructioncomponent"
 local ResourceComponent = require "src.game.resourcecomponent"
 local TileComponent = require "src.game.tilecomponent"
+local ScaledSprite = require "src.game.scaledsprite"
 
 local spriteSheet = require "src.game.spritesheet"
 
 local BuildItem = InfoPanelItem:subclass("BuildItem")
+
+BuildItem.static.TILE_TO_ICON = {
+	[TileComponent.FOREST] = "woodcutter",
+	[TileComponent.MOUNTAIN] = "miner"
+}
+
+BuildItem.static.BUILDING_TO_ICON = {
+	[BuildingComponent.DWELLING] = "house",
+	[BuildingComponent.BLACKSMITH] = "blacksmith",
+	[BuildingComponent.FIELD] = "farmer",
+	[BuildingComponent.BAKERY] = "baker",
+	[BuildingComponent.RUNESTONE] = "runestone"
+}
 
 function BuildItem:initialize(x, y, w, h, sprite, font, type, isBuilding, blueprint)
 	InfoPanelItem.initialize(self, x, y, w, h)
@@ -18,6 +32,11 @@ function BuildItem:initialize(x, y, w, h, sprite, font, type, isBuilding, bluepr
 	self.font = font
 	self.isBuilding = isBuilding
 	self.blueprint = blueprint
+
+	local icon = BuildItem[self.isBuilding and "BUILDING_TO_ICON" or "TILE_TO_ICON"][self.type]
+	if icon then
+		self.icon = ScaledSprite:fromSprite(spriteSheet:getSprite("headers", icon .. "-icon"), 2.5)
+	end
 
 	-- Align the sprite in the centre.
 	local dx = (self.w - sprite:getWidth()) / 2
@@ -50,9 +69,9 @@ function BuildItem:drawOverlay(offset)
 
 	local sx, sy = self.x + self.ox + offset + 5, self.y + self.oy + 5
 	local w, h = self.font:getWidth(name) + 1, self.font:getHeight() + 1
+	local color = spriteSheet:getWoodPalette().bright
 
 	-- Background for the label
-	local color = spriteSheet:getWoodPalette().bright
 	love.graphics.setColor(color[1], color[2], color[3], 0.5)
 	love.graphics.rectangle("fill", sx, sy, w, h)
 	love.graphics.setColor(spriteSheet:getWoodPalette().outline)
@@ -61,6 +80,14 @@ function BuildItem:drawOverlay(offset)
 	-- Print the label
 	love.graphics.setColor(spriteSheet:getOutlineColor())
 	love.graphics.print(name, sx, sy)
+
+	if self.icon then
+		love.graphics.setColor(1, 1, 1, 1)
+		spriteSheet:draw(self.icon,
+		                 self.x + (self.w - self.icon:getWidth()) / 2 + offset,
+		                 self.y + self.h - self.icon:getHeight() - 5)
+
+	end
 
 	if self.isBuilding then
 		local materials = ConstructionComponent.MATERIALS[self.type]

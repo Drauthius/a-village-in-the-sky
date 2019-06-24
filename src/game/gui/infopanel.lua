@@ -3,9 +3,9 @@ local class = require "lib.middleclass"
 local Timer = require "lib.hump.timer"
 
 local BuildItem = require "src.game.gui.builditem"
+local BuildingItem = require "src.game.gui.buildingitem"
 local Button = require "src.game.gui.button"
 local VillagerItem = require "src.game.gui.villageritem"
-local ScaledSprite = require "src.game.scaledsprite"
 
 local SelectionChangedEvent = require "src.game.selectionchangedevent"
 
@@ -293,21 +293,18 @@ function InfoPanel:setContent(type)
 			x = x + item:getDimensions() + margin
 			table.insert(content, item)
 		end
+	elseif type == InfoPanel.CONTENT.LIST_BUILDINGS then
+		margin = 5 -- ?
+		for _,entity in pairs(self.engine:getEntitiesWithComponent("BuildingComponent")) do
+			local item = BuildingItem(x, self.contentBounds.y, self.contentBounds.h, self.itemFont, self.itemFontBold, entity)
+
+			x = x + item:getDimensions() + margin
+			table.insert(content, item)
+		end
 	elseif type == InfoPanel.CONTENT.LIST_VILLAGERS then
 		margin = 5 -- ?
-		for _,villager in pairs(self.engine:getEntitiesWithComponent("VillagerComponent")) do
-			local sprite
-			if villager:has("AdultComponent") then
-				local hairy = villager:get("VillagerComponent"):isHairy() and "(Hairy) " or ""
-				sprite = spriteSheet:getSprite("villagers "..hairy.."0",
-					villager:get("VillagerComponent"):getGender() .. " - S")
-			else
-				sprite = spriteSheet:getSprite("children 0",
-					(villager:get("VillagerComponent"):getGender() == "male" and "boy" or "girl") .. " - S")
-			end
-
-			local item = VillagerItem(x, self.contentBounds.y, self.contentBounds.h,
-				ScaledSprite:fromSprite(sprite, 4), self.itemFont, self.itemFontBold, villager)
+		for _,entity in pairs(self.engine:getEntitiesWithComponent("VillagerComponent")) do
+			local item = VillagerItem(x, self.contentBounds.y, self.contentBounds.h, self.itemFont, self.itemFontBold, entity)
 
 			x = x + item:getDimensions() + margin
 			table.insert(content, item)
