@@ -63,7 +63,7 @@ VillagerSystem.static.FOOD = {
 	BREAKFAST_WHEN_ABOVE = 0.55,
 	-- Tries to get some food if not doing anything else when hunger is above this amount.
 	EAT_WHEN_ABOVE = 0.80,
-	-- When eating: 20 seconds to get rid of 100% sleepiness
+	-- When eating: 20 seconds to get rid of 100% hunger
 	LOSS_PER_SECOND = 1 / 20
 }
 
@@ -122,7 +122,8 @@ function VillagerSystem:update(dt)
 					return
 				end
 
-				if goal ~= VillagerComponent.GOALS.FOOD_PICKUP and
+				if goal ~= VillagerComponent.GOALS.NONE and
+				   goal ~= VillagerComponent.GOALS.FOOD_PICKUP and
 				   goal ~= VillagerComponent.GOALS.FOOD_DROPOFF and
 				   goal ~= VillagerComponent.GOALS.SLEEP and
 				   goal ~= VillagerComponent.GOALS.EAT then

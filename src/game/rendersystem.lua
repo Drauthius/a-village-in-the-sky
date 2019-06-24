@@ -2,6 +2,7 @@ local lovetoys = require "lib.lovetoys.lovetoys"
 local table = require "lib.table"
 
 local BuildingComponent = require "src.game.buildingcomponent"
+local WorkComponent = require "src.game.workcomponent"
 
 local spriteSheet = require "src.game.spritesheet"
 local state = require "src.game.state"
@@ -399,15 +400,46 @@ function RenderSystem:_drawHeader(entity)
 	if entity:has("VillagerComponent") then
 		local villager = entity:get("VillagerComponent")
 
+		-- Multiple icons are chained together beautifully.
+		local icons = {}
+
 		-- Homeless icon.
 		if not villager:getHome() then
-			local header = spriteSheet:getSprite("headers", "no-home-icon")
-			local w, _ = header:getDimensions()
+			table.insert(icons, (spriteSheet:getSprite("headers", "no-home-icon")))
+		end
+		if villager:getSleepiness() > 0.75 then -- TODO: Value??
+			table.insert(icons, (spriteSheet:getSprite("headers", "sleepy-icon")))
+		end
+		if villager:getStarvation() > 0.0 then
+			table.insert(icons, (spriteSheet:getSprite("headers", "hungry-icon")))
+		end
+		if villager:getHome() and entity:has("AdultComponent") and not entity:get("AdultComponent"):getWorkArea() then
+			local occupation = entity:get("AdultComponent"):getOccupation()
+			if occupation == WorkComponent.WOODCUTTER then
+				table.insert(icons, (spriteSheet:getSprite("headers", "missing-woodcutter-icon")))
+			elseif occupation == WorkComponent.MINER then
+				table.insert(icons, (spriteSheet:getSprite("headers", "missing-miner-icon")))
+			end
+		end
 
-			local x, y = entity:get("GroundComponent"):getIsometricPosition()
-			x = x - w / 2
-			y = y - 28 -- XXX: Guesswork, not true for children.
-			spriteSheet:draw(header, x, y)
+		local numIcons = #icons
+		if numIcons > 0 then
+			local ox = -5
+			-- Assumes that each icon has the same width.
+			local w = numIcons * icons[1]:getWidth() + ox * (numIcons - 1)
+			local sx, sy = entity:get("GroundComponent"):getIsometricPosition()
+			sx = sx - w / 2
+			-- XXX: Guesswork, to get an offset from the ground that doesn't "bob" when the sprite changes.
+			if entity:has("AdultComponent") then
+				sy = sy - 27
+			else
+				sy = sy - 25
+			end
+
+			for _,icon in ipairs(icons) do
+				spriteSheet:draw(icon, sx, sy)
+				sx = sx + icon:getWidth() + ox
+			end
 		end
 
 		--[[
