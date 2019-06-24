@@ -61,13 +61,34 @@ function VillagerItem:drawOverride(offset)
 	-- Draw text
 	local sx, sy = self.x + offset, self.y + 5
 	local oy = 2
-	love.graphics.setColor(spriteSheet:getOutlineColor())
 	-- FIXME: Maybe DRY it up?
 	local villager = self.entity:get("VillagerComponent")
 	local adult = self.entity:has("AdultComponent") and self.entity:get("AdultComponent")
 	for _,details in ipairs(VillagerItem.DETAILS) do
 		local key, value, adultComp = details[1], details[2], details[3]
-		if not key then
+		if key == "Hunger" or key == "Sleepiness" then
+			-- TODO: Experimental
+			local icon = key == "Sleepiness" and spriteSheet:getSprite("headers", "sleepy-icon") or
+			                                     spriteSheet:getSprite("headers", "hungry-icon")
+			local w = 100
+			local dh = -6
+			value = villager[value](villager)
+			local limit = math.floor(w * value)
+
+			local bx = sx + self.w - w
+			local by = sy + oy - dh / 2
+
+			love.graphics.setColor(spriteSheet:getWoodPalette().outline)
+			love.graphics.rectangle("fill", bx, by, w, icon:getHeight() + dh)
+
+			love.graphics.setColor(1 * value, 1 - value, 0, 1)
+			love.graphics.rectangle("fill", bx, by, limit, icon:getHeight() + dh)
+
+			love.graphics.setColor(1, 1, 1, 1)
+			spriteSheet:draw(icon, math.min(sx + self.w - icon:getWidth(), bx + limit - icon:getWidth() / 2), sy + oy)
+
+			oy = oy + icon:getHeight() + 1
+		elseif not key then
 			if not adult then
 				break
 			end
@@ -81,6 +102,8 @@ function VillagerItem:drawOverride(offset)
 			if type(value) == "number" then
 				value = string.format("%.2f", value)
 			end
+
+			love.graphics.setColor(spriteSheet:getOutlineColor())
 
 			local w = self.fontNormal:getWidth(value) + 2
 			love.graphics.setFont(self.fontNormal)
