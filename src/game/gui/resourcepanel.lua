@@ -11,6 +11,7 @@ local ResourcePanel = class("ResourcePanel")
 
 function ResourcePanel:initialize()
 	self.font = love.graphics.newFont("asset/font/Norse-Bold.otf", 16)
+	self.fontShadow = love.graphics.newFont("asset/font/Norse-Bold.otf", 18)
 	self.spriteBatch = love.graphics.newSpriteBatch(spriteSheet:getImage(), 32, "static")
 
 	local background = spriteSheet:getSprite("resource-panel")
@@ -26,6 +27,11 @@ function ResourcePanel:initialize()
 		ResourceComponent.GRAIN,
 		ResourceComponent.BREAD
 	}
+
+	self.workers = {}
+	for _,resource in ipairs(self.resources) do
+		self.workers[resource] = 0
+	end
 
 	local villagerIcon = spriteSheet:getSprite("headers", "occupied-icon")
 	for _,resource in ipairs(self.resources) do
@@ -64,34 +70,45 @@ end
 function ResourcePanel:draw()
 	love.graphics.draw(self.spriteBatch, self.x)
 
-	love.graphics.setFont(self.font)
-
 	for _,resource in ipairs(self.resources) do
 		local res = ResourceComponent.RESOURCE_NAME[resource]
 		local work = WorkComponent.WORK_NAME[WorkComponent.RESOURCE_TO_WORK[resource]]
 
-		love.graphics.setColor(0, 0, 0)
-		love.graphics.print(tostring(state:getNumResources(resource)),
+		self:_drawText(tostring(state:getNumResources(resource)),
 			self.x + self[res].text.bounds.x,
-			self[res].text.bounds.y)
+			self[res].text.bounds.y + math.floor((self[res].text.bounds.h - self.font:getHeight()) / 2))
 
-		love.graphics.print("0",
+		self:_drawText(tostring(self.workers[resource]),
 			self.x + self[work].text.bounds.x,
-			self[work].text.bounds.y)
-
-		love.graphics.setColor(1, 1, 1)
+			self[work].text.bounds.y + math.floor((self[work].text.bounds.h - self.font:getHeight()) / 2))
 	end
 
-	love.graphics.setColor(0, 0, 0)
-	love.graphics.print(tostring(state:getNumMaleVillagers() + state:getNumFemaleVillagers()),
+	self:_drawText(tostring(state:getNumMaleVillagers() + state:getNumFemaleVillagers()),
 		self.x + self.villagers.text.bounds.x,
-		self.villagers.text.bounds.y)
+		self.villagers.text.bounds.y + math.floor((self.villagers.text.bounds.h - self.font:getHeight()) / 2))
 
-	love.graphics.print(tostring(state:getNumMaleChildren() + state:getNumFemaleChildren()),
+	self:_drawText(tostring(state:getNumMaleChildren() + state:getNumFemaleChildren()),
 		self.x + self.children.text.bounds.x,
-		self.children.text.bounds.y)
+		self.children.text.bounds.y + math.floor((self.children.text.bounds.h - self.font:getHeight()) / 2))
 
 	love.graphics.setColor(1, 1, 1)
+end
+
+function ResourcePanel:setWorkers(resource, numWorkers)
+	self.workers[resource] = numWorkers
+end
+
+function ResourcePanel:_drawText(text, x, y)
+	-- Shadow/outline
+	--love.graphics.setColor(spriteSheet:getOutlineColor())
+	--love.graphics.setFont(self.fontShadow)
+	--love.graphics.print(text, x, y)
+
+	-- Text
+	--love.graphics.setColor(1, 1, 1)
+	love.graphics.setColor(spriteSheet:getOutlineColor())
+	love.graphics.setFont(self.font)
+	love.graphics.print(text, x, y)
 end
 
 return ResourcePanel

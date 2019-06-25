@@ -44,9 +44,7 @@ end
 
 function PlacingSystem:update(dt)
 	for _,entity in pairs(self.targets.placing) do
-		if not state:isPlacing() then
-			error("Not placing, but got a placing component")
-		end
+		assert(state:isPlacing(), "Not placing, but got a placing component")
 
 		local mx, my = state:getMousePosition()
 		local ti, tj = self.map:worldToTileCoords(mx, my)

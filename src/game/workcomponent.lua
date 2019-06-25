@@ -20,6 +20,14 @@ WorkComponent.static.RESOURCE_TO_WORK = {
 	[ResourceComponent.BREAD] = WorkComponent.BAKER,
 }
 
+WorkComponent.static.WORK_TO_RESOURCE = {
+	[WorkComponent.WOODCUTTER] = ResourceComponent.WOOD,
+	[WorkComponent.MINER] = ResourceComponent.IRON,
+	[WorkComponent.BLACKSMITH] = ResourceComponent.TOOL,
+	[WorkComponent.FARMER] = ResourceComponent.GRAIN,
+	[WorkComponent.BAKER] = ResourceComponent.BREAD,
+}
+
 WorkComponent.static.WORK_NAME = {
 	[WorkComponent.UNEMPLOYED] = "unemployed",
 	[WorkComponent.WOODCUTTER] = "woodcutter",

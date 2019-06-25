@@ -242,9 +242,6 @@ function Game:enter()
 	self.eventManager:addListener("ChildbirthStartedEvent", self, self.childbirthStartedEvent)
 	self.eventManager:addListener("SelectionChangedEvent", self, self.onSelectionChanged)
 
-	-- Event handling by the GUI
-	self.eventManager:addListener("SelectionChangedEvent", self.gui, self.gui.onSelectionChanged)
-
 	-- Events between the systems.
 	self.eventManager:addListener("AssignedEvent", villagerSystem, villagerSystem.assignedEvent)
 	self.eventManager:addListener("BuildingCompletedEvent", buildingSystem, buildingSystem.buildingCompletedEvent)
@@ -268,6 +265,11 @@ function Game:enter()
 	self.eventManager:addListener("WorkCompletedEvent", villagerSystem, villagerSystem.workCompletedEvent)
 	self.eventManager:addListener("WorkEvent", fieldSystem, fieldSystem.workEvent)
 	self.eventManager:addListener("WorkEvent", workSystem, workSystem.workEvent)
+
+	-- Event handling by the GUI (after other processing has completed).
+	self.eventManager:addListener("AssignedEvent", self.gui, self.gui.onAssigned)
+	self.eventManager:addListener("SelectionChangedEvent", self.gui, self.gui.onSelectionChanged)
+	self.eventManager:addListener("UnassignedEvent", self.gui, self.gui.onUnassigned)
 
 	self.level:initiate(self.engine, self.map)
 
@@ -684,12 +686,14 @@ function Game:_placeTile(placing)
 		end)
 	end)
 
-	-- Notify GUI to update its state.
-	self.gui:placed()
+	-- Clear the state.
+	state:clearPlacing()
+
 	-- Update camera bounds.
 	self:_updateCameraBoundingBox()
 
 	-- Notify other parties.
+	self.eventManager:fireEvent(SelectionChangedEvent(nil, true))
 	self.eventManager:fireEvent(TileDroppedEvent(placing))
 end
 
@@ -738,8 +742,11 @@ function Game:_placeBuilding(placing)
 		self.engine:addEntity(dust)
 	end
 
-	-- Notify GUI to update its state.
-	self.gui:placed()
+	-- Clear the state.
+	state:clearPlacing()
+
+	-- Notify other parties.
+	self.eventManager:fireEvent(SelectionChangedEvent(nil, true))
 end
 
 --- Update `self.cameraBoundingBox` with the minimum and maximum position of the camera, in world coords,
@@ -787,6 +794,7 @@ function Game:onSelectionChanged(event)
 	local selection = event:getSelection()
 	local isPlacing = event:isPlacing()
 
+	-- Make sure that to clear any potential placing piece before adding another one, or selecting something else.
 	if state:isPlacing() then
 		soundManager:playEffect("placingCleared")
 		self.engine:removeEntity(state:getPlacing(), true)

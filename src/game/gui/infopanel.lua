@@ -15,6 +15,7 @@ local TileComponent = require "src.game.tilecomponent"
 local blueprint = require "src.game.blueprint"
 local screen = require "src.screen"
 local spriteSheet = require "src.game.spritesheet"
+local state = require "src.game.state"
 
 local InfoPanel = class("InfoPanel")
 
@@ -258,7 +259,6 @@ function InfoPanel:setContent(type)
 	self.ox = 0
 
 	if self.selected ~= nil then
-		self.selected = nil
 		self.eventManager:fireEvent(SelectionChangedEvent(nil))
 	end
 
@@ -300,6 +300,11 @@ function InfoPanel:setContent(type)
 
 			x = x + item:getDimensions() + margin
 			table.insert(content, item)
+
+			if state:getSelection() == entity then
+				self.selected = #content
+				item:select()
+			end
 		end
 	elseif type == InfoPanel.CONTENT.LIST_VILLAGERS then
 		margin = 5 -- ?
@@ -308,6 +313,11 @@ function InfoPanel:setContent(type)
 
 			x = x + item:getDimensions() + margin
 			table.insert(content, item)
+
+			if state:getSelection() == entity then
+				self.selected = #content
+				item:select()
+			end
 		end
 	end
 
@@ -337,7 +347,6 @@ function InfoPanel:hide()
 	self.type = nil
 
 	if self.selected ~= nil then
-		self.selected = nil
 		self.eventManager:fireEvent(SelectionChangedEvent(nil))
 	end
 end
@@ -426,8 +435,30 @@ function InfoPanel:handlePress(x, y, released)
 end
 
 function InfoPanel:onSelectionChanged(event)
-	if event:isPlacing() then
+	local selection = event:getSelection()
+
+	if selection and event:isPlacing() then
 		return -- Probably originated from us, yeah?
+	end
+
+	-- Clear whatever happens to be selected (since it probably changed).
+	if self.selected then
+		self.content[self.selected]:unselect()
+		self.selected = nil
+	end
+
+	-- Select the thing that was selected, if there is something relevant shown.
+	if selection then
+		if (self.type == InfoPanel.CONTENT.LIST_VILLAGERS and selection:has("VillagerComponent")) or
+		   (self.type == InfoPanel.CONTENT.LIST_BUILDINGS and selection:has("BuildingComponent")) then
+			for i,item in ipairs(self.content) do
+				if item:getEntity() == selection then
+					self.selected = i
+					item:select()
+					return
+				end
+			end
+		end
 	end
 end
 

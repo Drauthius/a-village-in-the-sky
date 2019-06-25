@@ -75,15 +75,25 @@ function VillagerItem:drawOverride(offset)
 			value = villager[value](villager)
 			local limit = math.floor(w * value)
 
-			local bx = sx + self.w - w
+			local bx = sx + self.w - w - 4
 			local by = sy + oy - dh / 2
 
-			love.graphics.setColor(spriteSheet:getWoodPalette().outline)
+			-- Draw the bar background
+			local background = spriteSheet:getWoodPalette().dark
+			love.graphics.setColor(background[1], background[2], background[3], 0.5)
 			love.graphics.rectangle("fill", bx, by, w, icon:getHeight() + dh)
 
-			love.graphics.setColor(1 * value, 1 - value, 0, 1)
+			-- Draw the bar "progress"
+			love.graphics.setColor(value, 1 - value, 0, 1)
 			love.graphics.rectangle("fill", bx, by, limit, icon:getHeight() + dh)
 
+			-- Draw the bar outline
+			love.graphics.setColor(spriteSheet:getWoodPalette().outline)
+			love.graphics.setLineWidth(1)
+			love.graphics.setLineStyle("rough")
+			love.graphics.rectangle("line", bx, by, w + 1, icon:getHeight() + dh + 1)
+
+			-- Draw the icon
 			love.graphics.setColor(1, 1, 1, 1)
 			spriteSheet:draw(icon, math.min(sx + self.w - icon:getWidth(), bx + limit - icon:getWidth() / 2), sy + oy)
 
@@ -121,6 +131,10 @@ end
 function VillagerItem:select()
 	InfoPanelItem.select(self)
 
+	return self:getEntity()
+end
+
+function VillagerItem:getEntity()
 	return self.entity
 end
 

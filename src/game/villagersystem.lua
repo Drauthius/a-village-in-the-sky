@@ -73,7 +73,7 @@ VillagerSystem.static.SLEEP = {
 	-- When sleeping: 45 seconds to get rid of 100% sleepiness.
 	LOSS_PER_SECOND = 1 / 45,
 	-- When the villager should try and get some shut-eye.
-	SLEEPINESS_THRESHOLD = 0.65
+	SLEEPINESS_THRESHOLD = 0.80
 }
 
 -- When the babies reach childhood, and can start going out.
@@ -224,7 +224,6 @@ function VillagerSystem:_takeAction(entity)
 
 		-- Check if the villager is sleepy.
 		if not starving and villager:getSleepiness() >= VillagerSystem.SLEEP.SLEEPINESS_THRESHOLD then
-			print(entity, "is sleepy")
 			self:_prepare(entity, true)
 
 			if villager:isHome() then

@@ -407,7 +407,7 @@ function RenderSystem:_drawHeader(entity)
 		if not villager:getHome() then
 			table.insert(icons, (spriteSheet:getSprite("headers", "no-home-icon")))
 		end
-		if villager:getSleepiness() > 0.75 then -- TODO: Value??
+		if villager:getSleepiness() > require("src.game.villagersystem").SLEEP.SLEEPINESS_THRESHOLD then -- XXX
 			table.insert(icons, (spriteSheet:getSprite("headers", "sleepy-icon")))
 		end
 		if villager:getStarvation() > 0.0 then
@@ -529,7 +529,7 @@ function RenderSystem:_drawHeader(entity)
 		local spots = entity:get("AssignmentComponent"):getMaxAssignees()
 
 		-- Check whether the header should be hidden.
-		if not isSelected and not state:getShowBuildingHeaders() and
+		if not isSelected and not entity:has("ConstructionComponent") and not state:getShowBuildingHeaders() and
 		   entity:get("AssignmentComponent"):getNumAssignees() == entity:get("AssignmentComponent"):getMaxAssignees() then
 			return
 		end

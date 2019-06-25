@@ -109,12 +109,6 @@ function GUI:back()
 	end
 end
 
-function GUI:placed()
-	assert(state:isPlacing())
-	self.infoPanel.content.selected = nil
-	state:clearPlacing()
-end
-
 function GUI:update(dt)
 	for type,widget in ipairs(self.widgets) do
 		if type == self.infoPanel:getContentType() then
@@ -399,6 +393,30 @@ end
 --
 -- Events
 --
+
+function GUI:onAssigned(event)
+	-- To avoid caching problems and other oddities, we simply update the resource panel every time.
+	local workers = {}
+
+	for resource in pairs(WorkComponent.RESOURCE_TO_WORK) do
+		workers[resource] = 0
+	end
+
+	for _,entity in pairs(self.engine:getEntitiesWithComponent("AdultComponent")) do
+		local resource = WorkComponent.WORK_TO_RESOURCE[entity:get("AdultComponent"):getOccupation()]
+		if resource then
+			workers[resource] = workers[resource] + 1
+		end
+	end
+
+	for resource,numWorkers in pairs(workers) do
+		self.resourcePanel:setWorkers(resource, numWorkers)
+	end
+end
+
+function GUI:onUnassigned(event)
+	self:onAssigned(event)
+end
 
 function GUI:onSelectionChanged(event)
 	self.infoPanel:onSelectionChanged(event)

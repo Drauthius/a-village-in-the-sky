@@ -20,6 +20,10 @@ end
 function BuildingItem:select()
 	InfoPanelItem.select(self)
 
+	return self:getEntity()
+end
+
+function BuildingItem:getEntity()
 	return self.entity
 end
 
