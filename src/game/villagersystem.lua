@@ -294,7 +294,7 @@ function VillagerSystem:_takeAction(entity)
 				if resource then
 					blacklist[resource] = true
 				end
-			until resource and state:getNumAvailableResources(resource) > 0
+			until not resource or state:getNumAvailableResources(resource) > 0
 
 			-- For things being built, update the places where builders can stand, so that rubbish can
 			-- be cleared around the build site after placing the building.
