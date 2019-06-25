@@ -238,7 +238,8 @@ function VillagerSystem:_takeAction(entity)
 		-- Get some food if necessary and available.
 		if not dwelling:isGettingFood() and
 		   dwelling:getFood() <= VillagerSystem.FOOD.GATHER_WHEN_BELOW and
-		   state:getNumAvailableResources(ResourceComponent.BREAD) >= 1 then
+		   state:getNumAvailableResources(ResourceComponent.BREAD) >= 1 and
+		   (starving or self:_isGettingFood(home, entity)) then
 			dwelling:setGettingFood(true)
 
 			self:_prepare(entity)
@@ -645,6 +646,36 @@ function VillagerSystem:_unassignWork(entity)
 			enclosure:get("AssignmentComponent"):unassign(entity)
 		end
 	end
+end
+
+-- Determine whether the specified entity should get food for the dwelling.
+-- It prioritizes children that have reached childhood, and then unemployed adults.
+function VillagerSystem:_isGettingFood(dwelling, entity)
+	local hasUnoccupied = false
+	for _,child in ipairs(dwelling:get("DwellingComponent"):getChildren()) do
+		if child:get("VillagerComponent"):getAge() >= VillagerSystem.CHILDHOOD and
+		   (not child:has("AdultComponent") or not child:get("AdultComponent"):getWorkArea()) then
+			if child == entity then
+				return true
+			else
+				hasUnoccupied = true
+			end
+		end
+	end
+
+	if not hasUnoccupied then
+		for _,villager in ipairs(dwelling:get("AssignmentComponent"):getAssignees()) do
+			if not villager:get("AdultComponent"):getWorkArea() then
+				if villager == entity then
+					return true
+				else
+					hasUnoccupied = true
+				end
+			end
+		end
+	end
+
+	return not hasUnoccupied
 end
 
 --
