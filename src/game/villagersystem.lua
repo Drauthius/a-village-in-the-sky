@@ -488,8 +488,8 @@ function VillagerSystem:_eat(entity)
 	timer:getTimer():during((villager:getHunger() - targetHunger) / VillagerSystem.FOOD.LOSS_PER_SECOND, function(dt)
 		-- Decrease the hunger.
 		villager:setHunger(math.max(0.0, villager:getHunger() - VillagerSystem.FOOD.LOSS_PER_SECOND * dt))
-		-- Decrease the starvation.
-		villager:setStarvation(math.max(0.0, villager:getStarvation() - VillagerSystem.FOOD.LOSS_PER_SECOND * dt))
+		-- Clear the starvation.
+		villager:setStarvation(0.0)
 	end, function()
 		entity:remove("TimerComponent")
 		entity:get("VillagerComponent"):setGoal(VillagerComponent.GOALS.NONE)
