@@ -7,11 +7,6 @@ local InfoPanel = require "src.game.gui.infopanel"
 local ResourcePanel = require "src.game.gui.resourcepanel"
 local Widget = require "src.game.gui.widget"
 
-local UnassignedEvent = require "src.game.unassignedevent"
-
-local AssignmentComponent = require "src.game.assignmentcomponent"
-local BuildingComponent = require "src.game.buildingcomponent"
-local ConstructionComponent = require "src.game.constructioncomponent"
 local WorkComponent = require "src.game.workcomponent"
 
 local screen = require "src.screen"
@@ -94,9 +89,7 @@ function GUI:initialize(engine, eventManager, map)
 	self.infoPanel = InfoPanel(self.engine, self.eventManager, right - left)
 	self.infoPanel:hide()
 
-	self.detailsPanel = DetailsPanel(select(2, self.listBuildingButton:getPosition()) - padding, function(button)
-		self:_handleDetailsButtonPress(button)
-	end)
+	self.detailsPanel = DetailsPanel(self.eventManager, select(2, self.listBuildingButton:getPosition()) - padding)
 	self.detailsPanel:hide()
 end
 
@@ -426,27 +419,9 @@ end
 -- Internal functions
 --
 
-function GUI:_handleDetailsButtonPress(button)
-	local selection = state:getSelection()
-	if button == "runestone-upgrade" then
-		selection:add(ConstructionComponent(BuildingComponent.RUNESTONE, selection:get("RunestoneComponent"):getLevel()))
-		selection:add(AssignmentComponent(4))
-		selection:get("SpriteComponent"):setNeedsRefresh(true)
-	elseif button == "runestone-upgrade-cancel" then
-		for _,assignee in ipairs(selection:get("AssignmentComponent"):getAssignees()) do
-			self.eventManager:fireEvent(UnassignedEvent(selection, assignee))
-		end
-		-- TODO: Handle added/committed resources
-		selection:remove("ConstructionComponent")
-		selection:remove("AssignmentComponent")
-		selection:get("SpriteComponent"):setNeedsRefresh(true)
-	end
-end
-
 function GUI:_closeInfoPanel()
 	soundManager:playEffect("drawerClosed")
 	self.infoPanel:hide()
-	--self.infoPanelShowing = nil
 
 	state:showBuildingHeaders(false)
 	state:showVillagerHeaders(false)

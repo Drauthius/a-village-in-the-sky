@@ -11,7 +11,6 @@ local TileComponent = require "src.game.tilecomponent"
 
 local blueprint = require "src.game.blueprint"
 local spriteSheet = require "src.game.spritesheet"
-local state = require "src.game.state"
 
 local DefaultLevel = Level:subclass("DefaultLevel")
 
@@ -63,19 +62,9 @@ function DefaultLevel:initiate(engine, map)
 	for type,num in pairs(startingResources) do
 		while num > 0 do
 			local resource = blueprint:createResourcePile(type, math.min(3, num))
-
-			local grid = map:getFreeGrid(0, 0, type)
-			map:addResource(resource, grid)
-
-			local ox, oy = map:gridToWorldCoords(grid.gi, grid.gj)
-			ox = ox - map.halfGridWidth
-			oy = oy - resource:get("SpriteComponent"):getSprite():getHeight() + map.gridHeight
-
-			resource:get("SpriteComponent"):setDrawPosition(ox, oy)
-			resource:add(PositionComponent(grid, nil, 0, 0))
-
+			resource:add(PositionComponent(map:getFreeGrid(0, 0, type), nil, 0, 0))
+			map:addResource(resource, resource:get("PositionComponent"):getGrid())
 			engine:addEntity(resource)
-			state:increaseResource(type, resource:get("ResourceComponent"):getResourceAmount())
 
 			num = num - resource:get("ResourceComponent"):getResourceAmount()
 		end

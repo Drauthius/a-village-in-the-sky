@@ -58,18 +58,30 @@ ConstructionComponent.static.MATERIALS = {
 	}
 }
 
+function ConstructionComponent.static:getRefundedResources(type)
+	local refund = {}
+	for resource,amount in pairs(ConstructionComponent.MATERIALS[type]) do
+		refund[resource] = math.floor(amount * 0.75)
+	end
+
+	return refund
+end
+
 function ConstructionComponent:initialize(type, level)
 	self.buildingType = type
-	self.resourcesLeft = table.clone(ConstructionComponent.MATERIALS[self.buildingType])
+	self.blueprint = ConstructionComponent.MATERIALS[self.buildingType]
 	if level then
-		self.resourcesLeft = self.resourcesLeft[level]
+		self.blueprint = self.blueprint[level]
 	end
-	assert(self.resourcesLeft, "Missing resource information for building type "..tostring(self.buildingType))
+	assert(self.blueprint, "Missing resource information for building type "..tostring(self.buildingType))
+
+	self.missingResources = table.clone(self.blueprint)
+	self.unreservedResources = table.clone(self.blueprint)
 
 	self.numCommittedResources = 0
 	self.numAvailableResources = 0
 	self.numTotalResources = 0
-	for _,num in pairs(self.resourcesLeft) do
+	for _,num in pairs(self.missingResources) do
 		self.numTotalResources = self.numTotalResources + num
 	end
 	assert(self.numTotalResources > 0, "No resources :(")
@@ -80,7 +92,15 @@ function ConstructionComponent:getType()
 end
 
 function ConstructionComponent:getPercentDone()
-	return math.floor((self.numCommittedResources / self.numTotalResources) * 100)
+	return math.floor(self:getValueDone() * 100)
+end
+
+function ConstructionComponent:getValueDone()
+	return self.numCommittedResources / self.numTotalResources
+end
+
+function ConstructionComponent:getValueBuildable()
+	return self.numAvailableResources / self.numTotalResources
 end
 
 function ConstructionComponent:updateWorkGrids(adjacent)
@@ -115,9 +135,22 @@ function ConstructionComponent:getFreeWorkGrids()
 	return workGrids
 end
 
-function ConstructionComponent:getRemainingResources(blacklist)
+function ConstructionComponent:getRemainingResources()
+	return self.missingResources
+end
+
+function ConstructionComponent:getRefundedResources()
+	local refund = {}
+	for resource,amount in pairs(self.blueprint) do
+		refund[resource] = math.floor((amount - self.missingResources[resource]) * 0.75)
+	end
+
+	return refund
+end
+
+function ConstructionComponent:getRandomUnreservedResource(blacklist)
 	local resourcesLeft = {}
-	for resource,amount in pairs(self.resourcesLeft) do
+	for resource,amount in pairs(self.unreservedResources) do
 		if amount > 0 and (not blacklist or not blacklist[resource]) then
 			table.insert(resourcesLeft, resource)
 		end
@@ -129,17 +162,17 @@ function ConstructionComponent:getRemainingResources(blacklist)
 	end
 
 	local index = love.math.random(1, len)
-	return resourcesLeft[index], self.resourcesLeft[resourcesLeft[index]]
+	return resourcesLeft[index], self.unreservedResources[resourcesLeft[index]]
 end
 
 function ConstructionComponent:reserveResource(resource, amount)
-	self.resourcesLeft[resource] = self.resourcesLeft[resource] - amount
-	assert(self.resourcesLeft[resource] >= 0)
+	self.unreservedResources[resource] = self.unreservedResources[resource] - amount
+	assert(self.unreservedResources[resource] >= 0)
 end
 
 function ConstructionComponent:unreserveResource(resource, amount)
-	self.resourcesLeft[resource] = self.resourcesLeft[resource] + amount
-	--assert(self.resourcesLeft[resource] <= ConstructionComponent.MATERIALS[self.buildingType][resource])
+	self.unreservedResources[resource] = self.unreservedResources[resource] + amount
+	--assert(self.unreservedResources[resource] <= ConstructionComponent.MATERIALS[self.buildingType][resource])
 end
 
 function ConstructionComponent:reserveGrid(villager, workGrid)
@@ -159,6 +192,9 @@ function ConstructionComponent:addResources(resource, amount)
 	self.numAvailableResources = self.numAvailableResources + amount
 	assert(self.numAvailableResources <= self.numTotalResources,
 		"Too many resources: "..self.numAvailableResources.."/"..self.numTotalResources)
+
+	self.missingResources[resource] = self.missingResources[resource] - amount
+	assert(self.missingResources[resource] >= 0)
 end
 
 function ConstructionComponent:commitResources(amount)

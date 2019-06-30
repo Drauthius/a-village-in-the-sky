@@ -139,7 +139,7 @@ function PregnancySystem:buildingEnteredEvent(event)
 		assert(mother:get("VillagerComponent"):getGender() == "female", "No mother?")
 		assert(father:get("VillagerComponent"):getGender() == "male", "No father?")
 
-		print(mother, "became pregnant with "..father.."'s baby.")
+		print(tostring(mother).." became pregnant with "..tostring(father).."'s baby.")
 		local expected = 9 / 12 -- 9 months
 		expected = expected +
 		           love.math.random(-PregnancySystem.PREGNANCY_VARIATION, PregnancySystem.PREGNANCY_VARIATION)

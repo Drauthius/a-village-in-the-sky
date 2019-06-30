@@ -66,7 +66,7 @@ function BuildingSystem:buildingCompletedEvent(event)
 		chimneys = 3
 
 		-- Create the nice propeller.
-		local propeller = lovetoys.Entity()
+		local propeller = lovetoys.Entity(entity)
 		local propellerData = spriteSheet:getData("Blades") -- Edgy
 		local sprite = spriteSheet:getSprite("windmill-blades 0")
 		local position = entity:get("PositionComponent")
@@ -77,7 +77,7 @@ function BuildingSystem:buildingCompletedEvent(event)
 		-- Not sure about the offset.
 		propeller:add(SpriteComponent(sprite, dx + 2, dy + 2))
 
-		self.engine:addEntity(propeller, entity)
+		self.engine:addEntity(propeller)
 
 		-- We'll save it here for now.
 		building.propeller = propeller
@@ -101,7 +101,8 @@ function BuildingSystem:buildingCompletedEvent(event)
 		dy = dy + chimneyData.bounds.y + math.floor(chimneyData.bounds.h / 2)
 		-- Not sure why the offset is needed, but it is.
 		chimney:get("SpriteComponent"):setDrawPosition(dx + 2, dy + 1)
-		self.engine:addEntity(chimney, entity)
+		chimney:setParent(entity)
+		self.engine:addEntity(chimney)
 		building:addChimney(chimney)
 	end
 end

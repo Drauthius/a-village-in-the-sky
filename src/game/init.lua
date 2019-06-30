@@ -4,8 +4,6 @@
 --  - Bugs:
 --    * Villagers can get stuck in a four-grid gridlock.
 --    * Villagers heading the exact opposite direction can get stuck in a two-grid gridlock.
---    * Removing a villager from a production job can leave resources "locked in limbo".
---      The same goes for building jobs.
 --    * Display bug with the bottom panel???
 --    * Villagers standing on a reserved grid can rotate around spastically trying to find a way to move.
 --    * Freeing of dead villagers is not handled properly.
@@ -14,7 +12,6 @@
 --    * Proper fonts and font creation.
 --      Convert TTF to BMFont for crisp pixel graphics.
 --      Fallback fonts.
---    * Unselect things (in the GUI/detailspanel) that disappear (e.g. villager dies, building destroyed).
 --    * Tutorial mode.
 --      Show objectives panel.
 --      Options:
@@ -97,8 +94,9 @@
 
 local Camera = require "lib.hump.camera"
 local Timer = require "lib.hump.timer"
-local lovetoys = require "lib.lovetoys.lovetoys"
 local fpsGraph = require "lib.FPSGraph"
+local lovetoys = require "lib.lovetoys.lovetoys"
+local table = require "lib.table"
 
 local Background = require "src.game.background"
 local GUI = require "src.game.gui"
@@ -107,15 +105,18 @@ local DefaultLevel = require "src.game.level.default"
 -- Components
 local AssignmentComponent = require "src.game.assignmentcomponent"
 local BlinkComponent = require "src.game.blinkcomponent"
+local BuildingComponent = require "src.game.buildingcomponent"
 local ConstructionComponent = require "src.game.constructioncomponent"
 local InteractiveComponent = require "src.game.interactivecomponent"
 local PositionComponent = require "src.game.positioncomponent"
+local SpriteComponent = require "src.game.spritecomponent"
 local TimerComponent = require "src.game.timercomponent"
 -- Events
 local AssignedEvent = require "src.game.assignedevent"
 local SelectionChangedEvent = require "src.game.selectionchangedevent"
 local TileDroppedEvent = require "src.game.tiledroppedevent"
 local TilePlacedEvent = require "src.game.tileplacedevent"
+local UnassignedEvent = require "src.game.unassignedevent"
 -- Systems
 local BuildingSystem
 local DebugSystem
@@ -125,6 +126,7 @@ local PlacingSystem
 local PositionSystem
 local PregnancySystem
 local RenderSystem
+local ResourceSystem
 local SpriteSystem
 local TimerSystem
 local VillagerSystem
@@ -158,7 +160,7 @@ Game.CAMERA_EPSILON = 0.05
 function Game:init()
 	lovetoys.initialize({ debug = true, middleclassPath = "lib.middleclass" })
 
-	-- Needs to be created after initialization.
+	-- Needs to be loaded after initialization.
 	BuildingSystem = require "src.game.buildingsystem"
 	DebugSystem = require "src.game.debugsystem"
 	FieldSystem = require "src.game.fieldsystem"
@@ -167,6 +169,7 @@ function Game:init()
 	PositionSystem = require "src.game.positionsystem"
 	PregnancySystem = require "src.game.pregnancysystem"
 	RenderSystem = require "src.game.rendersystem"
+	ResourceSystem = require "src.game.resourcesystem"
 	SpriteSystem = require "src.game.spritesystem"
 	TimerSystem = require "src.game.timersystem"
 	VillagerSystem = require "src.game.villagersystem"
@@ -234,12 +237,17 @@ function Game:enter()
 	-- Currently only listens to events.
 	self.engine:addSystem(buildingSystem, "update")
 	self.engine:addSystem(PositionSystem(self.map), "update")
+	self.engine:addSystem(ResourceSystem(self.map), "update")
 	self.engine:stopSystem("BuildingSystem")
 	self.engine:stopSystem("PositionSystem")
+	self.engine:stopSystem("ResourceSystem")
 
-	-- Event handling for logging/the player, and state handling.
+	-- Event handling for logging/the player, state handling, and stuff that didn't fit anywhere else.
+	self.eventManager:addListener("BuildingRazedEvent", self, self.onBuildingRazed)
 	self.eventManager:addListener("ChildbirthEndedEvent", self, self.childbirthEndedEvent)
 	self.eventManager:addListener("ChildbirthStartedEvent", self, self.childbirthStartedEvent)
+	self.eventManager:addListener("ConstructionCancelledEvent", self, self.onConstructionCancelled)
+	self.eventManager:addListener("RunestoneUpgradingEvent", self, self.onRunestoneUpgrading)
 	self.eventManager:addListener("SelectionChangedEvent", self, self.onSelectionChanged)
 
 	-- Events between the systems.
@@ -270,6 +278,11 @@ function Game:enter()
 	self.eventManager:addListener("AssignedEvent", self.gui, self.gui.onAssigned)
 	self.eventManager:addListener("SelectionChangedEvent", self.gui, self.gui.onSelectionChanged)
 	self.eventManager:addListener("UnassignedEvent", self.gui, self.gui.onUnassigned)
+
+	-- This "event" has been hacked in.
+	self.engine.onRemoveEntity = function(_, entity)
+		self:onRemoveEntity(entity)
+	end
 
 	self.level:initiate(self.engine, self.map)
 
@@ -510,6 +523,14 @@ function Game:_handleClick(x, y)
 	local clicked, clickedIndex = nil, 0
 	for _,entity in pairs(self.engine:getEntitiesWithComponent("InteractiveComponent")) do
 		local index = entity:get("SpriteComponent"):getDrawIndex()
+		if not index then
+			print("Index for entity missing!")
+			print(entity)
+			for _,component in pairs(entity:getComponents()) do
+				print("", component.class.name)
+			end
+			index = -100
+		end
 		if index > clickedIndex and entity:get("InteractiveComponent"):isWithin(x, y) then
 			local dx, dy = entity:get("SpriteComponent"):getDrawPosition()
 			-- Cast a bit wider net than single pixel.
@@ -776,6 +797,109 @@ function Game:_updateCameraBoundingBox()
 	}
 end
 
+-- Handles both the razing and cancellations of buildings and runestones.
+function Game:_removeBuilding(building)
+	local isUnderConstruction = building:has("ConstructionComponent")
+	local isRunestone = building:has("RunestoneComponent")
+
+	local grids
+	if isRunestone then
+		-- Runestones drop the refunded resources on adjacent grids.
+		-- The adjacent grids needs a bit of massaging, since they include a rotation.
+		grids = {}
+		for _,grid in ipairs(self.map:getAdjacentGrids(building, true)) do
+			table.insert(grids, grid[1])
+		end
+	else
+		-- Buildings are blown up, and the resources dropped where it stood.
+		grids = self.map:getOwnedGrids(building)
+		-- The building has to be removed before resources are placed in its stead.
+		self.map:remove(building)
+	end
+
+	-- Refund any materials.
+	local refund
+	if isUnderConstruction then
+		refund = building:get("ConstructionComponent"):getRefundedResources()
+	else
+		refund = ConstructionComponent:getRefundedResources(building:get("BuildingComponent"):getType())
+	end
+	for resource,amount in pairs(refund) do
+		while amount > 0 do
+			local grid
+
+			if next(grids) then
+				grid = table.remove(grids, love.math.random(1, #grids))
+			else
+				-- Fall back to the normal placement of resources in case there is no room adjacent.
+				local ti, tj = building:get("PositionComponent"):getTile()
+				grid = self.map:getFreeGrid(ti, tj, resource)
+			end
+
+			if grid then
+				local resourceEntity = blueprint:createResourcePile(resource, math.min(3, amount))
+				self.map:addResource(resourceEntity, grid, true)
+				resourceEntity:add(PositionComponent(grid, nil, self.map:gridToTileCoords(grid.gi, grid.gj)))
+				self.engine:addEntity(resourceEntity)
+
+				amount = amount - resourceEntity:get("ResourceComponent"):getResourceAmount()
+			else
+				print("Resource thrown off the side due to space constraints")
+				break
+			end
+		end
+	end
+
+	for _,villager in ipairs(building:get("BuildingComponent"):getInside()) do
+		assert(not isRunestone)
+
+		local grid
+		if next(grids) then
+			grid = table.remove(grids, love.math.random(1, #grids))
+		else
+			-- Fall back to the normal placement of "resources" in case there is no room adjacent.
+			local ti, tj = building:get("PositionComponent"):getTile()
+			grid = self.map:getFreeGrid(ti, tj, "villager")
+		end
+
+		if grid then
+			-- XXX: A bit too much logic here
+			villager:get("VillagerComponent"):setIsHome(false) -- Most likely
+			-- Place the villager on the grid.
+			villager:add(PositionComponent(grid, nil, self.map:gridToTileCoords(grid.gi, grid.gj)))
+			villager:get("GroundComponent"):setPosition(self.map:gridToGroundCoords(grid.gi + 0.5, grid.gj + 0.5))
+			villager:add(SpriteComponent()) -- Must be added after the position component.
+		else
+			print("Villager thrown off the side due to space constraints")
+			self.engine:removeEntity(villager, true)
+		end
+	end
+
+	-- Unassign all the affected villagers.
+	-- (After kicking them out.)
+	-- NOTE: The assignee list is modified by the villager system.
+	for _,assignee in ipairs(table.clone(building:get("AssignmentComponent"):getAssignees())) do
+		self.eventManager:fireEvent(UnassignedEvent(building, assignee))
+	end
+	-- Unassign all the children.
+	if building:has("DwellingComponent") then
+		-- NOTE: The children list is modified by the villager system.
+		for _,child in ipairs(table.clone(building:get("DwellingComponent"):getChildren())) do
+			self.eventManager:fireEvent(UnassignedEvent(building, child))
+		end
+	end
+
+	if isRunestone then
+		building:remove("ConstructionComponent")
+		building:remove("AssignmentComponent")
+		building:get("SpriteComponent"):setNeedsRefresh(true)
+	else
+		self.engine:removeEntity(building, true)
+	end
+
+	soundManager:playEffect("buildingRazed")
+end
+
 --
 -- Events
 --
@@ -788,6 +912,22 @@ function Game:childbirthEndedEvent(event)
 	print("Childbirth ended. Mother "..
 		(event:didMotherSurvive() and "survived" or "died").." and child "..
 		(event:didChildSurvive() and "survived" or "died"))
+end
+
+function Game:onBuildingRazed(event)
+	self:_removeBuilding(event:getBuilding())
+end
+
+function Game:onConstructionCancelled(event)
+	self:_removeBuilding(event:getBuilding())
+end
+
+function Game:onRunestoneUpgrading(event)
+	local runestone = event:getRunestone()
+
+	runestone:add(ConstructionComponent(BuildingComponent.RUNESTONE, runestone:get("RunestoneComponent"):getLevel()))
+	runestone:add(AssignmentComponent(4))
+	runestone:get("SpriteComponent"):setNeedsRefresh(true)
 end
 
 function Game:onSelectionChanged(event)
@@ -813,6 +953,12 @@ function Game:onSelectionChanged(event)
 	elseif state:hasSelection() then
 		soundManager:playEffect("clearSelection")
 		state:clearSelection()
+	end
+end
+
+function Game:onRemoveEntity(entity)
+	if state:getSelection() == entity and not state:isPlacing() then
+		self.eventManager:fireEvent(SelectionChangedEvent(nil))
 	end
 end
 

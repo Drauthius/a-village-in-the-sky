@@ -122,7 +122,8 @@ function VillagerSystem:update(dt)
 					return
 				end
 
-				if goal ~= VillagerComponent.GOALS.NONE and
+				if villager:getHome() and
+				   goal ~= VillagerComponent.GOALS.NONE and
 				   goal ~= VillagerComponent.GOALS.FOOD_PICKUP and
 				   goal ~= VillagerComponent.GOALS.FOOD_DROPOFF and
 				   goal ~= VillagerComponent.GOALS.SLEEP and
@@ -277,10 +278,10 @@ function VillagerSystem:_takeAction(entity)
 			-- Make a first pass to determine if any work can be carried out.
 			local getMaterials, blacklist, resource = true, {}
 			repeat
-				resource = construction:getRemainingResources(blacklist)
+				resource = construction:getRandomUnreservedResource(blacklist)
 				if not resource then
 					-- Determine whether the construction needs any materials.
-					if not construction:getRemainingResources() and construction:canBuild() then
+					if not construction:getRandomUnreservedResource() and construction:canBuild() then
 						-- No additional materials needed, but might as well go there and help build it.
 						getMaterials = false
 					else
@@ -532,19 +533,8 @@ function VillagerSystem:_dropCarrying(entity, grid)
 
 	local resourceEntity = blueprint:createResourcePile(resource, amount)
 	self.map:addResource(resourceEntity, grid, true)
-
-	-- TODO: Set up the resource somewhere else.
-	--       Preferably in ResourceSystem:onAddEntity()
-	local gi, gj = grid.gi, grid.gj
-	local ox, oy = self.map:gridToWorldCoords(gi, gj)
-	ox = ox - self.map.halfGridWidth
-	oy = oy - resourceEntity:get("SpriteComponent"):getSprite():getHeight() + self.map.gridHeight
-
-	resourceEntity:get("SpriteComponent"):setDrawPosition(ox, oy)
-	resourceEntity:add(PositionComponent(self.map:getGrid(gi, gj), nil, self.map:gridToTileCoords(gi, gj)))
-
+	resourceEntity:add(PositionComponent(grid, nil, self.map:gridToTileCoords(grid.gi, grid.gj)))
 	self.engine:addEntity(resourceEntity)
-	state:increaseResource(resource, amount)
 end
 
 function VillagerSystem:_prepare(entity, okInside)
@@ -629,6 +619,7 @@ function VillagerSystem:_unassignWork(entity)
 		workPlace:get("AssignmentComponent"):unassign(entity)
 		adult:setWorkPlace(nil)
 	end
+	adult:setWorkArea(nil)
 
 	if adult:getOccupation() == WorkComponent.FARMER then
 		local enclosure
@@ -645,6 +636,10 @@ function VillagerSystem:_unassignWork(entity)
 		if enclosure then
 			enclosure:get("AssignmentComponent"):unassign(entity)
 		end
+	end
+
+	if entity:has("WorkComponent") then
+		entity:remove("WorkComponent")
 	end
 end
 
@@ -696,11 +691,6 @@ function VillagerSystem:assignedEvent(event)
 			-- (This event is only sent if the villager was not previously assigned.)
 			if oldHome == site then
 				site:get("DwellingComponent"):removeChild(villager)
-				if villager:getGender() == "male" then
-					site:get("DwellingComponent"):setNumBoys(site:get("DwellingComponent"):getNumBoys() - 1)
-				else
-					site:get("DwellingComponent"):setNumGirls(site:get("DwellingComponent"):getNumGirls() - 1)
-				end
 			else
 				self:unassignedEvent(UnassignedEvent(oldHome, entity))
 			end
@@ -731,11 +721,6 @@ function VillagerSystem:assignedEvent(event)
 
 				if moveIn then
 					oldHome:get("DwellingComponent"):removeChild(child)
-					if child:get("VillagerComponent"):getGender() == "male" then
-						oldHome:get("DwellingComponent"):setNumBoys(oldHome:get("DwellingComponent"):getNumBoys() - 1)
-					else
-						oldHome:get("DwellingComponent"):setNumGirls(oldHome:get("DwellingComponent"):getNumGirls() - 1)
-					end
 				end
 			else
 				-- Take the chance to actually LIVE.
@@ -745,11 +730,6 @@ function VillagerSystem:assignedEvent(event)
 			if moveIn then
 				child:get("VillagerComponent"):setHome(site)
 				site:get("DwellingComponent"):addChild(child)
-				if child:get("VillagerComponent"):getGender() == "male" then
-					site:get("DwellingComponent"):setNumBoys(site:get("DwellingComponent"):getNumBoys() + 1)
-				else
-					site:get("DwellingComponent"):setNumGirls(site:get("DwellingComponent"):getNumGirls() + 1)
-				end
 			end
 		end
 
@@ -861,23 +841,27 @@ function VillagerSystem:unassignedEvent(event)
 	}
 
 	if site:has("DwellingComponent") then
-		site:get("AssignmentComponent"):unassign(entity)
-		site:get("DwellingComponent"):setRelated(false) -- Can't be related to yourself!
+		if entity:has("AdultComponent") and site:get("AssignmentComponent"):isAssigned(entity) then
+			site:get("AssignmentComponent"):unassign(entity)
+			site:get("DwellingComponent"):setRelated(false) -- Can't be related to yourself!
+		else
+			site:get("DwellingComponent"):removeChild(entity)
+		end
 
 		for _,goal in ipairs(self.homeRelatedGoals) do
 			if villager:getGoal() == goal then
 				self:_stopAll(entity)
 				self:_prepare(entity)
-				villager:setGoal(VillagerComponent.GOALS.NONE)
 				break
 			end
 		end
+
+		villager:setHome(nil)
 	else
 		for _,goal in ipairs(self.workRelatedGoals) do
 			if villager:getGoal() == goal then
 				self:_stopAll(entity)
 				self:_prepare(entity)
-				villager:setGoal(VillagerComponent.GOALS.NONE)
 				break
 			end
 		end
@@ -987,11 +971,6 @@ function VillagerSystem:childbirthEndedEvent(event)
 
 		local dwelling = villager:getHome():get("DwellingComponent")
 		dwelling:addChild(child)
-		if child:getGender() == "male" then
-			dwelling:setNumBoys(dwelling:getNumBoys() + 1)
-		else
-			dwelling:setNumGirls(dwelling:getNumGirls() + 1)
-		end
 	else
 		assert(not event:didChildSurvive(), "Don't know where to place the child.")
 		local position = entity:get("PositionComponent")
@@ -1072,11 +1051,6 @@ function VillagerSystem:onRemoveEntity(entity)
 			-- Probably a child.
 			local dwelling = villager:getHome():get("DwellingComponent")
 			dwelling:removeChild(villager)
-			if villager:getGender() == "male" then
-				dwelling:setNumBoys(dwelling:getNumBoys() - 1)
-			else
-				dwelling:setNumGirls(dwelling:getNumGirls() - 1)
-			end
 		end
 	end
 

@@ -213,8 +213,8 @@ function RenderSystem:_recalculateObjects()
 		end
 	end
 	table.sort(self.objects[2], function(a, b)
-		local ati, atj = a:get("PositionComponent"):getTile()
-		local bti, btj = b:get("PositionComponent"):getTile()
+		local ati, atj = assert(a:get("PositionComponent")):getTile()
+		local bti, btj = assert(b:get("PositionComponent")):getTile()
 		local aTopLeft, aBottomRight = a:get("PositionComponent"):getFromGrid(), a:get("PositionComponent"):getToGrid()
 		local bTopLeft, bBottomRight = b:get("PositionComponent"):getFromGrid(), b:get("PositionComponent"):getToGrid()
 

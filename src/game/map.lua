@@ -69,7 +69,7 @@ function Map:addTile(type, ti, tj)
 	end
 
 	-- Add the walkable grids
-	local sgi, sgj = ti * self.gridsPerTile, tj * self.gridsPerTile
+	local sgi, sgj = self:tileToGridCoords(ti, tj)
 	for gi=sgi,sgi + self.gridsPerTile - 1 do
 		self.grid[gi] = self.grid[gi] or {}
 
@@ -136,52 +136,60 @@ end
 
 -- Remove a resource or building from the map.
 function Map:remove(entity)
-	-- TODO: All collisions aren't square currently.
-	--local from, to = entity:get("PositionComponent"):getFromGrid(), entity:get("PositionComponent"):getToGrid()
-
-	--for gi=from.gi,to.gi do
-	--	for gj=from.gj,to.gj do
-	--		local grid = self:getGrid(gi, gj)
-	--		if grid.owner == entity then
-	--			grid.collision = bit.band(grid.collision, bit.bnot(Map.COLL_STATIC))
-	--			grid.collision = bit.band(grid.collision, bit.bnot(Map.COLL_RESERVED))
-	--			grid.owner = nil
-	--		end
-	--	end
-	--end
-
-	local grid = entity:get("PositionComponent"):getGrid()
-
-	-- XXX: It might occupy multiple grids.
-	local ti, tj = math.floor(grid.gi / self.gridsPerTile), math.floor(grid.gj / self.gridsPerTile)
-	local sgi, sgj = ti * self.gridsPerTile, tj * self.gridsPerTile
-	for gi=sgi,sgi + self.gridsPerTile - 1 do
-		for gj=sgj,sgj + self.gridsPerTile - 1 do
-			grid = self:getGrid(gi, gj)
-			if grid.owner == entity then
-				grid.collision = bit.band(grid.collision, bit.bnot(Map.COLL_STATIC))
-				grid.collision = bit.band(grid.collision, bit.bnot(Map.COLL_RESERVED))
-				grid.owner = nil
-			end
-		end
+	for _,grid in ipairs(self:getOwnedGrids(entity, true)) do
+		grid.collision = bit.band(grid.collision, bit.bnot(Map.COLL_STATIC))
+		grid.collision = bit.band(grid.collision, bit.bnot(Map.COLL_RESERVED))
+		grid.owner = nil
 	end
 end
 
-function Map:getAdjacentGrids(entity)
-	local grid = entity:get("PositionComponent"):getGrid()
+function Map:getOwnedGrids(entity, includeReserved)
+	local grids = {}
 
-	-- XXX: Get all the adjacent grids that aren't occupied, and that are "visible".
+	if includeReserved then
+		-- NOTE: Static collisions are guaranteed to be square, but reserved parts fall outside of that.
+		for grid in self:_eachGrid(entity:get("PositionComponent"):getTile()) do
+			if grid.owner == entity then
+				table.insert(grids, grid)
+			end
+		end
+	else
+		-- NOTE: Assumes that all collisions are square.
+		local from, to = entity:get("PositionComponent"):getFromGrid(), entity:get("PositionComponent"):getToGrid()
+
+		for gi=from.gi,to.gi do
+			for gj=from.gj,to.gj do
+				local grid = self:getGrid(gi, gj)
+				if grid.owner == entity then
+					table.insert(grids, grid)
+				end
+			end
+		end
+	end
+
+	return grids
+end
+
+function Map:getAdjacentGrids(entity, includeObstructed)
 	local adjacent = {}
-	local ti, tj = math.floor(grid.gi / self.gridsPerTile), math.floor(grid.gj / self.gridsPerTile)
-	local sgi, sgj = ti * self.gridsPerTile, tj * self.gridsPerTile
-	for gi=sgi,sgi + self.gridsPerTile - 1 do
-		for gj=sgj,sgj + self.gridsPerTile - 1 do
-			grid = self:getGrid(gi, gj)
-			local nw, ne = self:getGrid(gi - 1, gj), self:getGrid(gi, gj - 1)
-			nw = nw and nw.owner == entity and nw.collision == Map.COLL_STATIC
-			ne = ne and ne.owner == entity and ne.collision == Map.COLL_STATIC
-			if grid.collision == Map.COLL_NONE and (nw or ne) then
-				table.insert(adjacent, { grid, nw and 315 or 45 })
+	for _,grid in ipairs(self:getOwnedGrids(entity)) do
+		if grid.collision == Map.COLL_STATIC then
+			local sw, se = self:getGrid(grid.gi + 1, grid.gj), self:getGrid(grid.gi, grid.gj + 1)
+			if sw.collision == Map.COLL_NONE then
+				table.insert(adjacent, { sw, 315 })
+			end
+			if se.collision == Map.COLL_NONE then
+				table.insert(adjacent, { se, 45 })
+			end
+
+			if includeObstructed then
+				local ne, nw = self:getGrid(grid.gi - 1, grid.gj), self:getGrid(grid.gi, grid.gj - 1)
+				if ne.collision == Map.COLL_NONE then
+					table.insert(adjacent, { ne, 225 })
+				end
+				if nw.collision == Map.COLL_NONE then
+					table.insert(adjacent, { nw, 135 })
+				end
 			end
 		end
 	end
@@ -225,6 +233,11 @@ function Map:gridToTileCoords(gi, gj)
 	       math.floor(gj / self.gridsPerTile)
 end
 
+function Map:tileToGridCoords(ti, tj)
+	return ti * self.gridsPerTile,
+	       tj * self.gridsPerTile
+end
+
 function Map:isValidPosition(entity, ti, tj)
 	local placing = entity:get("PlacingComponent")
 	if placing:isTile() then
@@ -259,7 +272,7 @@ function Map:isValidPosition(entity, ti, tj)
 end
 
 function Map:getFreeGrid(ti, tj, resource)
-	local sgi, sgj = ti * self.gridsPerTile, tj * self.gridsPerTile
+	local sgi, sgj = self:tileToGridCoords(ti, tj)
 	local egi, egj = sgi + self.gridsPerTile - 1, sgj + self.gridsPerTile - 1
 	local gi, gj
 	if resource == ResourceComponent.WOOD then
@@ -430,7 +443,7 @@ function Map:_placeObject(entity, gi, gj, dryrun)
 				if a > 0.5 then
 					if dryrun then
 						-- Make sure it is within the tile.
-						local ssgi, ssgj = ti * self.gridsPerTile, tj * self.gridsPerTile
+						local ssgi, ssgj = self:tileToGridCoords(ti, tj)
 						--print("Check", ssgi, ssgj, cgi, cgj)
 						if cgi >= ssgi and cgj >= ssgj and cgi < ssgi + self.gridsPerTile and cgj < ssgj + self.gridsPerTile then
 							if self.grid[cgi][cgj].collision ~= Map.COLL_NONE then
@@ -478,7 +491,7 @@ function Map:_placeFullWidthObject(entity, ti, tj, dryrun)
 	local x, y = px - self.halfTileWidth, py - collision:getHeight() + self.tileHeight
 
 	-- Get the starting grid for that tile
-	local sgi, sgj = ti * self.gridsPerTile, tj * self.gridsPerTile
+	local sgi, sgj = self:tileToGridCoords(ti, tj)
 
 	local mingi, mingj, maxgi, maxgj
 
@@ -520,6 +533,24 @@ function Map:_placeFullWidthObject(entity, ti, tj, dryrun)
 	return x, y, self.grid[mingi] and self.grid[mingi][mingj], self.grid[maxgi] and self.grid[maxgi][maxgj]
 end
 
+function Map:_eachGrid(ti, tj)
+	local sgi, sgj = self:tileToGridCoords(ti, tj)
+	local egi, egj = sgi + self.gridsPerTile - 1, sgj + self.gridsPerTile - 1
+	local gi, gj = sgi - 1, sgj
+	return function()
+		gi = gi + 1
+		if gi > egi then
+			gi = sgi
+			gj = gj + 1
+			if gj > egj then
+				return nil
+			end
+		end
+
+		return self.grid[gi][gj]
+	end
+end
+
 --
 -- Debug stuff
 --
@@ -534,40 +565,33 @@ function Map:drawDebug()
 	for ti=sti,eti do
 		for tj=stj,etj do
 			if self.tile[ti] and self.tile[ti][tj] then
-				local sgi, sgj = ti * self.gridsPerTile, tj * self.gridsPerTile
-				for gi=sgi,sgi + self.gridsPerTile - 1 do
-					for gj=sgj,sgj + self.gridsPerTile - 1 do
-						if self.grid[gi] and self.grid[gi][gj] then
-							local grid = self.grid[gi][gj]
-
-							if bit.band(grid.collision, Map.COLL_STATIC) ~= 0 then
-								love.graphics.setColor(1, 0, 0, 0.5)
-							elseif bit.band(grid.collision, Map.COLL_DYNAMIC) ~= 0 then
-								love.graphics.setColor(1, 0, 1, 0.5)
-							elseif bit.band(grid.collision, Map.COLL_RESERVED) ~= 0 then
-								love.graphics.setColor(0, 0, 1, 0.5)
-							else
-								love.graphics.setColor(0, 1, 0, 0.5)
-							end
-
-							local x, y = self:gridToWorldCoords(gi, gj)
-							local polygon = {
-								x, y,
-								x + self.halfGridWidth, y + self.halfGridHeight,
-								x, y + self.gridHeight,
-								x - self.halfGridWidth, y + self.halfGridHeight
-							}
-							love.graphics.polygon(
-								"fill", --grid.collision == Map.COLL_NONE and "line" or "fill",
-								polygon
-							)
-							love.graphics.setColor(0, 0, 0, 0.5)
-							love.graphics.polygon(
-								"line", --grid.collision == Map.COLL_NONE and "line" or "fill",
-								polygon
-							)
-						end
+				for grid in self:_eachGrid(ti, tj) do
+					if bit.band(grid.collision, Map.COLL_STATIC) ~= 0 then
+						love.graphics.setColor(1, 0, 0, 0.5)
+					elseif bit.band(grid.collision, Map.COLL_DYNAMIC) ~= 0 then
+						love.graphics.setColor(1, 0, 1, 0.5)
+					elseif bit.band(grid.collision, Map.COLL_RESERVED) ~= 0 then
+						love.graphics.setColor(0, 0, 1, 0.5)
+					else
+						love.graphics.setColor(0, 1, 0, 0.5)
 					end
+
+					local x, y = self:gridToWorldCoords(grid.gi, grid.gj)
+					local polygon = {
+						x, y,
+						x + self.halfGridWidth, y + self.halfGridHeight,
+						x, y + self.gridHeight,
+						x - self.halfGridWidth, y + self.halfGridHeight
+					}
+					love.graphics.polygon(
+						"fill", --grid.collision == Map.COLL_NONE and "line" or "fill",
+						polygon
+					)
+					love.graphics.setColor(0, 0, 0, 0.5)
+					love.graphics.polygon(
+						"line", --grid.collision == Map.COLL_NONE and "line" or "fill",
+						polygon
+					)
 				end
 			end
 		end

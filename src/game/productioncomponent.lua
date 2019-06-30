@@ -47,7 +47,15 @@ function ProductionComponent:getNeededResources(villager, blacklist)
 	for resource,amount in pairs(self.specs.input) do
 		if amount > 0 and (not blacklist or not blacklist[resource]) and
 		   (not reserved or not reserved[resource] or reserved[resource] < amount) then
-			table.insert(resourcesNeeded, resource)
+			amount = amount - (reserved and reserved[resource] or 0)
+			if self.storedResources[resource] > 0 then
+				local borrowed = math.min(self.storedResources[resource], amount)
+				amount = amount - borrowed
+				self:reserveResource(villager, resource, borrowed)
+			end
+			if amount > 0 then
+				table.insert(resourcesNeeded, {resource, amount})
+			end
 		end
 	end
 
@@ -56,9 +64,8 @@ function ProductionComponent:getNeededResources(villager, blacklist)
 		return nil
 	end
 
-	-- TODO: This can get more resources than needed, resulting in WASTE.
 	local index = love.math.random(1, len)
-	return resourcesNeeded[index], self.specs.input[resourcesNeeded[index]]
+	return resourcesNeeded[index][1], resourcesNeeded[index][2]
 end
 
 function ProductionComponent:getOutput()
@@ -85,7 +92,15 @@ function ProductionComponent:reserveResource(villager, resource, amount)
 end
 
 function ProductionComponent:releaseResources(villager)
-	error("Unimplemented.")
+	if not self.reserved[villager] then
+		return
+	end
+
+	for resource,amount in pairs(self.reserved[villager]) do
+		self.storedResources[resource] = self.storedResources[resource] + amount
+	end
+
+	self.reserved[villager] = nil
 end
 
 function ProductionComponent:getCompletion(villager)

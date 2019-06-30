@@ -45,6 +45,12 @@ end
 
 function DwellingComponent:addChild(child)
 	table.insert(self.children, child)
+
+	if child:get("VillagerComponent"):getGender() == "male" then
+		self:setNumBoys(self:getNumBoys() + 1)
+	else
+		self:setNumGirls(self:getNumGirls() + 1)
+	end
 end
 
 function DwellingComponent:removeChild(child)
@@ -53,6 +59,12 @@ function DwellingComponent:removeChild(child)
 			table.remove(self.children, k)
 			return
 		end
+	end
+
+	if child:get("VillagerComponent"):getGender() == "male" then
+		self:setNumBoys(self:getNumBoys() - 1)
+	else
+		self:setNumGirls(self:getNumGirls() - 1)
 	end
 end
 

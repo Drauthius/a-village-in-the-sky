@@ -16,7 +16,6 @@ local HallwayLevel = Level:subclass("HallwayLevel")
 
 local blueprint = require "src.game.blueprint"
 local spriteSheet = require "src.game.spritesheet"
-local state = require "src.game.state"
 
 HallwayLevel.static.NUM_VILLAGERS = 10
 HallwayLevel.static.SIZE = 2
@@ -46,16 +45,8 @@ function HallwayLevel:initiate(engine, map)
 				local resource = blueprint:createResourcePile(type, 3)
 
 				map:addResource(resource, map:getGrid(gi, gj))
-
-				local ox, oy = map:gridToWorldCoords(gi, gj)
-				ox = ox - map.halfGridWidth
-				oy = oy - resource:get("SpriteComponent"):getSprite():getHeight() + map.gridHeight
-
-				resource:get("SpriteComponent"):setDrawPosition(ox, oy)
 				resource:add(PositionComponent(map:getGrid(gi, gj), nil, 0, 0))
-
 				engine:addEntity(resource)
-				state:increaseResource(type, resource:get("ResourceComponent"):getResourceAmount())
 			end
 		end
 	end

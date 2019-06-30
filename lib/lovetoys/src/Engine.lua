@@ -89,6 +89,9 @@ function Engine:removeEntity(entity, removeChildren, newParent)
         end
         -- Setting status of entity to dead. This is for other systems, which still got a hard reference on this
         self.entities[entity.id].alive = false
+        if self.onRemoveEntity then
+            self:onRemoveEntity(entity)
+        end
         -- Removing entity from engine
         self.entities[entity.id] = nil
     else

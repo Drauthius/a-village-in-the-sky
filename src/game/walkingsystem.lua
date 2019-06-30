@@ -285,7 +285,7 @@ function WalkingSystem:_createPath(entity)
 		local construction = workPlace:get("ConstructionComponent")
 		local blacklist, resource, count = {}
 		repeat
-			resource, count = construction:getRemainingResources(blacklist)
+			resource, count = construction:getRandomUnreservedResource(blacklist)
 			if not resource then
 				-- No work can be carried out. Do something else.
 				return nil

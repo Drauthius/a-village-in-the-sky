@@ -32,11 +32,20 @@ function DebugSystem:draw()
 			self.font2 = self.font2 or love.graphics.newFont(13)
 			love.graphics.setFont(self.font2)
 			love.graphics.setColor(0, 0, 0, 1)
-			love.graphics.print(entity:get("SpriteComponent"):getDrawIndex(), interactive.x, interactive.y)
+			local index = entity:get("SpriteComponent"):getDrawIndex()
+			if not index then
+				print("Index for entity missing!")
+				print(entity)
+				for _,component in pairs(entity:getComponents()) do
+					print("", component.class.name)
+				end
+				index = "nil"
+			end
+			love.graphics.print(index, interactive.x, interactive.y)
 			self.font = self.font or love.graphics.newFont(12)
 			love.graphics.setFont(self.font)
 			love.graphics.setColor(1, 1, 1, 1)
-			love.graphics.print(entity:get("SpriteComponent"):getDrawIndex(), interactive.x, interactive.y)
+			love.graphics.print(index, interactive.x, interactive.y)
 		end
 		if entity:has("PositionComponent") then
 			local fromGrid = entity:get("PositionComponent"):getFromGrid()
