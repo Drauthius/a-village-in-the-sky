@@ -12,6 +12,7 @@ local AdultComponent = require "src.game.adultcomponent"
 local BuildingComponent = require "src.game.buildingcomponent"
 local CarryingComponent = require "src.game.carryingcomponent"
 local FertilityComponent = require "src.game.fertilitycomponent"
+local GroundComponent = require "src.game.groundcomponent"
 local PositionComponent = require "src.game.positioncomponent"
 local ResourceComponent = require "src.game.resourcecomponent"
 local SeniorComponent = require "src.game.seniorcomponent"
@@ -969,8 +970,16 @@ function VillagerSystem:childbirthEndedEvent(event)
 		child:get("VillagerComponent"):setHome(villager:getHome())
 		child:get("VillagerComponent"):setIsHome(true)
 
-		local dwelling = villager:getHome():get("DwellingComponent")
-		dwelling:addChild(child)
+		local home = villager:getHome()
+		home:get("DwellingComponent"):addChild(child)
+		home:get("BuildingComponent"):addInside(child)
+
+		-- The entrance is an offset, so translate it to a real grid coordinate.
+		-- TODO: DRY
+		local entrance = home:get("EntranceComponent"):getEntranceGrid()
+		local grid = home:get("PositionComponent"):getGrid()
+		local entranceGrid = self.map:getGrid(grid.gi + entrance.ogi, grid.gj + entrance.ogj)
+		child:set(GroundComponent(self.map:gridToGroundCoords(entranceGrid.gi + 0.5, entranceGrid.gj + 0.5)))
 	else
 		assert(not event:didChildSurvive(), "Don't know where to place the child.")
 		local position = entity:get("PositionComponent")
@@ -1050,7 +1059,7 @@ function VillagerSystem:onRemoveEntity(entity)
 		else
 			-- Probably a child.
 			local dwelling = villager:getHome():get("DwellingComponent")
-			dwelling:removeChild(villager)
+			dwelling:removeChild(entity)
 		end
 	end
 

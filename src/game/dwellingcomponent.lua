@@ -54,12 +54,15 @@ function DwellingComponent:addChild(child)
 end
 
 function DwellingComponent:removeChild(child)
+	local found = false
 	for k,v in ipairs(self.children) do
 		if child == v then
+			found = true
 			table.remove(self.children, k)
-			return
+			break
 		end
 	end
+	assert(found, "Called to remove child not part of this dwelling.")
 
 	if child:get("VillagerComponent"):getGender() == "male" then
 		self:setNumBoys(self:getNumBoys() - 1)

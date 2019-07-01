@@ -20,7 +20,7 @@ PregnancySystem.static.MENOPAUSE_AGE = 40
 PregnancySystem.static.MENOPAUSE_CHANCE = 0.05
 
 -- Chance of intercourse when both adults are home.
-PregnancySystem.static.INTERCOURSE_CHANCE = 0.25
+PregnancySystem.static.INTERCOURSE_CHANCE = 0.33
 -- Decrease for each child.
 PregnancySystem.static.INTERCOURSE_CHILD_DECREASE = 0.05
 
@@ -134,7 +134,7 @@ function PregnancySystem:buildingEnteredEvent(event)
 	                        villagers[1]:get("FertilityComponent"):getFertility() *
 	                        villagers[2]:get("FertilityComponent"):getFertility()
 	if love.math.random() < pregnancyChance then
-		local mother = villagers[1]:get("VillagerComponent") == "female" and villagers[1] or villagers[2]
+		local mother = villagers[1]:get("VillagerComponent"):getGender() == "female" and villagers[1] or villagers[2]
 		local father = mother == villagers[1] and villagers[2] or villagers[1]
 		assert(mother:get("VillagerComponent"):getGender() == "female", "No mother?")
 		assert(father:get("VillagerComponent"):getGender() == "male", "No father?")
