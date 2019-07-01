@@ -522,15 +522,8 @@ function Game:_handleClick(x, y)
 
 	local clicked, clickedIndex = nil, 0
 	for _,entity in pairs(self.engine:getEntitiesWithComponent("InteractiveComponent")) do
-		local index = entity:get("SpriteComponent"):getDrawIndex()
-		if not index then
-			print("Index for entity missing!")
-			print(entity)
-			for _,component in pairs(entity:getComponents()) do
-				print("", component.class.name)
-			end
-			index = -100
-		end
+		local index = assert(entity:get("SpriteComponent"):getDrawIndex(),
+		                     "Draw index missing for entity "..tostring(entity).."with sprite component.")
 		if index > clickedIndex and entity:get("InteractiveComponent"):isWithin(x, y) then
 			local dx, dy = entity:get("SpriteComponent"):getDrawPosition()
 			-- Cast a bit wider net than single pixel.

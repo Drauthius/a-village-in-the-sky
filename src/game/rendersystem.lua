@@ -148,6 +148,9 @@ function RenderSystem:onAddEntity(entity)
 		self:_recalculateTerrain()
 	elseif entity:has("PositionComponent") then
 		self.recalculateObjects = true
+
+		-- Set something that can be overwritten next update, in case something should happen before then.
+		entity:get("SpriteComponent"):setDrawIndex(1000)
 	elseif not entity:has("PlacingComponent") then
 		print(entity, "is not a tile or placing, nor has a position component")
 	end
@@ -219,10 +222,6 @@ function RenderSystem:_recalculateObjects()
 		local bTopLeft, bBottomRight = b:get("PositionComponent"):getFromGrid(), b:get("PositionComponent"):getToGrid()
 
 		-- Do a first pass based on the tile.
-		--assert(ati and atj, ("%s is missing tile information (villager: %s, building: %s, particle: %s)"):format(
-		--	a, a:has("VillagerComponent"), a:has("BuildingComponent"), a:has("ParticleComponent")))
-		--assert(bti and btj, ("%s is missing tile information (villager: %s, building: %s, particle: %s)"):format(
-		--	b, b:has("VillagerComponent"), b:has("BuildingComponent"), b:has("ParticleComponent")))
 		if ati < bti then
 			return true
 		elseif ati > bti then

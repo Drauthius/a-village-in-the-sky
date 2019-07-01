@@ -33,14 +33,6 @@ function DebugSystem:draw()
 			love.graphics.setFont(self.font2)
 			love.graphics.setColor(0, 0, 0, 1)
 			local index = entity:get("SpriteComponent"):getDrawIndex()
-			if not index then
-				print("Index for entity missing!")
-				print(entity)
-				for _,component in pairs(entity:getComponents()) do
-					print("", component.class.name)
-				end
-				index = "nil"
-			end
 			love.graphics.print(index, interactive.x, interactive.y)
 			self.font = self.font or love.graphics.newFont(12)
 			love.graphics.setFont(self.font)

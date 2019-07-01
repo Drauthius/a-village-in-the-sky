@@ -56,7 +56,8 @@ function DefaultLevel:initiate(engine, map)
 		{ 12, 10 },
 		{ 9, 12 },
 		{ 5, 12 },
-		{ 2, 11 },
+		{ 2, 11 }
+		--{ 8, 4 }
 	}
 
 	for type,num in pairs(startingResources) do
