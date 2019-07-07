@@ -75,6 +75,7 @@ local Timer = require "lib.hump.timer"
 local fpsGraph = require "lib.FPSGraph"
 local lovetoys = require "lib.lovetoys.lovetoys"
 local table = require "lib.table"
+local math = require "lib.math"
 
 local Background = require "src.game.background"
 local GUI = require "src.game.gui"
@@ -268,7 +269,9 @@ function Game:enter()
 	self.level:initiate(self.engine, self.map)
 
 	self:_updateCameraBoundingBox()
+	self.numTouches = 0
 
+	self.debug = false
 	self.fpsGraph = fpsGraph.createGraph()
 	self.memGraph = fpsGraph.createGraph(0, 30)
 end
@@ -393,7 +396,13 @@ function Game:keyreleased(key, scancode)
 	end
 end
 
-function Game:mousepressed(x, y)
+function Game:mousepressed(x, y, _, istouch)
+	-- If there is already a finger down. This generally shouldn't happen (only one press event for the first finger),
+	-- but it might if fingers are moving on and off quickly.
+	if istouch and self.dragging and not self.dragging.released then
+		return
+	end
+
 	local origx, origy = self.camera:position()
 	local sx, sy = screen:getCoordinate(x, y)
 
@@ -416,7 +425,31 @@ function Game:mousepressed(x, y)
 	}
 end
 
-function Game:mousemoved(x, y)
+function Game:mousemoved(x, y, _, istouch)
+	if istouch then
+		-- Two fingers down does not count as a drag/move, but as a zoom.
+		if self.numTouches > 1 then
+			local touches = love.touch.getTouches()
+			if not self.pinchDistance or #touches ~= 2 then
+				return
+			elseif not self.dragging then
+				-- This indicates that the first press was on a UI element.
+				return
+			end
+
+			local x1, y1 = love.touch.getPosition(touches[1])
+			local x2, y2 = love.touch.getPosition(touches[2])
+			local pinchDistance = math.distance(x1, y1, x2, y2)
+			local delta = (pinchDistance - self.pinchDistance) / 200
+			if math.abs(delta) > 0.001 then
+				self:_zoom(delta, (x1 + x2) / 2, (y1 + y2) / 2)
+				self.dragging.dragged = true
+			end
+			self.pinchDistance = pinchDistance
+			return
+		end
+	end
+
 	if self.dragging and not self.dragging.released then
 		local ex, ey = screen:getCoordinate(x, y)
 		local newx, newy = self.dragging.sx - ex, self.dragging.sy - ey
@@ -434,7 +467,13 @@ function Game:mousemoved(x, y)
 	end
 end
 
-function Game:mousereleased(x, y)
+function Game:mousereleased(x, y, _, istouch)
+	-- This generally shouldn't happen, but it can, if all the touches are released, retouched, and then released
+	-- again during the same frame.
+	if istouch and #love.touch.getTouches() > 0 then
+		return
+	end
+
 	x, y = screen:getCoordinate(x, y)
 
 	if not self.dragging or not self.dragging.dragged or self.dragging.released then
@@ -458,38 +497,42 @@ function Game:mousereleased(x, y)
 end
 
 function Game:wheelmoved(_, y)
-	local oldScale = self.camera.scale
-
 	if y < 0 then
-		if oldScale >= Game.CAMERA_MIN_ZOOM then
-			self.camera:zoom(0.9)
-		end
-	elseif y > 0 then
-		if oldScale <= Game.CAMERA_MAX_ZOOM then
-			self.camera:zoom(1.1)
+		return self:_zoom(-0.1)
+	else
+		return self:_zoom(0.1)
+	end
+end
+
+function Game:touchpressed()
+	local touches = love.touch.getTouches()
+	self.numTouches = #touches
+
+	if self.numTouches == 2 then
+		local x1, y1 = love.touch.getPosition(touches[1])
+		local x2, y2 = love.touch.getPosition(touches[2])
+		self.pinchDistance = math.distance(x1, y1, x2, y2)
+	else
+		self.pinchDistance = nil
+	end
+end
+
+function Game:touchreleased()
+	if self.numTouches > 1 and self.dragging and not self.dragging.released then
+		self.dragging.ox, self.dragging.oy = self.camera:position()
+		self.dragging.cx, self.dragging.cy = self.camera:position()
+
+		-- There can be no touches left if multiple fingers are released the same frame.
+		local touches = love.touch.getTouches()
+		if next(touches) then
+			self.dragging.sx, self.dragging.sy = screen:getCoordinate(love.touch.getPosition(touches[1]))
+		else
+			self.dragging.released = true
 		end
 	end
 
-	if self.camera.scale ~= oldScale then
-		local mx, my = screen:getCoordinate(love.mouse.getPosition())
-		local w, h = screen:getDrawDimensions()
-		local diffx, diffy = mx - w/2, my - h/2
-		local newScale = self.camera.scale
-
-		self:_updateCameraBoundingBox()
-		local bb = self.cameraBoundingBox
-
-		local dx, dy = diffx / newScale * (newScale / oldScale - 1), diffy / newScale * (newScale / oldScale - 1)
-
-		if self.dragging then
-			-- Change the position to where the camera is going, to avoid jumps
-			self.dragging.cx = math.max(bb.xMin, math.min(bb.xMax, self.dragging.cx + dx))
-			self.dragging.cy = math.max(bb.yMin, math.min(bb.yMax, self.dragging.cy + dy))
-		end
-
-		self.camera.x = math.max(bb.xMin, math.min(bb.xMax, self.camera.x + dx))
-		self.camera.y = math.max(bb.yMin, math.min(bb.yMax, self.camera.y + dy))
-	end
+	-- Update the pinch distance.
+	self:touchpressed()
 end
 
 function Game:resize(width, height)
@@ -585,6 +628,42 @@ function Game:_handleClick(x, y)
 		end
 	else
 		self.eventManager:fireEvent(SelectionChangedEvent(clicked))
+	end
+end
+
+function Game:_zoom(dz, mx, my)
+	local oldScale = self.camera.scale
+
+	if dz < 0 and oldScale <= Game.CAMERA_MIN_ZOOM then
+		return
+	elseif dz > 0 and oldScale >= Game.CAMERA_MAX_ZOOM then
+		return
+	end
+
+	self.camera:zoomTo(self.camera.scale * (1 + dz))
+	self.camera.scale = math.min(Game.CAMERA_MAX_ZOOM, math.max(Game.CAMERA_MIN_ZOOM, self.camera.scale))
+
+	if self.camera.scale ~= oldScale then
+		if not mx or not my then
+			mx, my = screen:getCoordinate(love.mouse.getPosition())
+		end
+		local w, h = screen:getDrawDimensions()
+		local diffx, diffy = mx - w/2, my - h/2
+		local newScale = self.camera.scale
+
+		self:_updateCameraBoundingBox()
+		local bb = self.cameraBoundingBox
+
+		local dx, dy = diffx / newScale * (newScale / oldScale - 1), diffy / newScale * (newScale / oldScale - 1)
+
+		if self.dragging then
+			-- Change the position to where the camera is going, to avoid jumps
+			self.dragging.cx = math.max(bb.xMin, math.min(bb.xMax, self.dragging.cx + dx))
+			self.dragging.cy = math.max(bb.yMin, math.min(bb.yMax, self.dragging.cy + dy))
+		end
+
+		self.camera.x = math.max(bb.xMin, math.min(bb.xMax, self.camera.x + dx))
+		self.camera.y = math.max(bb.yMin, math.min(bb.yMax, self.camera.y + dy))
 	end
 end
 
