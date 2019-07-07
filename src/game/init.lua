@@ -25,17 +25,8 @@
 --        - Building selection
 --          Limit to dwelling initially
 --      Different buttons/things need to "glow" to show what needs to be pressed to achieve the objective.
---    * Indicator for building cost
---      Either populate the details panel when hovering/selecting, or add small indicators next to the choices.
---      - Small indicators might be hard to read/see on mobile.
---      + Small indicators avoid having to click on the different things to see what they require.
 --    * Selecting a runestone:
 --      Shows the increased area of influence if upgraded/during upgrade?
---    * Construction header
---      Show needed/committed resources in the header and/or details panel.
---    * Cancelling/destroying buildings.
---      Refund some resources.
---      Handle assigned villagers.
 --    * Building header
 --      Show icon for the type of building?
 --      Show stored resources in the header and/or details panel?
@@ -65,19 +56,6 @@
 --  - Placing:
 --    * Indicators of valid positions (blue)
 --    * Placing runestones
---  - Info panel updates:
---    * Make the info panel title bar thicker, and put the name there + a button to
---      minimize/maximize.
---    * Building selection
---    * Villager selection
---    * Events
---  - Details panel:
---    * Fill up details panel with correct information
---      Villager stuff, wait with other things.
---    * Runestone
---      Cost to upgrade.
---      Refund if cancelled.
---      Confirmation dialogue when cancelling.
 --  - Localization:
 --    * Font support
 --    * Details panel
@@ -182,15 +160,18 @@ function Game:enter()
 
 	self.speed = 1
 
-	-- Set up the camera.
-	self.camera = Camera()
-	self.camera:lookAt(0, 0)
-	self.camera:zoom(3)
-
+	-- Set up the map and level.
 	self.map = Map()
 	self.level = DefaultLevel()
 	--self.level = require("src.game.level.hallway")()
 	--self.level = require("src.game.level.runestones")()
+
+	-- Set up the camera.
+	self.camera = Camera()
+	self.camera:lookAt(0, self.map.halfTileHeight / 2)
+	self.camera:zoom(3)
+
+	-- Set up cloud layers.
 	self.backgrounds = {
 		Background(self.camera, 0.05, 2),
 		Background(self.camera, 0.2, 3)
@@ -202,7 +183,7 @@ function Game:enter()
 	self.engine = lovetoys.Engine()
 	self.eventManager = lovetoys.EventManager()
 
-	self.worldCanvas = love.graphics.newCanvas()
+	self.worldCanvas = love.graphics.newCanvas(screen:getDrawDimensions())
 	self.gui = GUI(self.engine, self.eventManager, self.map)
 
 	-- Systems that listen to events
@@ -297,13 +278,11 @@ function Game:update(dt)
 	fpsGraph.updateMem(self.memGraph, dt)
 
 	local mx, my = screen:getCoordinate(love.mouse.getPosition())
-	local drawArea = screen:getDrawArea()
-	state:setMousePosition(self.camera:worldCoords(mx, my, drawArea.x, drawArea.y, drawArea.width, drawArea.height))
+	local dx, dy, dw, dh = screen:getDrawArea()
+	state:setMousePosition(self.camera:worldCoords(mx, my, dx, dy, dw, dh))
 
-	local left, top = self.camera:worldCoords(0, 0,
-	                                          drawArea.x, drawArea.y, drawArea.width, drawArea.height)
-	local right, bottom = self.camera:worldCoords(drawArea.width, drawArea.height,
-	                                              drawArea.x, drawArea.y, drawArea.width, drawArea.height)
+	local left, top = self.camera:worldCoords(0, 0, dx, dy, dw, dh)
+	local right, bottom = self.camera:worldCoords(dw, dh, dx, dy, dw, dh)
 	state:setViewport(left, top, right, bottom)
 
 	if self.dragging and self.dragging.dragged then
@@ -354,8 +333,8 @@ function Game:draw()
 	love.graphics.setCanvas({self.worldCanvas, stencil = true})
 	love.graphics.clear(0, 0, 0, 0, true)
 
-	local drawArea = screen:getDrawArea()
-	self.camera:draw(drawArea.x, drawArea.y, drawArea.width, drawArea.height, function()
+	local dx, dy, dw, dh = screen:getDrawArea()
+	self.camera:draw(dx, dy, dw, dh, true, function()
 		self.engine:draw()
 
 		if self.debug then
@@ -493,7 +472,7 @@ function Game:wheelmoved(_, y)
 
 	if self.camera.scale ~= oldScale then
 		local mx, my = screen:getCoordinate(love.mouse.getPosition())
-		local w, h = screen:getDimensions()
+		local w, h = screen:getDrawDimensions()
 		local diffx, diffy = mx - w/2, my - h/2
 		local newScale = self.camera.scale
 
@@ -511,6 +490,22 @@ function Game:wheelmoved(_, y)
 		self.camera.x = math.max(bb.xMin, math.min(bb.xMax, self.camera.x + dx))
 		self.camera.y = math.max(bb.yMin, math.min(bb.yMax, self.camera.y + dy))
 	end
+end
+
+function Game:resize(width, height)
+	self.gui:resize(screen:getDrawDimensions())
+
+	self:_updateCameraBoundingBox()
+
+	local bb = self.cameraBoundingBox
+	self.camera.x = math.max(bb.xMin, math.min(bb.xMax, self.camera.x))
+	self.camera.y = math.max(bb.yMin, math.min(bb.yMax, self.camera.y))
+	self.dragging = nil
+
+	-- The world canvas needs to be recreated.
+	self.worldCanvas = love.graphics.newCanvas(screen:getDrawDimensions())
+
+	-- TODO: Clouds depend on draw area.
 end
 
 --
@@ -776,9 +771,9 @@ function Game:_updateCameraBoundingBox()
 	-- Offset, so a little bit of the tile can be seen.
 	local ox = -5 * scale
 	local oy = ox
-	local drawArea = screen:getDrawArea()
+	local _, _, dw, dh = screen:getDrawArea()
 	-- Allow the camera (centre of the screen) to be half a screen away.
-	local w2, h2 = drawArea.width / 2 + ox, drawArea.height / 2 + oy
+	local w2, h2 = dw / 2 + ox, dh / 2 + oy
 	xMin, yMin = xMin - w2 / scale, yMin - h2 / scale
 	xMax, yMax = xMax + w2 / scale, yMax + h2 / scale
 

@@ -62,7 +62,7 @@ function InfoPanel:initialize(engine, eventManager, width)
 		if x + InfoPanel.panelWidth > (width - centre:getWidth()) / 2 then
 			panel = "left (Up)"
 		else
-			panel = panel > 6 and 1 or panel + 1
+			panel = panel >= 6 and 1 or panel + 1
 		end
 
 		local sprite = spriteSheet:getSprite("info-panel-"..panel)
@@ -79,7 +79,7 @@ function InfoPanel:initialize(engine, eventManager, width)
 		self.bounds.w = self.bounds.w + sprite:getWidth() * 2
 	end
 
-	local screenWidth, screenHeight = screen:getDimensions()
+	local screenWidth, screenHeight = screen:getDrawDimensions()
 	self.x, self.y = (screenWidth - centre:getWidth() ) / 2, screenHeight - centre:getHeight()
 
 	self.bounds.x = self.x + self.bounds.x
@@ -358,7 +358,7 @@ end
 function InfoPanel:minimize(min)
 	self.minimized = min
 	if self.minimized then
-		self.y = select(2, screen:getDimensions()) - self.barHeight + 5
+		self.y = select(2, screen:getDrawDimensions()) - self.barHeight + 5
 
 		for _,button in ipairs(self.buttons) do
 			if not button.oldY then

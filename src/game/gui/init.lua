@@ -21,8 +21,6 @@ function GUI:initialize(engine, eventManager, map)
 	self.eventManager = eventManager
 	self.map = map
 
-	self.screenWidth, self.screenHeight = screen:getDimensions()
-
 	self.menuFont = love.graphics.newFont("asset/font/Norse.otf", 26)
 	self.yearPanel = spriteSheet:getSprite("year-panel")
 	self.yearPanel.number = spriteSheet:getData("year-number")
@@ -30,44 +28,29 @@ function GUI:initialize(engine, eventManager, map)
 	self.menuButton = spriteSheet:getSprite("menu-button")
 	self.menuButton.data = spriteSheet:getData("menutext-position")
 
-	-- Between buttons
-	local padding = 5
-
+	-- Create the widgets (with bogus positions, since they're overwritten in resize() anyway).
 	local tileButtonSprite = spriteSheet:getSprite("button 0")
-	self.tileButton = Widget(
-		1, self.screenHeight - tileButtonSprite:getHeight() - 1,
-		1, 1, tileButtonSprite)
+	self.tileButton = Widget(0, 0, 1, 1, tileButtonSprite)
 	self.tileButton.closed = tileButtonSprite
 	self.tileButton.opened = spriteSheet:getSprite("button 1")
 
 	local buildingButtonSprite = spriteSheet:getSprite("button 2")
-	self.buildingButton = Widget(
-		1, select(2, self.tileButton:getPosition()) - buildingButtonSprite:getHeight() - padding,
-		1, 1, buildingButtonSprite)
+	self.buildingButton = Widget(0, 0, 1, 1, buildingButtonSprite)
 	self.buildingButton.closed = buildingButtonSprite
 	self.buildingButton.opened = spriteSheet:getSprite("button 3")
 
 	local listEventButtonSprite = spriteSheet:getSprite("button 8")
-	self.listEventButton = Widget(
-		self.screenWidth - listEventButtonSprite:getWidth() - 1,
-		self.screenHeight - listEventButtonSprite:getHeight() - 1,
-		1, 1, listEventButtonSprite)
+	self.listEventButton = Widget(0, 0, 1, 1, listEventButtonSprite)
 	self.listEventButton.closed = listEventButtonSprite
 	self.listEventButton.opened = spriteSheet:getSprite("button 9")
 
 	local listPeopleButtonSprite = spriteSheet:getSprite("button 4")
-	self.listPeopleButton = Widget(
-		self.screenWidth - listPeopleButtonSprite:getWidth() - 1,
-		select(2, self.listEventButton:getPosition()) - listPeopleButtonSprite:getHeight() - padding,
-		1, 1, listPeopleButtonSprite)
+	self.listPeopleButton = Widget(0, 0, 1, 1, listPeopleButtonSprite)
 	self.listPeopleButton.closed = listPeopleButtonSprite
 	self.listPeopleButton.opened = spriteSheet:getSprite("button 5")
 
 	local listBuildingButtonSprite = spriteSheet:getSprite("button 6")
-	self.listBuildingButton = Widget(
-		self.screenWidth - listBuildingButtonSprite:getWidth() - 1,
-		select(2, self.listPeopleButton:getPosition()) - listBuildingButtonSprite:getHeight() - padding,
-		1, 1, listBuildingButtonSprite)
+	self.listBuildingButton = Widget(0, 0, 1, 1, listBuildingButtonSprite)
 	self.listBuildingButton.closed = listBuildingButtonSprite
 	self.listBuildingButton.opened = spriteSheet:getSprite("button 7")
 
@@ -79,6 +62,36 @@ function GUI:initialize(engine, eventManager, map)
 		[InfoPanel.CONTENT.LIST_BUILDINGS] = self.listBuildingButton
 	}
 
+	self:resize(screen:getDrawDimensions())
+end
+
+function GUI:resize(width, height)
+	self.screenWidth, self.screenHeight = width, height
+
+	-- Between buttons
+	local padding = 5
+
+	if height < screen.class.MIN_HEIGHT then
+		padding = 1
+	end
+
+	self.tileButton:setPosition(
+		1,
+		self.screenHeight - self.tileButton:getHeight() - 1)
+	self.buildingButton:setPosition(
+		1,
+		select(2, self.tileButton:getPosition()) - self.buildingButton:getHeight() - padding)
+	self.listEventButton:setPosition(
+		self.screenWidth - self.listEventButton:getWidth() - 1,
+		self.screenHeight - self.listEventButton:getHeight() - 1)
+	self.listPeopleButton:setPosition(
+		self.screenWidth - self.listPeopleButton:getWidth() - 1,
+		select(2, self.listEventButton:getPosition()) - self.listPeopleButton:getHeight() - padding)
+	self.listBuildingButton:setPosition(
+		self.screenWidth - self.listBuildingButton:getWidth() - 1,
+		select(2, self.listPeopleButton:getPosition()) - self.listBuildingButton:getHeight() - padding)
+
+	-- XXX: Currently recreates a few things.
 	self.resourcePanel = ResourcePanel()
 
 	local leftx = self.tileButton:getPosition()
@@ -262,22 +275,21 @@ function GUI:draw(camera)
 	-- Drawn above the UI, but in the world (for proper zoom effect).
 	-- XXX: Move this to somewhere else?
 	if self.arrows then
-		local drawArea = screen:getDrawArea()
-		camera:draw(drawArea.x, drawArea.y, drawArea.width, drawArea.height, function()
+		local dx, dy, dw, dh = screen:getDrawArea()
+		camera:draw(dx, dy, dw, dh, function()
 			local arrowIcon = spriteSheet:getSprite("headers", "arrow")
 
 			for _,arrow in ipairs(self.arrows) do
 				-- Only point if it is off screen or close to the edges.
-				local cx, cy = camera:cameraCoords(arrow.x, arrow.y, drawArea.x, drawArea.y, drawArea.width, drawArea.height)
-				local ox, oy = drawArea.width / 5, drawArea.height / 5
+				local cx, cy = camera:cameraCoords(arrow.x, arrow.y, dx, dy, dw, dh)
+				local ox, oy = dw / 5, dh / 5
 				if arrow.alwaysShow or
-				   cx <= drawArea.x + ox or cy <= drawArea.y + oy or cx >= drawArea.width - ox or cy >= drawArea.height - oy then
-					local halfWidth = drawArea.width / 2
-					local halfHeight = drawArea.height / 2
+				   cx <= dx + ox or cy <= dy + oy or cx >= dw - ox or cy >= dh - oy then
+					local halfWidth = dw / 2
+					local halfHeight = dh / 2
 
 					-- Centre of the screen (in screen/camera coordinates).
-					local center = vector(camera:worldCoords(halfWidth, halfHeight,
-					                                              drawArea.x, drawArea.y, drawArea.width, drawArea.height))
+					local center = vector(camera:worldCoords(halfWidth, halfHeight, dx, dy, dw, dh))
 					local x, y, angle
 
 					-- Angle between the points, with 3 o'clock being being zero degrees.
@@ -290,7 +302,7 @@ function GUI:draw(camera)
 
 					love.graphics.setColor(1, 1, 1, 1)
 					-- If inside the viewport
-					if cx >= drawArea.x and cy >= drawArea.y and cx <= drawArea.width and cy <= drawArea.height then
+					if cx >= dx and cy >= dy and cx <= dw and cy <= dh then
 						-- Draw the arrow (a bit away from the centre)
 						love.graphics.draw(spriteSheet:getImage(), arrowIcon:getQuad(), arrow.x, arrow.y, -angle + math.pi/4,
 						                   1, 1,
@@ -312,12 +324,12 @@ function GUI:draw(camera)
 							x = halfWidth + w
 							y = top
 						elseif degrees >= 240 then -- Right
-							local right = drawArea.width - offset
+							local right = dw - offset
 							local h = (right - halfWidth) * math.tan(angle + 3*math.pi/2)
 							x = right
 							y = halfHeight - h
 						elseif degrees >= 120 then -- Bottom
-							local bottom = drawArea.height - offset
+							local bottom = dh - offset
 							local w = (bottom - halfHeight) * math.tan(angle + math.pi)
 							x = halfWidth + w
 							y = bottom
@@ -331,7 +343,7 @@ function GUI:draw(camera)
 						-- Convert to world coordinates.
 						-- FIXME: The state now has the top left and bottom right corners in world coordinates, so it
 						--        might be more efficient to calculate the positions there directly.
-						x, y = camera:worldCoords(x, y, drawArea.x, drawArea.y, drawArea.width, drawArea.height)
+						x, y = camera:worldCoords(x, y, dx, dy, dw, dh)
 
 						-- Draw the arrow and icon.
 						love.graphics.draw(spriteSheet:getImage(), arrowIcon:getQuad(), x, y, -angle + math.pi/4,

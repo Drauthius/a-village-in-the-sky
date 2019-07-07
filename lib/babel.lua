@@ -133,7 +133,9 @@ end
 babel.getOSLocale = function()
   
     local locale = os.getenv("LANG")
-    
+    if not locale then
+        return nil
+    end
     return string.sub(locale, 0, 5)
   
 end

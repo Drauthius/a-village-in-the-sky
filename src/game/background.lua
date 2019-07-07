@@ -9,7 +9,7 @@ local Background = class("Background")
 Background.static.SCALE_DIFF = 5
 
 local function _createParticleSystem(variant, scale)
-	local drawArea = screen:getDrawArea()
+	local dw, dh = screen:getDrawDimensions()
 	local particleSystem = love.graphics.newParticleSystem(spriteSheet:getImage(), 1000)
 
 	local sprite = spriteSheet:getSprite("clouds "..variant)
@@ -20,7 +20,7 @@ local function _createParticleSystem(variant, scale)
 	particleSystem:setSpeed(-0.2, 0)
 	particleSystem:setEmitterLifetime(-1)
 	particleSystem:setEmissionRate(0.002)
-	particleSystem:setEmissionArea("uniform", drawArea.width / 1.5, drawArea.height / 1.5)
+	particleSystem:setEmissionArea("uniform", dw / 1.5, dh / 1.5)
 	particleSystem:setParticleLifetime(100000)
 	particleSystem:setSizeVariation(0.8)
 	particleSystem:setSizes(unpack(scale))
@@ -64,8 +64,8 @@ function Background:update(dt)
 end
 
 function Background:draw()
-	local drawArea = screen:getDrawArea()
-	self.backgroundCamera:draw(drawArea.x, drawArea.y, drawArea.width, drawArea.height, function()
+	local dx, dy, dw, dh = screen:getDrawArea()
+	self.backgroundCamera:draw(dx, dy, dw, dh, function()
 		love.graphics.setColor(self.color)
 		for _,cloud in ipairs(self.clouds) do
 			love.graphics.draw(cloud)

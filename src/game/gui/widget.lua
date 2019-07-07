@@ -53,6 +53,18 @@ function Widget:getPosition()
 	return self.x, self.y
 end
 
+function Widget:setPosition(x, y)
+	self.x, self.y = x, y
+end
+
+function Widget:getWidth()
+	return self.w
+end
+
+function Widget:getHeight()
+	return self.h
+end
+
 function Widget:getDimensions()
 	return self.w, self.h
 end

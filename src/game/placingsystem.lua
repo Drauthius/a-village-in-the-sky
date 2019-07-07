@@ -14,11 +14,11 @@ extern vec4 outlineColor;
 
 vec4 effect(vec4 color, Image texture, vec2 texture_coords, vec2 screen_coords)
 {
-	number alpha = 4 * Texel(texture, texture_coords).a;
-	alpha -= Texel(texture, texture_coords + vec2( stepSize.x, 0.0f)).a;
-	alpha -= Texel(texture, texture_coords + vec2(-stepSize.x, 0.0f)).a;
-	alpha -= Texel(texture, texture_coords + vec2(0.0f,  stepSize.y)).a;
-	alpha -= Texel(texture, texture_coords + vec2(0.0f, -stepSize.y)).a;
+	float alpha = 4.0 * Texel(texture, texture_coords).a;
+	alpha -= Texel(texture, texture_coords + vec2( stepSize.x, 0.0)).a;
+	alpha -= Texel(texture, texture_coords + vec2(-stepSize.x, 0.0)).a;
+	alpha -= Texel(texture, texture_coords + vec2(0.0,  stepSize.y)).a;
+	alpha -= Texel(texture, texture_coords + vec2(0.0, -stepSize.y)).a;
 	return vec4(outlineColor.r, outlineColor.g, outlineColor.b, outlineColor.a * alpha);
 }
 ]])

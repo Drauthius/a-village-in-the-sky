@@ -20,9 +20,14 @@ function love.load()
 	love.errorhandler = errorhandler
 
 	screen:setUp()
+
 	babel.init({
 		locales_folders = { "asset/i18n" }
 	})
 
 	GameState.switch(Game)
+end
+
+function love.resize(width, height)
+	screen:resize(width, height)
 end

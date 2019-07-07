@@ -34,27 +34,8 @@ function Screen:setUp(pref)
 		flags = {}
 	}})
 
-	if pref.overrideDraw then
-		assert(love.draw, "love.draw() was not defined before Screen:new() was called with overrideDraw = true.")
-		self.oldDraw = love.draw
-		love.draw = function()
-			self:prepare()
-			self.oldDraw()
-			self:present()
-		end
-	end
-
 	if pref.flags.fullscreen then
-		local modes = love.window.getFullscreenModes()
-		local valid = false
-		for _,mode in ipairs(modes) do
-			if mode.width == pref.screenWidth and mode.height == pref.screenHeight then
-				valid = true
-				break
-			end
-		end
-
-		assert(valid,
+		assert(self:isValidFullscreenMode(pref.screenWidth, pref.screenHeight),
 			"Fullscreen mode " .. tostring(pref.screenWidth) .. "x" .. tostring(pref.screenHeight) .. " is not supported.")
 	end
 
@@ -68,6 +49,29 @@ function Screen:setUp(pref)
 
 	self.canvas = love.graphics.newCanvas(pref.drawWidth, pref.drawHeight, { msaa = pref.flags.msaa })
 	self.canvas:setFilter(pref.minFilter, pref.magFilter)
+
+	if pref.overrideDraw then
+		assert(love.draw, "love.draw() was not defined before Screen:new() was called with overrideDraw = true.")
+		self.oldDraw = love.draw
+		love.draw = function()
+			self:prepare()
+			self.oldDraw()
+			self:present()
+		end
+	end
+
+	return true
+end
+
+function Screen:isValidFullscreenMode(width, height)
+	local modes = love.window.getFullscreenModes()
+	for _,mode in ipairs(modes) do
+		if mode.width == width and mode.height == height then
+			return true
+		end
+	end
+
+	return false
 end
 
 --- Prepare to draw to the screen. This function should be called before
@@ -90,12 +94,9 @@ function Screen:present()
 end
 
 function Screen:getDrawArea()
-	return {
-		x = self.offsetX,
-		y = self.offsetY,
-		width = self.canvas:getDimensions(),
-		height = select(2, self.canvas:getDimensions())
-	}
+	return love.window.fromPixels(self.offsetX),
+	       love.window.fromPixels(self.offsetY),
+	       love.window.fromPixels(self.canvas:getDimensions())
 end
 
 --- Converts screen coordinates depending on scaling and offset.

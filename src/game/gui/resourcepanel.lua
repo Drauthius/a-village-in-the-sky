@@ -15,7 +15,7 @@ function ResourcePanel:initialize()
 	self.spriteBatch = love.graphics.newSpriteBatch(spriteSheet:getImage(), 32, "static")
 
 	local background = spriteSheet:getSprite("resource-panel")
-	local screenWidth = screen:getDimensions()
+	local screenWidth = screen:getDrawDimensions()
 
 	self.x = (screenWidth - background:getWidth()) / 2
 	self.spriteBatch:add(background:getQuad())

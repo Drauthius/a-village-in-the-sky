@@ -36,8 +36,8 @@ function DetailsPanel:initialize(eventManager, y)
 
 	local background = spriteSheet:getSprite("details-panel")
 
-	local screenWidth, _ = screen:getDimensions()
-	Widget.initialize(self, screenWidth - background:getWidth(), y - background:getHeight(), 0, 0, background)
+	local screenWidth, _ = screen:getDrawDimensions()
+	Widget.initialize(self, screenWidth - background:getWidth(), math.max(0, y - background:getHeight()), 0, 0, background)
 
 	local buttonSprite = spriteSheet:getSprite("details-button (Up)")
 	self.button = Button(self.x + 2 + (background:getWidth() - buttonSprite:getWidth()) / 2,
