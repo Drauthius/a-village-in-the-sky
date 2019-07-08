@@ -1,4 +1,5 @@
 local lovetoys = require "lib.lovetoys.lovetoys"
+local math = require "lib.math"
 local table = require "lib.table"
 
 local AssignedEvent = require "src.game.assignedevent"
@@ -384,6 +385,33 @@ function VillagerSystem:_takeAction(entity)
 		end
 
 		return
+	end
+
+	-- If a builder, then look for other places to help out.
+	if not starving and adult and adult:getOccupation() == WorkComponent.BUILDER then
+		local minDistance, closest = math.huge
+		local cgrid = entity:has("PositionComponent") and
+		              entity:get("PositionComponent"):getGrid() or
+		              villager:getHome():get("PositionComponent"):getGrid()
+
+		for _,buildingEntity in pairs(self.engine:getEntitiesWithComponent("ConstructionComponent")) do
+			local assignment = buildingEntity:get("AssignmentComponent")
+			local tgrid = buildingEntity:get("PositionComponent"):getGrid()
+			local distance = math.distancesquared(cgrid.gi, cgrid.gj, tgrid.gi, tgrid.gj)
+
+			if assignment:getNumAssignees() < assignment:getMaxAssignees() and
+			   distance < minDistance then
+				minDistance = distance
+				closest = buildingEntity
+			end
+		end
+
+		if closest then
+			closest:get("AssignmentComponent"):assign(entity)
+			adult:setWorkPlace(closest)
+			adult:setWorkArea(closest:get("PositionComponent"):getTile())
+			return -- Start working the next round.
+		end
 	end
 
 	-- If the entity is waiting or walking around, let them do that.
