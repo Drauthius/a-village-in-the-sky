@@ -367,15 +367,16 @@ end
 --
 
 function Game:keyreleased(key, scancode)
+	print(key, scancode)
 	if scancode == "d" then
 		self.engine:toggleSystem("DebugSystem")
 	elseif scancode == "g" then
 		self.debug = not self.debug
-	elseif scancode == "escape" then
+	elseif key == "escape" then
 		if state:isPlacing() or state:hasSelection() then
 			self.eventManager:fireEvent(SelectionChangedEvent(nil))
-		else
-			self.gui:back()
+		elseif not self.gui:back() and scancode == "acback" then
+			love.event.quit()
 		end
 	elseif scancode == "`" then
 		self.speed = 0.5
