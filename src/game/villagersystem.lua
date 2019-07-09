@@ -31,9 +31,9 @@ local VillagerSystem = lovetoys.System:subclass("VillagerSystem")
 
 VillagerSystem.static.TIMERS = {
 	PICKUP_BEFORE = 0.25,
-	PICKUP_AFTER = 0.5,
+	PICKUP_AFTER = 0.35,
 	DROPOFF_BEFORE = 0.25,
-	DROPOFF_AFTER = 0.5,
+	DROPOFF_AFTER = 0.35,
 	IDLE_FIDGET_MIN = 1,
 	IDLE_FIDGET_MAX = 4,
 	PATH_FAILED_DELAY = 3,
@@ -70,8 +70,8 @@ VillagerSystem.static.FOOD = {
 }
 
 VillagerSystem.static.SLEEP = {
-	-- When idle: 90 seconds to gain 100% sleepiness.
-	IDLE_GAIN_PER_SECOND = 1 / 90,
+	-- When idle: 120 seconds to gain 100% sleepiness.
+	IDLE_GAIN_PER_SECOND = 1 / 120,
 	-- When sleeping: 45 seconds to get rid of 100% sleepiness.
 	LOSS_PER_SECOND = 1 / 45,
 	-- When the villager should try and get some shut-eye.

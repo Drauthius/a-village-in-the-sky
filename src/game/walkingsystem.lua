@@ -17,30 +17,30 @@ local state = require "src.game.state"
 local WalkingSystem = lovetoys.System:subclass("WalkingSystem")
 
 -- Distance squared before the grid is changed to the next one.
-WalkingSystem.static.DISTANCE_CHANGE_GRID = 15
+WalkingSystem.static.DISTANCE_CHANGE_GRID = 10
 -- Distance squared before a new next grid is retrieved.
 WalkingSystem.static.DISTANCE_NEXT_GRID = 0.05
 -- How often to recalculate the path.
 WalkingSystem.static.RECALC_DELAY = 5
 
 -- Unmodified walking speed.
-WalkingSystem.static.BASE_SPEED = 15
+WalkingSystem.static.BASE_SPEED = 20
 -- Multiplicative speed modifiers.
 WalkingSystem.static.SPEED_MODIFIER = {
 	-- Walking on grass.
 	[TileComponent.GRASS] = 1.0,
 	-- Walking in the forest.
-	[TileComponent.FOREST] = 0.6,
+	[TileComponent.FOREST] = 0.8,
 	-- Walking in the mountains.
-	[TileComponent.MOUNTAIN] = 0.8,
+	[TileComponent.MOUNTAIN] = 0.9,
 	-- Carrying 1, 2, or 3 things.
 	CARRYING = {
-		[1] = 0.9,
-		[2] = 0.8,
-		[3] = 0.7
+		[1] = 0.95,
+		[2] = 0.9,
+		[3] = 0.85
 	},
 	-- Being a child.
-	CHILD = 1.5,
+	CHILD = 1.2,
 	-- Being an adult.
 	ADULT = 1.0,
 	-- Being a senior.

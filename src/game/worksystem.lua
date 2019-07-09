@@ -12,6 +12,7 @@ local WorkComponent = require "src.game.workcomponent"
 
 local blueprint = require "src.game.blueprint"
 local soundManager = require "src.soundmanager"
+local state = require "src.game.state"
 
 local WorkSystem = lovetoys.System:subclass("WorkSystem")
 
@@ -84,7 +85,7 @@ function WorkSystem:update(dt)
 				local craftsmanship = villagerEntity:get("VillagerComponent"):getCraftsmanship()
 				local durationModifier = 2^(2 - craftsmanship) / 2 -- TODO: Is this really what I want?
 				local workType = entity:get("BuildingComponent"):getType()
-				local increase = WorkSystem.COMPLETION.PRODUCING[workType] * durationModifier * dt
+				local increase = WorkSystem.COMPLETION.PRODUCING[workType] * durationModifier * state:getYearModifier() * dt
 
 				production:increaseCompletion(villagerEntity, increase)
 
@@ -131,7 +132,7 @@ function WorkSystem:workEvent(event)
 		if workPlace:has("RunestoneComponent") then
 			committing = committing[workPlace:get("RunestoneComponent"):getLevel()]
 		end
-		construction:commitResources(committing)
+		construction:commitResources(committing * state:getYearModifier())
 
 		soundManager:playEffect("building")
 
@@ -161,7 +162,7 @@ function WorkSystem:workEvent(event)
 		       work:getType() == WorkComponent.MINER,
 		       "Unhandled work done.")
 
-		work:increaseCompletion(WorkSystem.COMPLETION.RESOURCE)
+		work:increaseCompletion(WorkSystem.COMPLETION.RESOURCE * state:getYearModifier())
 
 		local particle
 		local position = workPlace:get("PositionComponent")

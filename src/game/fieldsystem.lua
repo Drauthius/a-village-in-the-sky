@@ -11,6 +11,7 @@ local TimerComponent = require "src.game.timercomponent"
 local WorkComponent = require "src.game.workcomponent"
 
 local spriteSheet = require "src.game.spritesheet"
+local state = require "src.game.state"
 
 local FieldSystem = lovetoys.System:subclass("FieldSystem")
 
@@ -64,9 +65,9 @@ function FieldSystem:_update(entity)
 	end
 
 	-- Check whether all fields are completed.
-	local state = fields[1]:get("FieldComponent"):getState()
+	local fieldState = fields[1]:get("FieldComponent"):getState()
 	for _,field in ipairs(fields) do
-		if not field:get("WorkComponent"):isComplete() or field:get("FieldComponent"):getState() ~= state then
+		if not field:get("WorkComponent"):isComplete() or field:get("FieldComponent"):getState() ~= fieldState then
 			return
 		end
 	end
@@ -87,23 +88,23 @@ function FieldSystem:workEvent(event)
 	end
 
 	local field = workPlace:get("FieldComponent")
-	workPlace:get("WorkComponent"):increaseCompletion(FieldSystem.COMPLETION[1])
+	workPlace:get("WorkComponent"):increaseCompletion(FieldSystem.COMPLETION[1] * state:getYearModifier())
 	if workPlace:get("WorkComponent"):isComplete() then
-		local state = field:getState()
-		if state == FieldComponent.UNCULTIVATED then
-			state = FieldComponent.PLOWED
-			local stateName = FieldComponent.STATE_NAMES[state]:gsub("^%l", string.upper)
+		local fieldState = field:getState()
+		if fieldState == FieldComponent.UNCULTIVATED then
+			fieldState = FieldComponent.PLOWED
+			local stateName = FieldComponent.STATE_NAMES[fieldState]:gsub("^%l", string.upper)
 			workPlace:get("SpriteComponent"):setSprite(spriteSheet:getSprite("field-single ("..stateName..")"))
-		elseif state == FieldComponent.PLOWED then
-			state = FieldComponent.IN_PROGRESS
+		elseif fieldState == FieldComponent.PLOWED then
+			fieldState = FieldComponent.IN_PROGRESS
 			workPlace:add(TimerComponent(FieldSystem.TIMERS.SEED_DELAY, function()
 				workPlace:remove("TimerComponent")
 				field:setState(FieldComponent.SEEDED)
 				local stateName = FieldComponent.STATE_NAMES[field:getState()]:gsub("^%l", string.upper)
 				workPlace:get("SpriteComponent"):setSprite(spriteSheet:getSprite("field-single ("..stateName..")"))
 			end))
-		elseif state == FieldComponent.SEEDED then
-			state = FieldComponent.IN_PROGRESS
+		elseif fieldState == FieldComponent.SEEDED then
+			fieldState = FieldComponent.IN_PROGRESS
 			workPlace:add(TimerComponent(FieldSystem.TIMERS.GROW_DELAY, function()
 				workPlace:remove("TimerComponent")
 				field:setState(FieldComponent.GROWING)
@@ -118,8 +119,8 @@ function FieldSystem:workEvent(event)
 				end
 				workPlace:get("SpriteComponent"):setSprite(spriteSheet:getSprite(sprites))
 			end))
-		elseif state == FieldComponent.GROWING then
-			state = FieldComponent.IN_PROGRESS
+		elseif fieldState == FieldComponent.GROWING then
+			fieldState = FieldComponent.IN_PROGRESS
 			workPlace:add(TimerComponent(FieldSystem.TIMERS.HARVEST_DELAY, function()
 				workPlace:remove("TimerComponent")
 				field:setState(FieldComponent.HARVESTING)
@@ -134,21 +135,21 @@ function FieldSystem:workEvent(event)
 				--end
 				workPlace:get("SpriteComponent"):setSprite(spriteSheet:getSprite(sprites))
 			end))
-		elseif state == FieldComponent.HARVESTING then
-			state = FieldComponent.UNCULTIVATED
-			local stateName = FieldComponent.STATE_NAMES[state]:gsub("^%l", string.upper)
+		elseif fieldState == FieldComponent.HARVESTING then
+			fieldState = FieldComponent.UNCULTIVATED
+			local stateName = FieldComponent.STATE_NAMES[fieldState]:gsub("^%l", string.upper)
 			workPlace:get("SpriteComponent"):setSprite(spriteSheet:getSprite("field-single ("..stateName..")"))
 
 			entity:add(CarryingComponent(ResourceComponent.GRAIN, 3))
 		end
 
-		field:setState(state)
+		field:setState(fieldState)
 		workPlace:get("AssignmentComponent"):unassign(entity)
 
 		-- Check whether all fields are completed.
 		local complete = true
 		for _,otherField in ipairs(field:getEnclosure():get("FieldEnclosureComponent"):getFields()) do
-			if otherField:get("FieldComponent"):getState() ~= state and
+			if otherField:get("FieldComponent"):getState() ~= fieldState and
 			   not otherField:get("WorkComponent"):isComplete() and
 			   otherField:get("AssignmentComponent"):getNumAssignees() < 1 then
 				complete = false

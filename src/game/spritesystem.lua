@@ -223,10 +223,10 @@ function SpriteSystem:updateVillager(dt, entity)
 		end
 	elseif walking then
 		if entity:has("WalkingComponent") then
-			durationModifier = 1 / entity:get("WalkingComponent"):getSpeedModifier()
+			durationModifier = 0.85 / entity:get("WalkingComponent"):getSpeedModifier()
 		else
 			-- "Walking" in place to simulate some kind of movement when picking up/dropping off stuff.
-			durationModifier = 0.8
+			durationModifier = 0.9
 		end
 	end
 

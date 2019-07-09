@@ -16,6 +16,7 @@ function State:initialize()
 		ey = 0
 	}
 	self.year = 0.0
+	self.yearModifier = 1.0
 	self.placing = nil
 	self.selected = nil
 	self.headers = {
@@ -73,6 +74,14 @@ end
 
 function State:increaseYear(dt)
 	self.year = self.year + dt
+end
+
+function State:getYearModifier()
+	return self.yearModifier
+end
+
+function State:setYearModifier(mod)
+	self.yearModifier = mod
 end
 
 --

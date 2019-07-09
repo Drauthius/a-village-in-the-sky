@@ -8,10 +8,10 @@
 --    * Villagers standing on a reserved grid can rotate around spastically trying to find a way to move.
 --    * Freeing of dead villagers is not handled properly.
 --  - Next:
---    * Scale work time based on year (faster early on, slower later)
 --    * Proper fonts and font creation.
 --      Convert TTF to BMFont for crisp pixel graphics.
 --      Fallback fonts.
+--      Building completion font is usually obstructed. :[
 --    * Tutorial mode.
 --      Show objectives panel.
 --      Options:
@@ -310,6 +310,7 @@ function Game:update(dt)
 	end
 	for _=1,loops do
 		state:increaseYear(TimerComponent.YEARS_PER_SECOND * dt)
+		state:setYearModifier(math.max(1.0, 6.0 - state:getYear()/15.0))
 
 		Timer.update(dt)
 		for _,background in ipairs(self.backgrounds) do
