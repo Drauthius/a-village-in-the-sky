@@ -361,27 +361,37 @@ function VillagerSystem:_takeAction(entity)
 	        adult:getOccupation() == WorkComponent.MINER or
 	        adult:getOccupation() == WorkComponent.FARMER) then
 		-- This could be optimized through the map or something, but eh.
+		local cgrid = entity:has("PositionComponent") and
+		              entity:get("PositionComponent"):getGrid() or
+		              villager:getHome():get("PositionComponent"):getGrid()
 		local ti, tj = adult:getWorkArea()
-		-- TODO: The order is somewhat random, but static. Do we want to randomise further, or calculate the
-		-- closest one? (Mostly relevant for fields.)
+		local minDistance, closest = math.huge
 		for _,workEntity in pairs(self.engine:getEntitiesWithComponent("WorkComponent")) do
 			local assignment = workEntity:get("AssignmentComponent")
+			local tgrid = workEntity:get("PositionComponent"):getGrid()
 			local eti, etj = workEntity:get("PositionComponent"):getTile()
+			local distance = math.distancesquared(cgrid.gi, cgrid.gj, tgrid.gi, tgrid.gj)
 			if ti == eti and tj == etj and workEntity:get("WorkComponent"):getType() == adult:getOccupation() and
 			   not workEntity:get("WorkComponent"):isComplete() and
-			   assignment:getNumAssignees() < assignment:getMaxAssignees() then
-				assignment:assign(entity)
-				adult:setWorkPlace(workEntity)
-				return -- Start working the next round.
+			   assignment:getNumAssignees() < assignment:getMaxAssignees() and
+			   distance < minDistance then
+				minDistance = distance
+				closest = workEntity
 			end
 		end
 
-		-- No such entity found. No work able to be carried out.
-		if adult:getOccupation() == WorkComponent.FARMER then
-			-- For farms, try again later.
-			villager:setDelay(VillagerSystem.TIMERS.FARM_WAIT)
+		if closest then
+			closest:get("AssignmentComponent"):assign(entity)
+			adult:setWorkPlace(closest)
+			-- Start working the next round.
 		else
-			adult:setWorkArea(nil)
+			-- No such entity found. No work able to be carried out.
+			if adult:getOccupation() == WorkComponent.FARMER then
+				-- For farms, try again later.
+				villager:setDelay(VillagerSystem.TIMERS.FARM_WAIT)
+			else
+				adult:setWorkArea(nil)
+			end
 		end
 
 		return
@@ -905,6 +915,7 @@ function VillagerSystem:buildingEnteredEvent(event)
 
 	if event:isTemporary() then
 		entity:remove("SpriteComponent")
+		entity:remove("InteractiveComponent")
 
 		entity:add(TimerComponent(VillagerSystem.TIMERS.BUILDING_TEMP_ENTER, function()
 			entity:add(SpriteComponent())
@@ -1425,7 +1436,22 @@ function VillagerSystem:workCompletedEvent(event)
 	local farmer = adult:getOccupation() == WorkComponent.FARMER
 
 	if farmer then
-		-- Don't increase the sleepiness of farmers (handled by the natural sleepiness).
+		-- Only increase the sleepiness of farmers if there aren't any fields left on the same stage.
+		local fieldEnclosure = adult:getWorkPlace():get("FieldComponent"):getEnclosure()
+		local fields = fieldEnclosure:get("FieldEnclosureComponent"):getFields()
+		local completed = true
+		for _,field in ipairs(fields) do
+			if not field:get("WorkComponent"):isComplete() then
+				completed = false
+				break
+			end
+		end
+		if completed then
+			-- Find all villagers and increase their sleepiness.
+			for _,assignee in ipairs(fieldEnclosure:get("AssignmentComponent"):getAssignees()) do
+				assignee:get("VillagerComponent"):setSleepiness(1.0)
+			end
+		end
 		adult:setWorkPlace(nil)
 	elseif not event:isTemporary() then
 		villager:setSleepiness(1.0)

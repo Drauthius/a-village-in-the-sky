@@ -28,9 +28,9 @@ FieldSystem.static.GRID_OFFSETS = {
 }
 
 FieldSystem.static.TIMERS = {
-	SEED_DELAY = 5,
-	GROW_DELAY = 5,
-	HARVEST_DELAY = 5
+	SEED_DELAY = 10,
+	GROW_DELAY = 10,
+	HARVEST_DELAY = 10
 }
 
 FieldSystem.static.COMPLETION = {
