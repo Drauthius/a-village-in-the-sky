@@ -18,17 +18,21 @@ end
 
 -- Called when an entity gets the resource component.
 function ResourceSystem:onAddEntity(entity)
-	local sprite = entity:get("SpriteComponent")
 	local resource = entity:get("ResourceComponent")
-	local grid = entity:get("PositionComponent"):getGrid()
 
-	local ox, oy = self.map:gridToWorldCoords(grid.gi, grid.gj)
-	ox = ox - self.map.halfGridWidth
-	oy = oy - sprite:getSprite():getHeight() + self.map.gridHeight
+	-- Only update harvested resources.
+	if resource:isUsable() then
+		local sprite = entity:get("SpriteComponent")
+		local grid = entity:get("PositionComponent"):getGrid()
 
-	sprite:setDrawPosition(ox, oy)
+		local ox, oy = self.map:gridToWorldCoords(grid.gi, grid.gj)
+		ox = ox - self.map.halfGridWidth
+		oy = oy - sprite:getSprite():getHeight() + self.map.gridHeight
 
-	state:increaseResource(resource:getResource(), resource:getResourceAmount())
+		sprite:setDrawPosition(ox, oy)
+
+		state:increaseResource(resource:getResource(), resource:getResourceAmount())
+	end
 end
 
 -- Called when an entity with the resource component is removed, or the resource component is removed.

@@ -578,7 +578,10 @@ function Game:_handleClick(x, y)
 	end
 
 	if not clicked then
-		return self.eventManager:fireEvent(SelectionChangedEvent(nil))
+		if state:hasSelection() then
+			return self.eventManager:fireEvent(SelectionChangedEvent(nil))
+		end
+		return
 	end
 
 	local selected = state:getSelection()
