@@ -4,6 +4,7 @@ local vector = require "lib.hump.vector"
 
 local DetailsPanel = require "src.game.gui.detailspanel"
 local InfoPanel = require "src.game.gui.infopanel"
+local ObjectivePanel = require "src.game.gui.objectivepanel"
 local ResourcePanel = require "src.game.gui.resourcepanel"
 local Widget = require "src.game.gui.widget"
 
@@ -104,15 +105,20 @@ function GUI:resize(width, height)
 
 	self.detailsPanel = DetailsPanel(self.eventManager, select(2, self.listBuildingButton:getPosition()) - padding)
 	self.detailsPanel:hide()
+
+	self.objectivePanel = ObjectivePanel(self.eventManager, self.yearPanel:getHeight() + padding)
 end
 
 function GUI:back()
 	if self.infoPanel:isShown() then
 		self:_closeInfoPanel()
+		return true
 	else
 		print("toggle main menu")
 		soundManager:playEffect("toggleMainMenu")
 	end
+
+	return false
 end
 
 function GUI:update(dt)
@@ -270,6 +276,7 @@ function GUI:draw(camera)
 	self.resourcePanel:draw()
 	self.infoPanel:draw()
 	self.detailsPanel:draw()
+	self.objectivePanel:draw()
 
 	-- Point an arrow to the selected thing.
 	-- Drawn above the UI, but in the world (for proper zoom effect).

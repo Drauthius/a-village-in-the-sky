@@ -367,7 +367,6 @@ end
 --
 
 function Game:keyreleased(key, scancode)
-	print(key, scancode)
 	if scancode == "d" then
 		self.engine:toggleSystem("DebugSystem")
 	elseif scancode == "g" then
