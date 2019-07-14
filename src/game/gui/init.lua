@@ -4,7 +4,7 @@ local vector = require "lib.hump.vector"
 
 local DetailsPanel = require "src.game.gui.detailspanel"
 local InfoPanel = require "src.game.gui.infopanel"
-local ObjectivePanel = require "src.game.gui.objectivepanel"
+local ObjectivesPanel = require "src.game.gui.objectivespanel"
 local ResourcePanel = require "src.game.gui.resourcepanel"
 local Widget = require "src.game.gui.widget"
 
@@ -29,7 +29,7 @@ function GUI:initialize(engine, eventManager, map)
 	self.menuButton = spriteSheet:getSprite("menu-button")
 	self.menuButton.data = spriteSheet:getData("menutext-position")
 
-	-- Create the widgets (with bogus positions, since they're overwritten in resize() anyway).
+	-- Create the buttons (with bogus positions, since they're overwritten in resize() anyway).
 	local tileButtonSprite = spriteSheet:getSprite("button 0")
 	self.tileButton = Widget(0, 0, 1, 1, tileButtonSprite)
 	self.tileButton.closed = tileButtonSprite
@@ -55,7 +55,7 @@ function GUI:initialize(engine, eventManager, map)
 	self.listBuildingButton.closed = listBuildingButtonSprite
 	self.listBuildingButton.opened = spriteSheet:getSprite("button 7")
 
-	self.widgets = {
+	self.buttons = {
 		[InfoPanel.CONTENT.PLACE_TERRAIN] = self.tileButton,
 		[InfoPanel.CONTENT.PLACE_BUILDING] = self.buildingButton,
 		[InfoPanel.CONTENT.LIST_EVENTS] = self.listEventButton,
@@ -106,7 +106,7 @@ function GUI:resize(width, height)
 	self.detailsPanel = DetailsPanel(self.eventManager, select(2, self.listBuildingButton:getPosition()) - padding)
 	self.detailsPanel:hide()
 
-	self.objectivePanel = ObjectivePanel(self.eventManager, self.yearPanel:getHeight() + padding)
+	self.objectivesPanel = ObjectivesPanel(self.eventManager, self.yearPanel:getHeight() + padding * 2)
 end
 
 function GUI:back()
@@ -122,11 +122,11 @@ function GUI:back()
 end
 
 function GUI:update(dt)
-	for type,widget in ipairs(self.widgets) do
+	for type,button in ipairs(self.buttons) do
 		if type == self.infoPanel:getContentType() then
-			widget.sprite = widget.opened
+			button.sprite = button.opened
 		else
-			widget.sprite = widget.closed
+			button.sprite = button.closed
 		end
 	end
 	self.infoPanel:update(dt)
@@ -268,15 +268,15 @@ function GUI:draw(camera)
 	end
 
 	-- Buttons
-	for _,widget in ipairs(self.widgets) do
-		widget:draw()
+	for _,button in ipairs(self.buttons) do
+		button:draw()
 	end
 
 	-- Misc widgets
 	self.resourcePanel:draw()
 	self.infoPanel:draw()
 	self.detailsPanel:draw()
-	self.objectivePanel:draw()
+	self.objectivesPanel:draw()
 
 	-- Point an arrow to the selected thing.
 	-- Drawn above the UI, but in the world (for proper zoom effect).
@@ -365,8 +365,8 @@ function GUI:draw(camera)
 end
 
 function GUI:handlePress(x, y, released)
-	for type,widget in ipairs(self.widgets) do
-		if widget:isWithin(x, y) then
+	for type,button in ipairs(self.buttons) do
+		if button:isWithin(x, y) then
 			if released then
 				if self.infoPanel:isShown() and self.infoPanel:getContentType() == type then
 					self:_closeInfoPanel()
@@ -396,6 +396,9 @@ function GUI:handlePress(x, y, released)
 		return true
 	elseif self.detailsPanel:isShown() and self.detailsPanel:isWithin(x, y) then
 		self.detailsPanel:handlePress(x, y, released)
+		return true
+	elseif self.objectivesPanel:isWithin(x, y) then
+		self.objectivesPanel:handlePress(released)
 		return true
 	end
 

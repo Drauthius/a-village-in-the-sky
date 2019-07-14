@@ -24,7 +24,8 @@ function Widget:draw()
 		love.graphics.setColor(self.text.color)
 		love.graphics.printf(babel.translate(self.text.text),
 		                     self.x + self.text.ox, self.y + self.text.oy,
-		                     self.text.limit, self.text.align)
+		                     self.text.limit, self.text.align, 0, self.sx, self.sy)
+		love.graphics.setColor(1, 1, 1, 1)
 	end
 end
 
@@ -33,9 +34,9 @@ function Widget:addText(text, font, color, ox, oy, limit, align)
 		text = text,
 		font = font,
 		color = color,
-		ox = ox,
-		oy = oy,
-		limit = limit,
+		ox = ox or 0,
+		oy = oy or 0,
+		limit = limit or -1,
 		align = align
 	}
 end

@@ -57,11 +57,12 @@ info-panel-centre.aseprite
 iron-resource.aseprite
 menu-button.aseprite
 mountain-tile.aseprite
+objectives-panel.aseprite
 resource-panel.aseprite
 smoke.aseprite
 spark.aseprite
-text-background-left.aseprite
 text-background-centre.aseprite
+text-background-left.aseprite
 tool-resource.aseprite
 villagers-palette.aseprite
 windmill-blades.aseprite
