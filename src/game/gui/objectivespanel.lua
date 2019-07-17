@@ -19,9 +19,6 @@ function ObjectivesPanel:initialize(eventManager, y)
 	self.x, self.y = 1, y
 	self.ox, self.oy = 0, 0
 	self.w, self.h = self.panelSprite:getWidth(), 0
-
-	self:addObjective("This is a test objective")
-	self:addObjective("Build a dwelling")
 end
 
 function ObjectivesPanel:draw()
@@ -37,7 +34,7 @@ function ObjectivesPanel:draw()
 	end
 end
 
-function ObjectivesPanel:addObjective(text)
+function ObjectivesPanel:addObjective(text, skipTween)
 	local numPanels = #self.panels
 
 	local panel = Widget(self.x, self.y + numPanels * self.panelSprite:getHeight() - 1, 0, 0, self.panelSprite)
@@ -52,9 +49,10 @@ function ObjectivesPanel:addObjective(text)
 	self.h = self.h + self.panelSprite:getHeight()
 
 	panel.uniqueID = ObjectivesPanel.uniqueID
-	ObjectivesPanel.uniqueID = ObjectivesPanel.uniqueID + 1
+	ObjectivesPanel.static.uniqueID = ObjectivesPanel.uniqueID + 1
 
-	do -- Create a nice tween effect (reverse of the remove one).
+	if not skipTween then
+		-- Create a nice tween effect (reverse of the remove one).
 		local panelNum = numPanels + 1
 		self.panels[panelNum].sx, self.panels[panelNum].sy = 1, 0
 		self.panels[panelNum].text.oy = 0
@@ -62,8 +60,10 @@ function ObjectivesPanel:addObjective(text)
 		local time = 2.5
 		local tween = "in-bounce"
 
-		Timer.tween(time, self.panels[panelNum].text, { oy = self.panelData.bounds.y }, tween)
-		Timer.tween(time, self.panels[panelNum], { sy = 1 }, tween)
+		self.panels[panelNum].timers = {
+			Timer.tween(time, self.panels[panelNum].text, { oy = self.panelData.bounds.y }, tween),
+			Timer.tween(time, self.panels[panelNum], { sy = 1 }, tween)
+		}
 	end
 
 	return panel.uniqueID
@@ -78,6 +78,11 @@ function ObjectivesPanel:removeObjective(uniqueID)
 		end
 	end
 	assert(panelNum, "Unique objective ID not found.")
+	assert(not self.panels[panelNum].removed, "Objective already removed")
+
+	for _,timer in ipairs(self.panels[panelNum].timers) do
+		Timer.cancel(timer)
+	end
 
 	local time = 2.5
 	local tween = "in-bounce"
@@ -85,11 +90,21 @@ function ObjectivesPanel:removeObjective(uniqueID)
 	Timer.tween(time, self.panels[panelNum].text, { oy = 0 }, tween)
 	Timer.tween(time, self.panels[panelNum], { y = self.panels[panelNum].y + self.panels[panelNum].h }, tween)
 	Timer.tween(time, self.panels[panelNum], { sy = 0 }, tween, function()
-		table.remove(self.panels, panelNum)
-		for i=panelNum,#self.panels do
+		-- Another objective might have been removed since last time, so calculate the panel number again
+		local newPanelNum
+		for i,panel in ipairs(self.panels) do
+			if panel.uniqueID == uniqueID then
+				newPanelNum = i
+				break
+			end
+		end
+		table.remove(self.panels, newPanelNum)
+		for i=newPanelNum,#self.panels do
 			Timer.tween(0.5, self.panels[i], { y = self.panels[i].y - self.panels[i].h }, tween)
 		end
 	end)
+
+	self.panels[panelNum].removed = true
 end
 
 function ObjectivesPanel:isWithin(x, y)

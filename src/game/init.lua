@@ -41,6 +41,7 @@ local WalkingSystem
 local WorkSystem
 
 local blueprint = require "src.game.blueprint"
+local hint = require "src.game.hint"
 local screen = require "src.screen"
 local soundManager = require "src.soundmanager"
 local state = require "src.game.state"
@@ -194,7 +195,7 @@ function Game:enter()
 		self:onRemoveEntity(entity)
 	end
 
-	self.level:initiate(self.engine, self.map)
+	self.level:initiate(self.engine, self.map, self.gui)
 
 	self:_updateCameraBoundingBox()
 	self.numTouches = 0
@@ -251,7 +252,9 @@ function Game:update(dt)
 		end
 		self.foreground:update(dt)
 		self.gui:update(dt)
+		self.level:update(dt)
 		self.engine:update(dt)
+		hint:update(dt)
 	end
 end
 
@@ -288,6 +291,7 @@ function Game:draw()
 	self.foreground:draw()
 
 	self.gui:draw(self.camera)
+	hint:draw()
 
 	if self.debug then
 		love.graphics.setLineWidth(1)
@@ -615,7 +619,7 @@ function Game:_placeTile(placing)
 
 	local resources = {}
 
-	if self.level:shouldPlaceRunestone() then
+	if self.level:shouldPlaceRunestone(ti, tj) then
 		local runestone = blueprint:createRunestone()
 		local ax, ay, minGrid, maxGrid = self.map:addObject(runestone, ti, tj)
 		assert(ax and ay and minGrid and maxGrid, "Could not add runestone to empty tile.")

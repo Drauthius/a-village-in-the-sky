@@ -10,6 +10,7 @@ local Widget = require "src.game.gui.widget"
 
 local WorkComponent = require "src.game.workcomponent"
 
+local hint = require "src.game.hint"
 local screen = require "src.screen"
 local soundManager = require "src.soundmanager"
 local spriteSheet = require "src.game.spritesheet"
@@ -375,6 +376,8 @@ function GUI:handlePress(x, y, released)
 					self.infoPanel:setContent(type)
 					self.infoPanel:show()
 
+					self:updateHint()
+
 					state:showBuildingHeaders(type == "buildings")
 					state:showVillagerHeaders(type == "villagers")
 				end
@@ -403,6 +406,42 @@ function GUI:handlePress(x, y, released)
 	end
 
 	return false
+end
+
+function GUI:addObjective(...)
+	return self.objectivesPanel:addObjective(...)
+end
+
+function GUI:removeObjective(...)
+	return self.objectivesPanel:removeObjective(...)
+end
+
+function GUI:setHint(place, subplace)
+	if not place then
+		hint:hide()
+		self.hint = nil
+		self.infoPanel:setHint(nil)
+		return
+	end
+
+	self.hint = { place, subplace }
+	self:updateHint()
+end
+
+function GUI:updateHint()
+	if not self.hint then
+		return
+	end
+
+	if self.infoPanel:isShown() and self.infoPanel:getContentType() == self.hint[1] then
+		self.infoPanel:setHint(self.hint[2])
+	else
+		local button = assert(self.buttons[self.hint[1]], tostring(self.hint[1]).." is unknown")
+		local x, y = button:getPosition()
+
+		hint:rotateAround(x + button:getWidth() / 2, y + button:getHeight() / 2 + 5, button:getWidth() * 0.4)
+		self.infoPanel:setHint(nil)
+	end
 end
 
 --
@@ -444,6 +483,8 @@ end
 function GUI:_closeInfoPanel()
 	soundManager:playEffect("drawerClosed")
 	self.infoPanel:hide()
+
+	self:updateHint()
 
 	state:showBuildingHeaders(false)
 	state:showVillagerHeaders(false)

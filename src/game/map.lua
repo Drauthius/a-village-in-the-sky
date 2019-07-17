@@ -533,6 +533,26 @@ function Map:_placeFullWidthObject(entity, ti, tj, dryrun)
 	return x, y, self.grid[mingi] and self.grid[mingi][mingj], self.grid[maxgi] and self.grid[maxgi][maxgj]
 end
 
+function Map:eachTile()
+	local sti, stj = self.firstTile[1], self.firstTile[2]
+	local eti, etj = self.lastTile[1], self.lastTile[2]
+	local ti, tj = sti - 1, stj
+	return function()
+		repeat
+			ti = ti + 1
+			if ti > eti then
+				ti = sti
+				tj = tj + 1
+				if tj > etj then
+					return nil
+				end
+			end
+		until self.tile[ti] and self.tile[ti][tj]
+
+		return ti, tj, self.tile[ti][tj].type
+	end
+end
+
 function Map:_eachGrid(ti, tj)
 	local sgi, sgj = self:tileToGridCoords(ti, tj)
 	local egi, egj = sgi + self.gridsPerTile - 1, sgj + self.gridsPerTile - 1
@@ -559,41 +579,34 @@ function Map:drawDebug()
 	love.graphics.setLineWidth(0.5)
 	love.graphics.setLineStyle("rough")
 
-	local sti, stj = self.firstTile[1], self.firstTile[2]
-	local eti, etj = self.lastTile[1], self.lastTile[2]
-
-	for ti=sti,eti do
-		for tj=stj,etj do
-			if self.tile[ti] and self.tile[ti][tj] then
-				for grid in self:_eachGrid(ti, tj) do
-					if bit.band(grid.collision, Map.COLL_STATIC) ~= 0 then
-						love.graphics.setColor(1, 0, 0, 0.5)
-					elseif bit.band(grid.collision, Map.COLL_DYNAMIC) ~= 0 then
-						love.graphics.setColor(1, 0, 1, 0.5)
-					elseif bit.band(grid.collision, Map.COLL_RESERVED) ~= 0 then
-						love.graphics.setColor(0, 0, 1, 0.5)
-					else
-						love.graphics.setColor(0, 1, 0, 0.5)
-					end
-
-					local x, y = self:gridToWorldCoords(grid.gi, grid.gj)
-					local polygon = {
-						x, y,
-						x + self.halfGridWidth, y + self.halfGridHeight,
-						x, y + self.gridHeight,
-						x - self.halfGridWidth, y + self.halfGridHeight
-					}
-					love.graphics.polygon(
-						"fill", --grid.collision == Map.COLL_NONE and "line" or "fill",
-						polygon
-					)
-					love.graphics.setColor(0, 0, 0, 0.5)
-					love.graphics.polygon(
-						"line", --grid.collision == Map.COLL_NONE and "line" or "fill",
-						polygon
-					)
-				end
+	for ti, tj in self:eachTile() do
+		for grid in self:_eachGrid(ti, tj) do
+			if bit.band(grid.collision, Map.COLL_STATIC) ~= 0 then
+				love.graphics.setColor(1, 0, 0, 0.5)
+			elseif bit.band(grid.collision, Map.COLL_DYNAMIC) ~= 0 then
+				love.graphics.setColor(1, 0, 1, 0.5)
+			elseif bit.band(grid.collision, Map.COLL_RESERVED) ~= 0 then
+				love.graphics.setColor(0, 0, 1, 0.5)
+			else
+				love.graphics.setColor(0, 1, 0, 0.5)
 			end
+
+			local x, y = self:gridToWorldCoords(grid.gi, grid.gj)
+			local polygon = {
+				x, y,
+				x + self.halfGridWidth, y + self.halfGridHeight,
+				x, y + self.gridHeight,
+				x - self.halfGridWidth, y + self.halfGridHeight
+			}
+			love.graphics.polygon(
+				"fill", --grid.collision == Map.COLL_NONE and "line" or "fill",
+				polygon
+			)
+			love.graphics.setColor(0, 0, 0, 0.5)
+			love.graphics.polygon(
+				"line", --grid.collision == Map.COLL_NONE and "line" or "fill",
+				polygon
+			)
 		end
 	end
 

@@ -12,12 +12,7 @@ function love.load()
 	--local Bound = require "lib.gui.bound"
 	--Bound.static.debug = true
 
-	-- Too lazy to specify all callbacks except the error handler.
-	-- (Why is the error handler even overridden?)
-	local errorhandler = love.errorhandler
 	GameState.registerEvents()
-	-- Restore the default error handler.
-	love.errorhandler = errorhandler
 
 	screen:setUp()
 

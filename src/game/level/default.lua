@@ -2,6 +2,7 @@ local lovetoys = require "lib.lovetoys.lovetoys"
 
 local Level = require "src.game.level"
 
+local BuildingComponent = require "src.game.buildingcomponent"
 local GroundComponent = require "src.game.groundcomponent"
 local InteractiveComponent = require "src.game.interactivecomponent"
 local PositionComponent = require "src.game.positioncomponent"
@@ -9,12 +10,16 @@ local ResourceComponent = require "src.game.resourcecomponent"
 local SpriteComponent = require "src.game.spritecomponent"
 local TileComponent = require "src.game.tilecomponent"
 
+local InfoPanel = require "src.game.gui.infopanel"
+
 local blueprint = require "src.game.blueprint"
 local spriteSheet = require "src.game.spritesheet"
 
 local DefaultLevel = Level:subclass("DefaultLevel")
 
-function DefaultLevel:initiate(engine, map)
+function DefaultLevel:initiate(engine, map, gui)
+	Level.initiate(self, engine, map, gui)
+
 	do -- Initial tile.
 		local tile = lovetoys.Entity()
 		tile:add(TileComponent(TileComponent.GRASS, 0, 0))
@@ -107,6 +112,48 @@ function DefaultLevel:initiate(engine, map)
 			end
 		end
 	end
+
+	self.objectives = {
+		{
+			text = "Place a grass tile",
+			pre = function()
+				self.gui:setHint(InfoPanel.CONTENT.PLACE_TERRAIN, TileComponent.GRASS)
+			end,
+			cond = function()
+				for ti,tj,type in self.map:eachTile() do
+					if type == TileComponent.GRASS and (ti ~= 0 or tj ~= 0) then
+						return true
+					end
+				end
+			end
+		},
+		{
+			text = "Place a dwelling",
+			pre = function()
+				self.gui:setHint(InfoPanel.CONTENT.PLACE_BUILDING, BuildingComponent.DWELLING)
+			end,
+			cond = function()
+				for _,entity in pairs(self.engine:getEntitiesWithComponent("ConstructionComponent")) do
+					if entity:get("ConstructionComponent"):getType() == BuildingComponent.DWELLING then
+						return true
+					end
+				end
+			end
+		},
+		{
+			text = "Assign a villager to build the dwelling",
+			pre = function()
+				self.gui:setHint(nil)
+			end,
+			cond = function()
+				for _,entity in pairs(self.engine:getEntitiesWithComponent("ConstructionComponent")) do
+					if entity:get("AssignmentComponent"):getNumAssignees() > 0 then
+						return true
+					end
+				end
+			end
+		}
+	}
 end
 
 function Level:getResources(tileType)

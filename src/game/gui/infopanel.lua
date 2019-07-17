@@ -13,6 +13,7 @@ local BuildingComponent = require "src.game.buildingcomponent"
 local TileComponent = require "src.game.tilecomponent"
 
 local blueprint = require "src.game.blueprint"
+local hint = require "src.game.hint"
 local screen = require "src.screen"
 local spriteSheet = require "src.game.spritesheet"
 local state = require "src.game.state"
@@ -197,6 +198,8 @@ function InfoPanel:draw()
 			item:draw(self.ox)
 		end
 
+		hint:draw(true, self.ox)
+
 		love.graphics.setStencilTest()
 	end
 
@@ -334,6 +337,24 @@ function InfoPanel:setContent(type)
 		self.rightButton:setDisabled(false)
 		self.rightButton:setPressed(false)
 	end
+end
+
+function InfoPanel:setHint(place)
+	if not place then
+		hint:setPreventDraw(false)
+		return
+	end
+
+	for _,content in ipairs(self.content) do
+		if content:getType() == place then
+			hint:rotateAround(content:getPosition() + content:getWidth() / 2,
+			                  self.contentBounds.y + self.contentBounds.h / 2, content:getWidth() / 2.1)
+			hint:setPreventDraw(true)
+			return
+		end
+	end
+
+	error("Unknown hint location "..tostring(place))
 end
 
 function InfoPanel:show()
