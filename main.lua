@@ -4,7 +4,7 @@ love.graphics.setDefaultFilter("linear", "nearest")
 local babel = require "lib.babel"
 local GameState = require "lib.hump.gamestate"
 
-local Game = require "src.game"
+local MainMenu = require "src.mainmenu"
 
 local screen = require "src.screen"
 
@@ -20,7 +20,7 @@ function love.load()
 		locales_folders = { "asset/i18n" }
 	})
 
-	GameState.switch(Game)
+	GameState.switch(MainMenu)
 end
 
 function love.resize(width, height)

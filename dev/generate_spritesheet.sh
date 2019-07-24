@@ -63,6 +63,8 @@ smoke.aseprite
 spark.aseprite
 text-background-centre.aseprite
 text-background-left.aseprite
+thumbnail-clouds.aseprite
+thumbnail-foreground.aseprite
 tool-resource.aseprite
 villagers-palette.aseprite
 windmill-blades.aseprite

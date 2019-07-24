@@ -140,7 +140,7 @@ end
 
 -- TODO: Only needed because the current font isn't a pixel font.
 function SpriteSheet:getOutlineColor()
-	return require("src.game.rendersystem").NEW_OUTLINE_COLOR
+	return { 0.15, 0.15, 0.15, 1.0 }
 end
 
 function SpriteSheet:draw(sprite, x, y)

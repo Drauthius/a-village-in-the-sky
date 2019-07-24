@@ -14,7 +14,7 @@ function Button:initialize(x, y, ox, oy, type, font)
 	if font ~= false then
 		self.data = spriteSheet:getData(type.."-textposition")
 		local oyText = (self.data.bounds.h - font:getHeight()) / 2 + self.data.bounds.y
-		self:addText("", font, { 0, 0, 0, 1 }, self.data.bounds.x, oyText, self.data.bounds.w, "center")
+		self:addText("", font, spriteSheet:getOutlineColor(), self.data.bounds.x, oyText, self.data.bounds.w, "center")
 	end
 end
 

@@ -12,18 +12,19 @@ function Widget:initialize(x, y, ox, oy, sprite)
 	self.sprite = sprite
 end
 
-function Widget:draw()
+function Widget:draw(ox, oy)
+	ox, oy = ox or 0, oy or 0
 	if not self.sx then
-		spriteSheet:draw(self.sprite, self.x, self.y)
+		spriteSheet:draw(self.sprite, self.x + ox, self.y + oy)
 	else
-		love.graphics.draw(spriteSheet:getImage(), self.sprite:getQuad(), self.x, self.y, 0, self.sx, self.sy)
+		love.graphics.draw(spriteSheet:getImage(), self.sprite:getQuad(), self.x + ox, self.y + oy, 0, self.sx, self.sy)
 	end
 
 	if self.text then
 		love.graphics.setFont(self.text.font)
 		love.graphics.setColor(self.text.color)
 		love.graphics.printf(babel.translate(self.text.text),
-		                     self.x + self.text.ox, self.y + self.text.oy,
+		                     self.x + self.text.ox + ox, self.y + self.text.oy + oy,
 		                     self.text.limit, self.text.align, 0, self.sx, self.sy)
 		love.graphics.setColor(1, 1, 1, 1)
 	end
@@ -43,7 +44,6 @@ end
 
 function Widget:setText(text)
 	assert(self.text, "Text has to be added first.").text = text
-
 end
 
 function Widget:setScale(sx, sy)

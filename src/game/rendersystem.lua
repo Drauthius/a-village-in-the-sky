@@ -10,7 +10,7 @@ local state = require "src.game.state"
 local RenderSystem = lovetoys.System:subclass("RenderSystem")
 
 RenderSystem.static.OLD_OUTLINE_COLOR = { 0.0, 0.0, 0.0, 1.0 }
-RenderSystem.static.NEW_OUTLINE_COLOR = { 0.15, 0.15, 0.15, 1.0 }
+RenderSystem.static.NEW_OUTLINE_COLOR = spriteSheet:getOutlineColor()
 RenderSystem.static.SELECTED_OUTLINE_COLOR = { 0.15, 0.70, 0.15, 1.0 }
 RenderSystem.static.BEHIND_OUTLINE_COLOR = { 0.70, 0.70, 0.70, 1.0 }
 RenderSystem.static.SELECTED_BEHIND_OUTLINE_COLOR = { 0.60, 0.95, 0.60, 1.0 }
