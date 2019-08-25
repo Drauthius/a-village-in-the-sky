@@ -14,6 +14,8 @@ local spriteSheet = require "src.game.spritesheet"
 
 local Profiles = {}
 
+Profiles.NUM_PROFILES = 4
+
 function Profiles:init()
 	self.buttonFont = love.graphics.newFont("asset/font/Norse-Bold.otf", 32)
 
@@ -34,9 +36,9 @@ function Profiles:init()
 		ProfilePanel()
 	}
 
-	for k,panel in ipairs(self.panels) do
-		if love.filesystem.getInfo("save"..k, "file") then
-			local content, err = love.filesystem.read("save"..k)
+	for i,panel in ipairs(self.panels) do
+		if love.filesystem.getInfo("save"..i, "file") then
+			local content, err = love.filesystem.read("save"..i)
 			if not content then
 				print(err)
 			else
@@ -147,7 +149,7 @@ function Profiles:mousereleased(x, y)
 	x, y = screen:getCoordinate(x, y)
 	for i,panel in ipairs(self.panels) do
 		if panel:isWithin(x, y) and not panel:isDisabled() then
-			return GameState.switch(Game, i)
+			return GameState.switch(Game, tostring(i))
 		end
 	end
 end

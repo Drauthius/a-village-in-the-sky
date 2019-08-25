@@ -52,6 +52,9 @@ local Game = {
 	class = { name = "Game" }
 }
 
+-- How often to save the game automatically.
+Game.AUTOSAVE_TIME = 60
+
 -- Maximum minimisation.
 Game.CAMERA_MIN_ZOOM = 0.5
 -- Maximum maximisation.
@@ -88,6 +91,7 @@ end
 
 function Game:enter(_, profile)
 	love.graphics.setBackgroundColor(0.1, 0.5, 1)
+	love.filesystem.write("latest", profile)
 
 	self.speed = 1
 
@@ -204,8 +208,11 @@ function Game:enter(_, profile)
 		self.cassette:load(self.engine, self.map, self.level)
 	else
 		self.level:initial()
-		self.cassette:save(self.engine, self.map, self.level)
+		self:_save()
 	end
+	Timer.every(Game.AUTOSAVE_TIME, function()
+		self:_save()
+	end)
 
 	self:_updateCameraBoundingBox()
 	self.numTouches = 0
@@ -213,6 +220,15 @@ function Game:enter(_, profile)
 	self.debug = false
 	self.fpsGraph = fpsGraph.createGraph()
 	self.memGraph = fpsGraph.createGraph(0, 30)
+end
+
+function Game:leave()
+	self:_save()
+	Timer.clear()
+end
+
+function Game:quit()
+	self:_save()
 end
 
 function Game:update(dt)
@@ -338,7 +354,7 @@ function Game:keyreleased(key, scancode)
 		self.speed = 50
 	elseif scancode == "s" then
 		print("Saving game...")
-		self.cassette:save(self.engine, self.map, self.level)
+		self:_save()
 	end
 end
 
@@ -914,6 +930,10 @@ function Game:_removeBuilding(building)
 	end
 
 	soundManager:playEffect("buildingRazed")
+end
+
+function Game:_save()
+	self.cassette:save(self.engine, self.map, self.level)
 end
 
 --

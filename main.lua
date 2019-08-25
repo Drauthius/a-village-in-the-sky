@@ -20,7 +20,7 @@ function love.load()
 		locales_folders = { "asset/i18n" }
 	})
 
-	GameState.switch(MainMenu)
+	GameState.switch(MainMenu, true)
 end
 
 function love.resize(width, height)

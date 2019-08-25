@@ -46,18 +46,36 @@ function MainMenu:init()
 	self.textOffset = 1.0
 	self.buttonOffset = 1.5
 
-	self.hasProfiles = true
+	self.hasProfiles = false
+	self.nextFreeProfile = 1
+	for i=1,Profiles.NUM_PROFILES do
+		if love.filesystem.getInfo("save"..i, "file") then
+			self.hasProfiles = true
+		elseif not self.nextFreeProfile then
+			self.nextFreeProfile = i
+		end
+	end
+	if self.hasProfiles and love.filesystem.getInfo("latest", "file") then
+		local content = love.filesystem.read("latest")
+		if tonumber(content) ~= nil and
+		   tonumber(content) <= Profiles.NUM_PROFILES and
+		   love.filesystem.getInfo("save"..content, "file") then
+			self.latest = content
+		else
+			love.filesystem.remove("latest")
+		end
+	end
 
 	self.newGameButton = Button(0, 0, 0, 0, "details-button", self.buttonFont)
 	self.newGameButton:setText(babel.translate("New Game"))
 	self.newGameButton.action = function()
-		GameState.switch(Game)
+		GameState.switch(Game, self.nextFreeProfile)
 	end
 
 	self.resumeButton = Button(0, 0, 0, 0, "details-button", self.buttonFont)
 	self.resumeButton:setText(babel.translate("Resume"))
 	self.resumeButton.action = function()
-		GameState.switch(Game, "APA")
+		GameState.switch(Game, self.latest)
 	end
 
 	self.profilesButton = Button(0, 0, 0, 0, "details-button", self.buttonFont)
@@ -106,9 +124,15 @@ function MainMenu:init()
 	}
 
 	self:resize()
+
+	print(GameState.current())
 end
 
-function MainMenu:enter()
+function MainMenu:enter(previous, init)
+	if init and self.latest then
+		return GameState.switch(Game, self.latest)
+	end
+
 	love.graphics.setBackgroundColor(0.757, 0.875, 0.969)
 
 	for _=1,10000 do
