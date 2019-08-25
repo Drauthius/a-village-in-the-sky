@@ -79,8 +79,7 @@ function BuildingSystem:buildingCompletedEvent(event)
 
 		self.engine:addEntity(propeller)
 
-		-- We'll save it here for now.
-		building.propeller = propeller
+		building:addChildEntity(propeller)
 	elseif type == BuildingComponent.RUNESTONE then
 		-- XXX: Might not want to handle it here?
 		entity:get("RunestoneComponent"):setLevel(entity:get("RunestoneComponent"):getLevel() + 1)
@@ -119,8 +118,8 @@ function BuildingSystem:buildingEnteredEvent(event)
 		building:addInside(villager)
 
 		-- Propeller!
-		if building:getType() == BuildingComponent.BAKERY and not building.propeller:has("AnimationComponent") then
-			local propeller = building.propeller
+		local propeller = building:getChildEntities()[1]
+		if building:getType() == BuildingComponent.BAKERY and not propeller:has("AnimationComponent") then
 			local animation = AnimationComponent()
 			local frames = {}
 			for i=0,2 do
@@ -130,7 +129,7 @@ function BuildingSystem:buildingEnteredEvent(event)
 			animation:setFrames(frames)
 			local currentFrame
 			for k,v in ipairs(frames) do
-				if v[1] == building.propeller:get("SpriteComponent"):getSprite() then
+				if v[1] == propeller:get("SpriteComponent"):getSprite() then
 					currentFrame = k
 					break
 				end
@@ -144,11 +143,16 @@ function BuildingSystem:buildingEnteredEvent(event)
 			local newDur, newDur1, newDur2 = oldDur * 1.5, oldDur1 * 3.5, oldDur2 * 2.5
 			frames[currentFrame][2], frames[frame1][2], frames[frame2][2] = newDur, newDur1, newDur2
 			animation:setTimer(oldDur * 4 / 1000.0)
-			propeller:set(TimerComponent((newDur + newDur1 + newDur2 + 10) / 1000, function()
-				frames[currentFrame][2] = oldDur
-				frames[frame1][2] = oldDur1
-				frames[frame2][2] = oldDur2
-				propeller:remove("TimerComponent")
+			propeller:set(TimerComponent((newDur + newDur1 + newDur2 + 10) / 1000,
+				{ propeller,
+				  currentFrame = currentFrame, frame1 = frame1, frame2 = frame2,
+				  oldDur = oldDur, oldDur1 = oldDur1, oldDur2 =  oldDur2  }, function(data)
+				local ent = data[1]
+				local animFrames = ent:get("AnimationComponent"):getFrames()
+				animFrames[data.currentFrame][2] = data.oldDur
+				animFrames[data.frame1][2] = data.oldDur1
+				animFrames[data.frame2][2] = data.oldDur2
+				ent:remove("TimerComponent")
 			end))
 
 			propeller:add(animation)
@@ -168,7 +172,7 @@ function BuildingSystem:buildingLeftEvent(event)
 
 	-- Stop the propeller, if everyone has left.
 	if building:getType() == BuildingComponent.BAKERY and #building:getInside() < 1 then
-		local propeller = building.propeller
+		local propeller = building:getChildEntities()[1]
 
 		local frames = propeller:get("AnimationComponent"):getFrames()
 		local currentFrame = propeller:get("AnimationComponent"):getCurrentFrame()
@@ -179,12 +183,17 @@ function BuildingSystem:buildingLeftEvent(event)
 		local oldDur, oldDur1, oldDur2 = frames[currentFrame][2], frames[frame1][2], frames[frame2][2]
 		local newDur, newDur1, newDur2 = oldDur * 3.5, oldDur1 * 1.5, oldDur2 * 2.5
 		frames[currentFrame][2], frames[frame1][2], frames[frame2][2] = newDur, newDur1, newDur2
-		propeller:set(TimerComponent((newDur + newDur1 + newDur2 + 10) / 1000.0, function()
-			frames[currentFrame][2] = oldDur
-			frames[frame1][2] = oldDur1
-			frames[frame2][2] = oldDur2
-			propeller:remove("TimerComponent")
-			propeller:remove("AnimationComponent")
+		propeller:set(TimerComponent((newDur + newDur1 + newDur2 + 10) / 1000.0,
+			{ propeller,
+			  currentFrame = currentFrame, frame1 = frame1, frame2 = frame2,
+			  oldDur = oldDur, oldDur1 = oldDur1, oldDur2 =  oldDur2  }, function(data)
+			local ent = data[1]
+			local animFrames = ent:get("AnimationComponent"):getFrames()
+			animFrames[data.currentFrame][2] = data.oldDur
+			animFrames[data.frame1][2] = data.oldDur1
+			animFrames[data.frame2][2] = data.oldDur2
+			ent:remove("TimerComponent")
+			ent:remove("AnimationComponent")
 		end))
 	end
 end
@@ -194,10 +203,11 @@ function BuildingSystem:_openDoor(entity)
 	entity:get("EntranceComponent"):setOpen(true)
 	entity:get("SpriteComponent"):setNeedsRefresh(true)
 
-	entity:set(TimerComponent(BuildingSystem.DOOR_OPEN_TIME, function()
-		entity:get("EntranceComponent"):setOpen(false)
-		entity:get("SpriteComponent"):setNeedsRefresh(true)
-		soundManager:playEffect("doorClosed")
+	entity:set(TimerComponent(BuildingSystem.DOOR_OPEN_TIME, { entity }, function(data)
+		local ent = data[1]
+		ent:get("EntranceComponent"):setOpen(false)
+		ent:get("SpriteComponent"):setNeedsRefresh(true)
+		require("src.soundmanager"):playEffect("doorClosed")
 	end))
 end
 

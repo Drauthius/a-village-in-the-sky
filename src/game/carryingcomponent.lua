@@ -2,6 +2,17 @@ local class = require "lib.middleclass"
 
 local CarryingComponent = class("CarryingComponent")
 
+function CarryingComponent.static:save()
+	return {
+		resource = self.resource,
+		amount = self.amount
+	}
+end
+
+function CarryingComponent.static.load(_, data)
+	return CarryingComponent(data.resource, data.amount)
+end
+
 function CarryingComponent:initialize(resource, amount)
 	self.resource = resource
 	self.amount = amount

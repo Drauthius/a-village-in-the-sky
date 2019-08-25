@@ -2,6 +2,30 @@ local class = require "lib.middleclass"
 
 local DwellingComponent = class("DwellingComponent")
 
+function DwellingComponent.static:save(cassette)
+	return {
+		food = self.food,
+		gettingFood = self.gettingFood,
+		numBoys = self.numBoys,
+		numGirls = self.numGirs,
+		children = cassette:saveEntityList(self.children),
+		related = self.related
+	}
+end
+
+function DwellingComponent.static.load(cassette, data)
+	local component = DwellingComponent()
+
+	component.food = data.food
+	component.gettingFood = data.gettingFood
+	component.numBoys = data.numBoys
+	component.numGirls = data.numGirls
+	component.children = cassette:loadEntityList(data.children)
+	component.related = data.related
+
+	return component
+end
+
 function DwellingComponent:initialize()
 	self.food = 0
 	self.gettingFood = false

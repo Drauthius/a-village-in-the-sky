@@ -5,16 +5,74 @@ local VillagerComponent = class("VillagerComponent")
 VillagerComponent.static.GOALS = {
 	NONE = 0,
 	DROPOFF = 1,
-	FOOD_PICKUP = 2,
-	FOOD_DROPOFF = 3,
-	WORK_PICKUP = 4,
-	WORK = 5,
-	SLEEP = 6,
-	EAT = 7,
-	WAIT = 8,
-	MOVING = 9,
-	CHILDBIRTH = 10
+	DROPPING_OFF = 2,
+	PICKING_UP = 3,
+	FOOD_PICKUP = 4,
+	FOOD_PICKING_UP = 5,
+	FOOD_DROPOFF = 6,
+	WORK_PICKUP = 7,
+	WORK_PICKING_UP = 8,
+	WORK = 9,
+	SLEEP = 10,
+	EAT = 11,
+	WAIT = 12,
+	MOVING = 13,
+	CHILDBIRTH = 14
 }
+
+function VillagerComponent.static:save(cassette)
+	return {
+		name = self.name,
+		age = self.age,
+		hairy = self.hairy,
+		gender = self.gender,
+		alive = self.alive,
+		strength = self.strength,
+		craftsmanship = self.craftsmanship,
+		hunger = self.hunger,
+		starvation = self.starvation,
+		sleepiness = self.sleepiness,
+		direction = self.direction,
+		goal = self.goal,
+		delay = self.delay,
+		targetEntity = self.targetEntity and cassette:saveEntity(self.targetEntity) or nil,
+		targetGrid = self.targetGrid and cassette:saveGrid(self.targetGrid) or nil,
+		targetRotation = self.targetRotation,
+		home = self.home and cassette:saveEntity(self.home) or nil,
+		isAtHome = self.isAtHome,
+		mother = self.mother and cassette:saveEntity(self.mother) or nil,
+		father = self.father and cassette:saveEntity(self.father) or nil,
+		children = cassette:saveEntityList(self.children)
+	}
+end
+
+function VillagerComponent.static.load(cassette, data)
+	local component = VillagerComponent:allocate()
+
+	component.name = data.name
+	component.age = data.age
+	component.hairy = data.hairy
+	component.gender = data.gender
+	component.alive = data.alive
+	component.strength = data.strength
+	component.craftsmanship = data.craftsmanship
+	component.hunger = data.hunger
+	component.starvation = data.starvation
+	component.sleepiness = data.sleepiness
+	component.direction = data.direction
+	component.goal = data.goal
+	component.delay = data.delay
+	component.targetEntity = data.targetEntity and cassette:loadEntity(data.targetEntity) or nil
+	component.targetGrid = data.targetGrid and cassette:loadGrid(data.targetGrid) or nil
+	component.targetRotation = data.targetRotation
+	component.home = data.home and cassette:loadEntity(data.home) or nil
+	component.isAtHome = data.isAtHome
+	component.mother = data.mother and cassette:loadEntity(data.mother) or nil
+	component.father = data.father and cassette:loadEntity(data.father) or nil
+	component.children = cassette:loadEntityList(data.children)
+
+	return component
+end
 
 function VillagerComponent:initialize(stats, mother, father)
 	self.name = stats.name or "Uh"
@@ -37,6 +95,10 @@ function VillagerComponent:initialize(stats, mother, father)
 	self.delay = 0.0
 	self.home = nil
 	self.isAtHome = false
+
+	self.targetEntity = nil
+	self.targetGrid = nil
+	self.targetRotation = nil
 
 	-- NOTE: These references need to be cleared to release the entities completely.
 	self.mother = mother
@@ -171,6 +233,30 @@ end
 
 function VillagerComponent:setIsHome(isAtHome)
 	self.isAtHome = isAtHome
+end
+
+function VillagerComponent:getTargetEntity()
+	return self.targetEntity
+end
+
+function VillagerComponent:setTargetEntity(entity)
+	self.targetEntity = entity
+end
+
+function VillagerComponent:getTargetGrid()
+	return self.targetGrid
+end
+
+function VillagerComponent:setTargetGrid(grid)
+	self.targetGrid = grid
+end
+
+function VillagerComponent:getTargetRotation()
+	return self.targetRotation
+end
+
+function VillagerComponent:setTargetRotation(rotation)
+	self.targetRotation = rotation
 end
 
 function VillagerComponent:getMother()

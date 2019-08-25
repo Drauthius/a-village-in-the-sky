@@ -54,6 +54,21 @@ WorkComponent.static.WORK_PLACES = {
 	}
 }
 
+function WorkComponent.static:save()
+	return {
+		type = self.type,
+		completion = self.completion
+	}
+end
+
+function WorkComponent.static.load(_, data)
+	local component = WorkComponent(data.type)
+
+	component.completion = data.completion
+
+	return component
+end
+
 function WorkComponent:initialize(workType)
 	self.type = workType
 	self.completion = 0.0

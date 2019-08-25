@@ -2,6 +2,23 @@ local class = require "lib.middleclass"
 
 local AssignmentComponent = class("AssignmentComponent")
 
+function AssignmentComponent.static:save(cassette)
+	local data = {
+		maxAssignees = self.maxAssignees,
+		assignees = cassette:saveEntityList(self.assignees)
+	}
+
+	return data
+end
+
+function AssignmentComponent.static.load(cassette, data)
+	local component = AssignmentComponent(data.maxAssignees)
+
+	component.assignees = cassette:loadEntityList(data.assignees)
+
+	return component
+end
+
 function AssignmentComponent:initialize(maxAssignees)
 	self.maxAssignees = maxAssignees
 	self.assignees = setmetatable({}, { __mode = 'v' })

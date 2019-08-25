@@ -7,11 +7,25 @@ function InteractiveComponent.static:makeInteractive(entity, x, y)
 	entity:add(InteractiveComponent(x + tx, y + ty, tw, th))
 end
 
-function InteractiveComponent:initialize(x, y, w, h)
+function InteractiveComponent.static:save()
+	return {
+		x = self.x,
+		y = self.y,
+		w = self.w,
+		h = self.h,
+		ox = self.ox,
+		oy = self.oy
+	}
+end
+
+function InteractiveComponent.static.load(_, data)
+	return InteractiveComponent(data.x, data.y, data.w, data.h, data.ox, data.oy)
+end
+
+function InteractiveComponent:initialize(x, y, w, h, ox, oy)
 	self.x, self.y = x, y
 	self.w, self.h = w, h
-	self.ox, self.oy = 0, 0
-	--print(("at %d,%d -> %d,%d"):format(x, y, x + w, y + h))
+	self.ox, self.oy = ox or 0, oy or 0
 end
 
 function InteractiveComponent:isWithin(x, y)

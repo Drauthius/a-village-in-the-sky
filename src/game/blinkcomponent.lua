@@ -4,11 +4,14 @@ local Timer = require "lib.hump.timer"
 
 local BlinkComponent = class("BlinkComponent")
 
+-- Blinking is currently only used for selection,
+-- and there's not a really good reason to bother saving that.
+BlinkComponent.static.save = false
+
 function BlinkComponent.static:makeBlinking(entity, color)
 	-- A unique so that spam clicking works as expected.
 	local unique = love.math.random()
 	local blinkComponent = BlinkComponent(color, unique)
-	blinkComponent.unique = unique
 	Timer.during(1.2, function(dt)
 		blinkComponent:increaseTimer(dt)
 		blinkComponent:setActive((blinkComponent:getTimer() % 0.44) < 0.22)
@@ -20,10 +23,11 @@ function BlinkComponent.static:makeBlinking(entity, color)
 	entity:set(blinkComponent)
 end
 
-function BlinkComponent:initialize(color)
+function BlinkComponent:initialize(color, unique)
 	self.color = color
 	self.timer = 0.0
 	self.active = true
+	self.unique = unique or love.math.random()
 end
 
 function BlinkComponent:getColor()

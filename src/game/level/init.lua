@@ -2,10 +2,14 @@ local class = require "lib.middleclass"
 
 local Level = class("Level")
 
-function Level:initiate(engine, map, gui)
+function Level:initialize(engine, map, gui)
 	self.engine = engine
 	self.map = map
 	self.gui = gui
+end
+
+function Level:initial()
+	error("Must be overloaded")
 end
 
 function Level:update(dt)
@@ -58,6 +62,18 @@ end
 
 function Level:shouldPlaceRunestone(ti, tj)
 	return false
+end
+
+function Level:save(cassette)
+	return {
+		currentObjective = self.currentObjective,
+		numObjectives = self.numObjectives
+	}
+end
+
+function Level:load(cassette, data)
+	self.currentObjective = data.currentObjective
+	self.numObjectives = data.numObjectives
 end
 
 return Level

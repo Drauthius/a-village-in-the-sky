@@ -27,9 +27,43 @@ ProductionComponent.static.SPECS = {
 	}
 }
 
+function ProductionComponent.static:save(cassette)
+	local data = {
+		type = self.type,
+		storedResources = self.storedResources,
+		completion = {},
+		reserved = {}
+	}
+
+	for villager,completion in ipairs(self.completion) do
+		table.insert(data.completion, { cassette:saveEntity(villager), completion })
+	end
+	for villager,reserved in ipairs(self.reserved) do
+		table.insert(data.reserved, { cassette:saveEntity(villager), reserved })
+	end
+
+	return data
+end
+
+function ProductionComponent.static.load(cassette, data)
+	local component = ProductionComponent(data.type)
+
+	component.storedResources = data.storedResources
+
+	for _,completion in ipairs(data.completion) do
+		component.completion[cassette:loadEntity(completion[1])] = completion[2]
+	end
+	for _,reserved in ipairs(data.reserved) do
+		component.reserved[cassette:loadEntity(reserved[1])] = reserved[2]
+	end
+
+	return component
+end
+
 function ProductionComponent:initialize(type)
-	self.specs = ProductionComponent.SPECS[type]
-	assert(self.specs, "No specification for "..tostring(type))
+	self.type = type
+	assert(ProductionComponent.SPECS[self.type], "No specification for "..tostring(type))
+
 	self.storedResources = {
 		[ResourceComponent.WOOD] = 0,
 		[ResourceComponent.IRON] = 0,
@@ -44,7 +78,8 @@ end
 function ProductionComponent:getNeededResources(villager, blacklist)
 	local resourcesNeeded = {}
 	local reserved = self.reserved[villager]
-	for resource,amount in pairs(self.specs.input) do
+	local specs = ProductionComponent.SPECS[self.type]
+	for resource,amount in pairs(specs.input) do
 		if amount > 0 and (not blacklist or not blacklist[resource]) and
 		   (not reserved or not reserved[resource] or reserved[resource] < amount) then
 			amount = amount - (reserved and reserved[resource] or 0)
@@ -69,11 +104,11 @@ function ProductionComponent:getNeededResources(villager, blacklist)
 end
 
 function ProductionComponent:getOutput()
-	return self.specs.output
+	return ProductionComponent.SPECS[self.type].output
 end
 
 function ProductionComponent:getMaxWorkers()
-	return self.specs.maxWorkers
+	return ProductionComponent.SPECS[self.type].maxWorkers
 end
 
 function ProductionComponent:addResource(resource, amount)

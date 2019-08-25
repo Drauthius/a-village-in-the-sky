@@ -12,6 +12,18 @@ TileComponent.static.TILE_NAME = {
 	[TileComponent.static.MOUNTAIN] = "mountain"
 }
 
+function TileComponent.static:save()
+	return {
+		type = self.type,
+		ti = self.ti,
+		tj = self.tj
+	}
+end
+
+function TileComponent.static.load(_, data)
+	return TileComponent(data.type, data.ti, data.tj)
+end
+
 function TileComponent:initialize(type, ti, tj)
 	self:setType(type)
 	self:setPosition(ti, tj)

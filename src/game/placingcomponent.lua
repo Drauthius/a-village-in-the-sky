@@ -2,6 +2,17 @@ local class = require "lib.middleclass"
 
 local PlacingComponent = class("PlacingComponent")
 
+function PlacingComponent.static:save()
+	return {
+		isTileType = self.isTileType,
+		type = self.type
+	}
+end
+
+function PlacingComponent.static.load(_, data)
+	return PlacingComponent(data.isTileType, data.type)
+end
+
 function PlacingComponent:initialize(isTile, type)
 	self.isTileType = isTile
 	self:setType(type)

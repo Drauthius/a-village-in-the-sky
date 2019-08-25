@@ -4,6 +4,19 @@ local SpriteComponent = class("SpriteComponent")
 
 SpriteComponent.static.standardColor = { 1, 1, 1, 1 }
 
+function SpriteComponent.static:save(cassette)
+	return {
+		sprite = self.sprite and cassette:saveSprite(self.sprite) or nil,
+		x = self.x,
+		y = self.y,
+		color = self.color
+	}
+end
+
+function SpriteComponent.static.load(cassette, data)
+	return SpriteComponent(data.sprite and cassette:loadSprite(data.sprite) or nil, data.x, data.y, data.color)
+end
+
 function SpriteComponent:initialize(sprite, x, y, color)
 	self:setSprite(sprite)
 	self:setDrawPosition(x, y)

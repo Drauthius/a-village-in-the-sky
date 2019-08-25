@@ -16,11 +16,33 @@ BuildingComponent.static.BUILDING_NAME = {
 	[BuildingComponent.static.RUNESTONE] = "runestone",
 }
 
+function BuildingComponent.static:save(cassette)
+	return {
+		type = self.type,
+		ti = self.ti,
+		tj = self.tj,
+		villagersInside = cassette:saveEntityList(self.villagersInside),
+		chimneys = cassette:saveEntityList(self.chimneys),
+		children = cassette:saveEntityList(self.children)
+	}
+end
+
+function BuildingComponent.static.load(cassette, data)
+	local component = BuildingComponent(data.type, data.ti, data.tj)
+
+	component.villagersInside = cassette:loadEntityList(data.villagersInside)
+	component.chimneys = cassette:loadEntityList(data.chimneys)
+	component.children = cassette:loadEntityList(data.children)
+
+	return component
+end
+
 function BuildingComponent:initialize(type, ti, tj)
 	self:setType(type)
 	self:setPosition(ti, tj)
 	self.villagersInside = {}
 	self.chimneys = {}
+	self.children = {}
 end
 
 function BuildingComponent:setType(type)
@@ -64,6 +86,14 @@ end
 
 function BuildingComponent:getChimneys()
 	return self.chimneys
+end
+
+function BuildingComponent:addChildEntity(entity)
+	table.insert(self.children, entity)
+end
+
+function BuildingComponent:getChildEntities()
+	return self.children
 end
 
 return BuildingComponent

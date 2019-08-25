@@ -2,6 +2,24 @@ local class = require "lib.middleclass"
 
 local ColorSwapComponent = class("ColorSwapComponent")
 
+function ColorSwapComponent.static:save()
+	return {
+		groups = self.groups,
+		oldColors = self.oldColors,
+		newColors = self.newColors
+	}
+end
+
+function ColorSwapComponent.static.load(_, data)
+	local component = ColorSwapComponent()
+
+	component.groups = data.groups
+	component.oldColors = data.oldColors
+	component.newColors = data.newColors
+
+	return component
+end
+
 function ColorSwapComponent:initialize()
 	self.groups = {}
 	self.oldColors = {}

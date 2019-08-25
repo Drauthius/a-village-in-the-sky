@@ -2,6 +2,35 @@ local class = require "lib.middleclass"
 
 local AnimationComponent = class("AnimationComponent")
 
+function AnimationComponent.static:save(cassette)
+	local data = {
+		updateTimer = self.updateTimer,
+		animation = self.animation,
+		currentFrame = self.currentFrame,
+		frames = {}
+	}
+
+	for _,frame in ipairs(self.frames) do
+		table.insert(data.frames, cassette:saveSprite(frame))
+	end
+
+	return data
+end
+
+function AnimationComponent.static.load(cassette, data)
+	local component = AnimationComponent()
+
+	component.updateTimer = data.updateTimer
+	component.animation = data.animation
+	component.currentFrame = data.currentFrame
+
+	for _,frame in ipairs(data.frames) do
+		table.insert(component.frames, cassette:loadSprite(frame))
+	end
+
+	return component
+end
+
 function AnimationComponent:initialize()
 	self.updateTimer = 0
 	self.animation = nil

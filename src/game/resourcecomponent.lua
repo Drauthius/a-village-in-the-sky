@@ -16,6 +16,24 @@ ResourceComponent.static.RESOURCE_NAME = {
 	[ResourceComponent.BREAD] = "bread",
 }
 
+function ResourceComponent.static:save(cassette)
+	return {
+		resource = self.resource,
+		stack = self.stack,
+		extracted = self.extracted,
+		reserved = self.reserved and cassette:saveEntity(self.reserved) or nil,
+		reservedAmount = self.reservedAmount
+	}
+end
+
+function ResourceComponent.static.load(cassette, data)
+	local component = ResourceComponent(data.resource, data.stack, data.extracted)
+
+	component:setReserved(data.reserved and cassette:loadEntity(data.reserved) or nil, data.reservedAmount)
+
+	return component
+end
+
 function ResourceComponent:initialize(resource, num, extracted)
 	self.resource = resource
 	self.stack = num or 3

@@ -16,6 +16,21 @@ EntranceComponent.static.GRIDS = {
 	}
 }
 
+function EntranceComponent.static:save()
+	return {
+		type = self.type,
+		open = self.open
+	}
+end
+
+function EntranceComponent.static.load(_, data)
+	local component = EntranceComponent(data.type)
+
+	component.open = data.open
+
+	return component
+end
+
 function EntranceComponent:initialize(buildingType)
 	self.type = buildingType
 	self.open = false

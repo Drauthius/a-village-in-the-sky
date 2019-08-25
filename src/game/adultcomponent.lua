@@ -4,6 +4,27 @@ local WorkComponent = require "src.game.workcomponent"
 
 local AdultComponent = class("AdultComponent")
 
+function AdultComponent.static:save(cassette)
+	return {
+		workArea = self.workArea,
+		workPlace = self.workPlace and cassette:saveEntity(self.workPlace) or nil,
+		occupation = self.occupation
+	}
+end
+
+function AdultComponent.static.load(cassette, data)
+	local component = AdultComponent()
+
+	if data.workArea then
+		component:setWorkArea(unpack(data.workArea))
+	end
+
+	component:setWorkPlace(data.workPlace and cassette:loadEntity(data.workPlace) or nil)
+	component:setOccupation(data.occupation)
+
+	return component
+end
+
 function AdultComponent:initialize()
 	self:setWorkArea(nil)
 	self:setWorkPlace(nil)

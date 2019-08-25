@@ -2,6 +2,17 @@ local class = require "lib.middleclass"
 
 local GroundComponent = class("GroundComponent")
 
+function GroundComponent.static:save()
+	return {
+		gx = self.gx,
+		gy = self.gy
+	}
+end
+
+function GroundComponent.static.load(_, data)
+	return GroundComponent(data.gx, data.gy)
+end
+
 function GroundComponent:initialize(gx, gy)
 	self:setPosition(gx, gy)
 end

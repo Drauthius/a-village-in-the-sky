@@ -2,8 +2,10 @@ local class = require "lib.middleclass"
 
 local Sprite = class("Sprite")
 
-function Sprite:initialize(spritesheet, quad, data)
+function Sprite:initialize(spritesheet, name, quad, data)
 	self.spritesheet = spritesheet
+	self.name = name
+
 	if type(quad) == "table" then
 		self.spriteBatch = love.graphics.newSpriteBatch(spritesheet:getImage(), #quad, "static")
 		for _,v in ipairs(quad) do
@@ -32,6 +34,10 @@ function Sprite:draw(image, x, y)
 		love.graphics.rectangle("fill", x, y, self.w, self.h)
 		love.graphics.setColor(1, 1, 1)
 	end
+end
+
+function Sprite:getName()
+	return self.name
 end
 
 function Sprite:getQuad()

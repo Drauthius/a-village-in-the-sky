@@ -97,43 +97,55 @@ function FieldSystem:workEvent(event)
 			workPlace:get("SpriteComponent"):setSprite(spriteSheet:getSprite("field-single ("..stateName..")"))
 		elseif fieldState == FieldComponent.PLOWED then
 			fieldState = FieldComponent.IN_PROGRESS
-			workPlace:add(TimerComponent(FieldSystem.TIMERS.SEED_DELAY, function()
-				workPlace:remove("TimerComponent")
-				field:setState(FieldComponent.SEEDED)
-				local stateName = FieldComponent.STATE_NAMES[field:getState()]:gsub("^%l", string.upper)
-				workPlace:get("SpriteComponent"):setSprite(spriteSheet:getSprite("field-single ("..stateName..")"))
+			workPlace:add(TimerComponent(FieldSystem.TIMERS.SEED_DELAY, { workPlace }, function(data)
+				local ent = data[1]
+				local FieldComp = require "src.game.fieldcomponent"
+				local fieldComp = ent:get("FieldComponent")
+
+				fieldComp:setState(FieldComp.SEEDED)
+				local stateName = FieldComp.STATE_NAMES[fieldComp:getState()]:gsub("^%l", string.upper)
+				ent:get("SpriteComponent"):setSprite(require("src.game.spritesheet"):getSprite("field-single ("..stateName..")"))
+				ent:remove("TimerComponent")
 			end))
 		elseif fieldState == FieldComponent.SEEDED then
 			fieldState = FieldComponent.IN_PROGRESS
-			workPlace:add(TimerComponent(FieldSystem.TIMERS.GROW_DELAY, function()
-				workPlace:remove("TimerComponent")
-				field:setState(FieldComponent.GROWING)
-				local stateName = FieldComponent.STATE_NAMES[field:getState()]:gsub("^%l", string.upper)
+			workPlace:add(TimerComponent(FieldSystem.TIMERS.GROW_DELAY, { workPlace }, function(data)
+				local ent = data[1]
+				local FieldComp = require "src.game.fieldcomponent"
+				local fieldComp = ent:get("FieldComponent")
+
+				fieldComp:setState(FieldComp.GROWING)
+				local stateName = FieldComp.STATE_NAMES[fieldComp:getState()]:gsub("^%l", string.upper)
 				local spriteName = "field-single ("..stateName..")"
 				local sprites = { spriteName }
-				if field:getIndex() <= 3 then
+				if fieldComp:getIndex() <= 3 then
 					table.insert(sprites, (spriteName:gsub("%)", " Outline W)")))
 				end
-				if (field:getIndex() - 1) % 3 == 0 then
+				if (fieldComp:getIndex() - 1) % 3 == 0 then
 					table.insert(sprites, (spriteName:gsub("%)", " Outline E)")))
 				end
-				workPlace:get("SpriteComponent"):setSprite(spriteSheet:getSprite(sprites))
+				ent:get("SpriteComponent"):setSprite(require("src.game.spritesheet"):getSprite(sprites))
+				ent:remove("TimerComponent")
 			end))
 		elseif fieldState == FieldComponent.GROWING then
 			fieldState = FieldComponent.IN_PROGRESS
-			workPlace:add(TimerComponent(FieldSystem.TIMERS.HARVEST_DELAY, function()
-				workPlace:remove("TimerComponent")
-				field:setState(FieldComponent.HARVESTING)
-				local stateName = FieldComponent.STATE_NAMES[field:getState()]:gsub("^%l", string.upper)
+			workPlace:add(TimerComponent(FieldSystem.TIMERS.HARVEST_DELAY, { workPlace }, function(data)
+				local ent = data[1]
+				local FieldComp = require "src.game.fieldcomponent"
+				local fieldComp = ent:get("FieldComponent")
+
+				fieldComp:setState(FieldComp.HARVESTING)
+				local stateName = FieldComp.STATE_NAMES[fieldComp:getState()]:gsub("^%l", string.upper)
 				local spriteName = "field-single ("..stateName..")"
 				local sprites = { spriteName }
-				--if field:getIndex() <= 3 then
+				--if fieldComp:getIndex() <= 3 then
 					--table.insert(sprites, (spriteName:gsub("%)", " Outline W)")))
 				--end
-				--if (field:getIndex() - 1) % 3 == 0 then
+				--if (fieldComp:getIndex() - 1) % 3 == 0 then
 					--table.insert(sprites, (spriteName:gsub("%)", " Outline E)")))
 				--end
-				workPlace:get("SpriteComponent"):setSprite(spriteSheet:getSprite(sprites))
+				ent:get("SpriteComponent"):setSprite(require("src.game.spritesheet"):getSprite(sprites))
+				ent:remove("TimerComponent")
 			end))
 		elseif fieldState == FieldComponent.HARVESTING then
 			fieldState = FieldComponent.UNCULTIVATED

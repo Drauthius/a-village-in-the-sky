@@ -90,6 +90,7 @@ function WalkingSystem:_walkTheWalk(entity, dt)
 		path = walking:getPath()
 
 		-- Add a timer to recalculate the path regularly, to be more up to date with ones surroundings.
+		--[[ TODO: Reimplement
 		if walking:getInstructions() ~= WalkingComponent.INSTRUCTIONS.WANDER and
 		   walking:getInstructions() ~= WalkingComponent.INSTRUCTIONS.GET_OUT_THE_WAY then
 			if not entity:has("TimerComponent") then
@@ -109,6 +110,7 @@ function WalkingSystem:_walkTheWalk(entity, dt)
 				print("Timer for instruction "..walking:getInstructions())
 			end
 		end
+		--]]
 	end
 
 	local nextGrid = walking:getNextGrid()

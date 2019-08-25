@@ -67,16 +67,68 @@ function ConstructionComponent.static:getRefundedResources(type)
 	return refund
 end
 
+function ConstructionComponent.static:save(cassette)
+	local data = {
+		buildingType = self.buildingType,
+		level = self.level,
+		missingResources = self.missingResources,
+		unreservedResources = self.unreservedResources,
+		numCommittedResources = self.numCommittedResources,
+		numAvailableResources = self.numAvailableResources,
+		numTotalResources = self.numTotalResources
+	}
+
+	if self.workGrids then
+		data.workGrids = {}
+		for _,grid in ipairs(self.workGrids) do
+			table.insert(data.workGrids, {
+				cassette:saveGrid(grid[1]),
+				grid[2],
+				grid[3] and cassette:saveEntity(grid[3]) or nil
+			})
+		end
+	end
+
+	return data
+end
+
+function ConstructionComponent.static.load(cassette, data)
+	local component = ConstructionComponent:allocate()
+
+	component.buildingType = data.buildingType
+	component.level = data.level
+	component.missingResources = data.missingResources
+	component.unreservedResources = data.unreservedResources
+	component.numCommittedResources = data.numCommittedResources
+	component.numAvailableResources = data.numAvailableResources
+	component.numTotalResources = data.numTotalResources
+
+	if data.workGrids then
+		component.workGrids = {}
+		for _,grid in ipairs(data.workGrids) do
+			table.insert(component.workGrids, {
+				cassette:loadGrid(grid[1]),
+				grid[2],
+				grid[3] and cassette:loadEntity(grid[3]) or nil
+			})
+		end
+	end
+
+	return component
+end
+
 function ConstructionComponent:initialize(type, level)
 	self.buildingType = type
-	self.blueprint = ConstructionComponent.MATERIALS[self.buildingType]
-	if level then
-		self.blueprint = self.blueprint[level]
-	end
-	assert(self.blueprint, "Missing resource information for building type "..tostring(self.buildingType))
+	self.level = level
 
-	self.missingResources = table.clone(self.blueprint)
-	self.unreservedResources = table.clone(self.blueprint)
+	local blueprint = ConstructionComponent.MATERIALS[self.buildingType]
+	if self.level then
+		blueprint = blueprint[self.level]
+	end
+	assert(blueprint, "Missing resource information for building type "..tostring(self.buildingType))
+
+	self.missingResources = table.clone(blueprint)
+	self.unreservedResources = table.clone(blueprint)
 
 	self.numCommittedResources = 0
 	self.numAvailableResources = 0
@@ -141,7 +193,11 @@ end
 
 function ConstructionComponent:getRefundedResources()
 	local refund = {}
-	for resource,amount in pairs(self.blueprint) do
+	local blueprint = ConstructionComponent.MATERIALS[self.buildingType]
+	if self.level then
+		blueprint = blueprint[self.level]
+	end
+	for resource,amount in pairs(blueprint) do
 		refund[resource] = math.floor((amount - self.missingResources[resource]) * 0.75)
 	end
 

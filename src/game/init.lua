@@ -5,6 +5,7 @@ local lovetoys = require "lib.lovetoys.lovetoys"
 local table = require "lib.table"
 local math = require "lib.math"
 
+local Cassette = require "src.game.cassette"
 local Background = require "src.game.background"
 local GUI = require "src.game.gui"
 local Map = require "src.game.map"
@@ -85,16 +86,13 @@ function Game:init()
 	WorkSystem = require "src.game.worksystem"
 end
 
-function Game:enter()
+function Game:enter(_, profile)
 	love.graphics.setBackgroundColor(0.1, 0.5, 1)
 
 	self.speed = 1
 
-	-- Set up the map and level.
+	-- Set up the map.
 	self.map = Map()
-	self.level = DefaultLevel()
-	--self.level = require("src.game.level.hallway")()
-	--self.level = require("src.game.level.runestones")()
 
 	-- Set up the camera.
 	self.camera = Camera()
@@ -195,7 +193,19 @@ function Game:enter()
 		self:onRemoveEntity(entity)
 	end
 
-	self.level:initiate(self.engine, self.map, self.gui)
+	-- Set up the level.
+	self.level = DefaultLevel(self.engine, self.map, self.gui)
+	--self.level = require("src.game.level.hallway")(self.engine, self.map, self.gui)
+	--self.level = require("src.game.level.runestones")(self.engine, self.map, self.gui)
+
+	-- Load the game, or create an initial save.
+	self.cassette = Cassette(profile)
+	if self.cassette:isValid() then
+		self.cassette:load(self.engine, self.map, self.level)
+	else
+		self.level:initial()
+		self.cassette:save(self.engine, self.map, self.level)
+	end
 
 	self:_updateCameraBoundingBox()
 	self.numTouches = 0
@@ -326,6 +336,9 @@ function Game:keyreleased(key, scancode)
 		self.speed = 10
 	elseif scancode == "5" then
 		self.speed = 50
+	elseif scancode == "s" then
+		print("Saving game...")
+		self.cassette:save(self.engine, self.map, self.level)
 	end
 end
 

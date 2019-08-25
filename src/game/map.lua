@@ -78,7 +78,9 @@ function Map:addTile(type, ti, tj)
 				gi = gi,
 				gj = gj,
 				tile = self.tile[ti][tj],
-				collision = Map.COLL_NONE
+				collision = Map.COLL_NONE,
+				occupied = nil,
+				owner = nil
 			}
 			-- Mark the edge as reserved.
 			if gi == sgi or gi == sgi + self.gridsPerTile - 1 or gj == sgj or gj == sgj + self.gridsPerTile - 1 then

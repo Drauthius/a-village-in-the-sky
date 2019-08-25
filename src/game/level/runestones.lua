@@ -12,21 +12,21 @@ local RunestoneLevel = Level:subclass("RunestoneLevel")
 local blueprint = require "src.game.blueprint"
 local spriteSheet = require "src.game.spritesheet"
 
-function RunestoneLevel:initiate(engine, map)
+function RunestoneLevel:initial()
 	for i,tiles in ipairs({ {0,0}, {2,1}, {0,3} }) do
 		local tile = lovetoys.Entity()
 		tile:add(TileComponent(TileComponent.GRASS, unpack(tiles)))
-		local dx, dy = map:tileToWorldCoords(unpack(tiles))
-		tile:add(SpriteComponent(spriteSheet:getSprite("grass-tile"), dx - map.halfTileWidth, dy))
-		engine:addEntity(tile)
-		map:addTile(TileComponent.GRASS, unpack(tiles))
+		local dx, dy = self.map:tileToWorldCoords(unpack(tiles))
+		tile:add(SpriteComponent(spriteSheet:getSprite("grass-tile"), dx - self.map.halfTileWidth, dy))
+		self.engine:addEntity(tile)
+		self.map:addTile(TileComponent.GRASS, unpack(tiles))
 
 		local runestone = blueprint:createRunestone(i)
-		local x, y, minGrid, maxGrid = map:addObject(runestone, unpack(tiles))
+		local x, y, minGrid, maxGrid = self.map:addObject(runestone, unpack(tiles))
 		runestone:get("SpriteComponent"):setDrawPosition(x, y)
 		runestone:add(PositionComponent(minGrid, maxGrid, unpack(tiles)))
 		InteractiveComponent:makeInteractive(runestone, x, y)
-		engine:addEntity(runestone)
+		self.engine:addEntity(runestone)
 	end
 end
 

@@ -71,7 +71,7 @@ function SpriteSheet:getSprite(name, slice, frame)
 		end
 
 		self.spriteCache[cacheName] = {
-			Sprite(self, #quads == 1 and quads[1] or quads),
+			Sprite(self, cacheName, #quads == 1 and quads[1] or quads),
 			duration
 		}
 	end

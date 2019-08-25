@@ -37,6 +37,16 @@ function ProfilePanel:setContent(year, numVillagers, numBuildings)
 	end
 end
 
+function ProfilePanel:setCorrupt()
+	self.corrupt = true
+	self:setText("Corrupted!")
+	self.disabled = true
+end
+
+function ProfilePanel:isDisabled()
+	return self.disabled == true
+end
+
 function ProfilePanel:draw(ox, oy)
 	ox, oy = ox or 0, oy or 0
 	Widget.draw(self, ox, oy)

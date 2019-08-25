@@ -20,52 +20,52 @@ local spriteSheet = require "src.game.spritesheet"
 HallwayLevel.static.NUM_VILLAGERS = 10
 HallwayLevel.static.SIZE = 2
 
-function HallwayLevel:initiate(engine, map)
+function HallwayLevel:initial()
 	local tile = lovetoys.Entity()
 	tile:add(TileComponent(TileComponent.GRASS, 0, 0))
-	tile:add(SpriteComponent(spriteSheet:getSprite("grass-tile"), -map.halfTileWidth))
-	engine:addEntity(tile)
-	map:addTile(TileComponent.GRASS, 0, 0)
+	tile:add(SpriteComponent(spriteSheet:getSprite("grass-tile"), -self.map.halfTileWidth))
+	self.engine:addEntity(tile)
+	self.map:addTile(TileComponent.GRASS, 0, 0)
 
 	local villagers = HallwayLevel.NUM_VILLAGERS
-	for gi=0,map.gridsPerTile - 1 do
-		for gj=0,map.gridsPerTile - 1 do
-			if math.floor(map.gridsPerTile / 2) >= gi and math.floor(map.gridsPerTile / 2) < gi + HallwayLevel.SIZE then
+	for gi=0,self.map.gridsPerTile - 1 do
+		for gj=0,self.map.gridsPerTile - 1 do
+			if math.floor(self.map.gridsPerTile/2) >= gi and math.floor(self.map.gridsPerTile/2) < gi + HallwayLevel.SIZE then
 				if gj % 2 == 1 and villagers > 0 then
 					local villager = blueprint:createVillager(nil, nil, "male", 20)
 
-					villager:add(PositionComponent(map:getGrid(gi, gj), nil, 0, 0))
-					villager:add(GroundComponent(map:gridToGroundCoords(gi + 0.5, gj + 0.5)))
+					villager:add(PositionComponent(self.map:getGrid(gi, gj), nil, 0, 0))
+					villager:add(GroundComponent(self.map:gridToGroundCoords(gi + 0.5, gj + 0.5)))
 
-					engine:addEntity(villager)
+					self.engine:addEntity(villager)
 					villagers = villagers - 1
 				end
 			else
-				local type = math.floor(map.gridsPerTile / 2) > gi and ResourceComponent.WOOD or ResourceComponent.TOOL
+				local type = math.floor(self.map.gridsPerTile / 2) > gi and ResourceComponent.WOOD or ResourceComponent.TOOL
 				local resource = blueprint:createResourcePile(type, 3)
 
-				map:addResource(resource, map:getGrid(gi, gj))
-				resource:add(PositionComponent(map:getGrid(gi, gj), nil, 0, 0))
-				engine:addEntity(resource)
+				self.map:addResource(resource, self.map:getGrid(gi, gj))
+				resource:add(PositionComponent(self.map:getGrid(gi, gj), nil, 0, 0))
+				self.engine:addEntity(resource)
 			end
 		end
 	end
 
 	tile = lovetoys.Entity()
 	tile:add(TileComponent(TileComponent.GRASS, 0, -1))
-	tile:add(SpriteComponent(spriteSheet:getSprite("grass-tile"), 0, -map.halfTileHeight))
-	engine:addEntity(tile)
-	map:addTile(TileComponent.GRASS, 0, -1)
+	tile:add(SpriteComponent(spriteSheet:getSprite("grass-tile"), 0, -self.map.halfTileHeight))
+	self.engine:addEntity(tile)
+	self.map:addTile(TileComponent.GRASS, 0, -1)
 
 	local dwelling = blueprint:createPlacingBuilding(BuildingComponent.DWELLING)
-	local ax, ay, minGrid, maxGrid = map:addObject(dwelling, 0, -1)
+	local ax, ay, minGrid, maxGrid = self.map:addObject(dwelling, 0, -1)
 	dwelling:get("SpriteComponent"):setDrawPosition(ax, ay)
 	dwelling:add(PositionComponent(minGrid, maxGrid, 0, -1))
 	dwelling:add(ConstructionComponent(BuildingComponent.DWELLING))
 	dwelling:add(AssignmentComponent(4))
 	InteractiveComponent:makeInteractive(dwelling, ax, ay)
 	dwelling:remove("PlacingComponent")
-	engine:addEntity(dwelling)
+	self.engine:addEntity(dwelling)
 end
 
 return HallwayLevel

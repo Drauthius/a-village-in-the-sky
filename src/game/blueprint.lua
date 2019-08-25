@@ -21,7 +21,6 @@ local spriteSheet = require "src.game.spritesheet"
 
 local Blueprint = class("Blueprint")
 
-Blueprint.static.PARTICLE_SYSTEMS = {}
 Blueprint.static.VILLAGER_PALETTES = {}
 
 -- Chance that the child does not dress/look like its parents, per item/group.
@@ -216,33 +215,27 @@ function Blueprint:createWoodSparksParticle()
 	local entity = lovetoys.Entity()
 	local sprite = spriteSheet:getSprite("spark")
 
-	local particleSystem = Blueprint.PARTICLE_SYSTEMS.WOOD_SPARK
-	if not particleSystem then
-		particleSystem = love.graphics.newParticleSystem(spriteSheet:getImage(), 32)
-		particleSystem:setQuads(sprite:getQuad())
-		particleSystem:setColors(0.388, 0.326, 0.263, 0.9)
-		particleSystem:setEmissionRate(69)
-		particleSystem:setEmitterLifetime(0.1)
-		local _, _, w, h = sprite:getQuad():getViewport()
-		particleSystem:setOffset(w/2, h/2)
-		particleSystem:setInsertMode("random")
-		particleSystem:setLinearAcceleration(0, 50, 0, 80)
-		particleSystem:setRadialAcceleration(-2, -10)
-		particleSystem:setEmissionArea("uniform", 2, 2)
-		particleSystem:setParticleLifetime(0.3)
-		particleSystem:setRotation(-math.pi, math.pi)
-		particleSystem:setSpeed(30, 30)
-		particleSystem:setSpread(2*math.pi)
-		particleSystem:setSizeVariation(0.5)
-		particleSystem:setSizes(1.0, 0.5)
-		particleSystem:setSpin(-math.pi, math.pi)
-		particleSystem:setSpinVariation(1)
-		particleSystem:emit(1)
+	local def = {
+		_buffer = 32,
+		_sprite = sprite,
+		colors = { 0.388, 0.326, 0.263, 0.9 },
+		emissionRate = 69,
+		emitterLifetime = 0.1,
+		insertMode = "random",
+		linearAcceleration = { 0, 50, 0, 80 },
+		radialAcceleration = { -2, -10 },
+		emissionArea = { "uniform", 2, 2 },
+		particleLifetime = 0.3,
+		rotation = { -math.pi, math.pi },
+		speed = { 30, 30 },
+		spread = { 2*math.pi },
+		sizeVariation = { 0.5 },
+		sizes = { 1.0, 0.5 },
+		spin = { -math.pi, math.pi },
+		spinVariation = 1
+	}
 
-		Blueprint.PARTICLE_SYSTEMS.WOOD_SPARK = particleSystem
-	end
-
-	entity:add(ParticleComponent(particleSystem:clone(), true))
+	entity:add(ParticleComponent(def, 1, true))
 	entity:add(SpriteComponent(sprite))
 
 	return entity
@@ -252,33 +245,27 @@ function Blueprint:createIronSparksParticle()
 	local entity = lovetoys.Entity()
 	local sprite = spriteSheet:getSprite("spark")
 
-	local particleSystem = Blueprint.PARTICLE_SYSTEMS.IRON_SPARK
-	if not particleSystem then
-		particleSystem = love.graphics.newParticleSystem(spriteSheet:getImage(), 32)
-		particleSystem:setQuads(sprite:getQuad())
-		particleSystem:setColors(0.665, 0.680, 0.645, 0.9)
-		particleSystem:setEmissionRate(69)
-		particleSystem:setEmitterLifetime(0.1)
-		local _, _, w, h = sprite:getQuad():getViewport()
-		particleSystem:setOffset(w/2, h/2)
-		particleSystem:setInsertMode("random")
-		particleSystem:setLinearAcceleration(0, 50, 0, 80)
-		particleSystem:setRadialAcceleration(-2, -10)
-		particleSystem:setEmissionArea("uniform", 2, 2)
-		particleSystem:setParticleLifetime(0.3)
-		particleSystem:setRotation(-math.pi, math.pi)
-		particleSystem:setSpeed(30, 30)
-		particleSystem:setSpread(2*math.pi)
-		particleSystem:setSizeVariation(0.5)
-		particleSystem:setSizes(1.0, 0.5)
-		particleSystem:setSpin(-math.pi, math.pi)
-		particleSystem:setSpinVariation(1)
-		particleSystem:emit(1)
+	local def = {
+		_buffer = 32,
+		_sprite = sprite,
+		colors = { 0.665, 0.680, 0.645, 0.9 },
+		emissionRate = 69,
+		emitterLifetime = 0.1,
+		insertMode = "random",
+		linearAcceleration = { 0, 50, 0, 80 },
+		radialAcceleration = { -2, -10 },
+		emissionArea = { "uniform", 2, 2 },
+		particleLifetime = 0.3,
+		rotation = { -math.pi, math.pi },
+		speed = { 30, 30 },
+		spread = { 2*math.pi },
+		sizeVariation = 0.5,
+		sizes = { 1.0, 0.5 },
+		spin = { -math.pi, math.pi },
+		spinVariation = 1
+	}
 
-		Blueprint.PARTICLE_SYSTEMS.IRON_SPARK = particleSystem
-	end
-
-	entity:add(ParticleComponent(particleSystem:clone(), true))
+	entity:add(ParticleComponent(def, 1, true))
 	entity:add(SpriteComponent(sprite))
 
 	return entity
@@ -288,32 +275,26 @@ function Blueprint:createSmokeParticle()
 	local entity = lovetoys.Entity()
 	local sprite = spriteSheet:getSprite("smoke")
 
-	local particleSystem = Blueprint.PARTICLE_SYSTEMS.SMOKE
-	if not particleSystem then
-		particleSystem = love.graphics.newParticleSystem(spriteSheet:getImage(), 32)
-		particleSystem:setQuads(sprite:getQuad())
-		particleSystem:setColors(1, 1, 1, 0.8,
-		                         1, 1, 1, 0.5,
-		                         1, 1, 1, 0.0)
-		particleSystem:setEmissionRate(5)
-		particleSystem:setEmitterLifetime(-1)
-		local _, _, w, h = sprite:getQuad():getViewport()
-		particleSystem:setOffset(w/2, h/2)
-		particleSystem:setInsertMode("random")
-		particleSystem:setLinearAcceleration(-0.5, -3, 0.5, -3)
-		particleSystem:setRadialAcceleration(10, 10)
-		particleSystem:setParticleLifetime(2, 3)
-		particleSystem:setRotation(math.rad(1), math.rad(360))
-		particleSystem:setSizeVariation(0.2)
-		particleSystem:setSizes(0.5, 1.0, 2.5)
-		particleSystem:setSpin(math.rad(5), math.rad(15))
-		particleSystem:setSpinVariation(1)
-		particleSystem:pause()
+	local def = {
+		_buffer = 32,
+		_sprite = sprite,
+		colors = { 1, 1, 1, 0.8,
+		           1, 1, 1, 0.5,
+		           1, 1, 1, 0.0 },
+		emissionRate = 5,
+		emitterLifetime = -1,
+		insertMode = "random",
+		linearAcceleration = { -0.5, -3, 0.5, -3 },
+		radialAcceleration = { 10, 10 },
+		particleLifetime = { 2, 3 },
+		rotation = { math.rad(1), math.rad(360) },
+		sizeVariation = 0.2,
+		sizes = { 0.5, 1.0, 2.5 },
+		spin = { math.rad(5), math.rad(15) },
+		spinVariation = 1
+	}
 
-		Blueprint.PARTICLE_SYSTEMS.SMOKE = particleSystem
-	end
-
-	entity:add(ParticleComponent(particleSystem:clone(), false))
+	entity:add(ParticleComponent(def, -1, false))
 	entity:add(SpriteComponent(sprite))
 
 	return entity
@@ -322,49 +303,47 @@ end
 function Blueprint:createDustParticle(direction, small)
 	local entity = lovetoys.Entity()
 	local frames = spriteSheet:getFrameTag("Dust "..direction)
-	local firstSprite, duration = spriteSheet:getSprite("dust-effect "..frames.from)
 
-	local particleSystem = Blueprint.PARTICLE_SYSTEMS[(small and "SMALL_" or "").."DUST_"..direction]
-	if not particleSystem then
-		local quads = { firstSprite:getQuad() }
-		for i=frames.from + 1, frames.to do
-			table.insert(quads, spriteSheet:getSprite("dust-effect "..i):getQuad())
-		end
-
-		particleSystem = love.graphics.newParticleSystem(spriteSheet:getImage(), 32)
-		particleSystem:setQuads(quads)
-		particleSystem:setEmitterLifetime(0.1)
-		local _, _, w, h = firstSprite:getQuad():getViewport()
-		particleSystem:setOffset(w/2, h/2)
-		particleSystem:setSpeed(15)
-		local dir
-		if direction == "SE" then
-			dir = math.pi/4
-		elseif direction == "SW" then
-			dir = 3*math.pi/4
-		elseif direction == "NE" then
-			dir = -math.pi/4
-		elseif direction == "NW" then
-			dir = -3*math.pi/4
-		end
-		particleSystem:setDirection(dir)
-		particleSystem:setParticleLifetime(duration * #quads / 1000 / 2)
-		if small then
-			particleSystem:setEmissionRate(20)
-			particleSystem:setEmissionArea("ellipse", 3, 15, dir)
-			particleSystem:setSizes(0.4)
-		else
-			particleSystem:setEmissionRate(30)
-			particleSystem:setEmissionArea("ellipse", 3, 25, dir)
-			particleSystem:setSizes(0.6)
-		end
-		particleSystem:emit(1)
-
-		Blueprint.PARTICLE_SYSTEMS[(small and "SMALL_" or "").."DUST_"..direction] = particleSystem
+	local sprites = {}
+	local duration
+	for i=frames.from + 1, frames.to do
+		local sprite, dur = spriteSheet:getSprite("dust-effect "..i)
+		duration = duration or dur
+		table.insert(sprites, sprite)
 	end
 
-	entity:add(ParticleComponent(particleSystem:clone(), true))
-	entity:add(SpriteComponent(firstSprite))
+	local dir
+	if direction == "SE" then
+		dir = math.pi/4
+	elseif direction == "SW" then
+		dir = 3*math.pi/4
+	elseif direction == "NE" then
+		dir = -math.pi/4
+	elseif direction == "NW" then
+		dir = -3*math.pi/4
+	end
+
+	local def = {
+		_buffer = 16,
+		_sprites = sprites,
+		emitterLifetime = 0.1,
+		speed = 15,
+		direction = dir,
+		particleLifetime = duration * #sprites / 1000 / 2
+	}
+
+	if small then
+		def.emissionRate = 20
+		def.emissionArea = { "ellipse", 3, 15, dir }
+		def.sizes = 0.4
+	else
+		def.emissionRate = 30
+		def.emissionArea = { "ellipse", 3, 25, dir }
+		def.sizes = 0.6
+	end
+
+	entity:add(ParticleComponent(def, 1, true))
+	entity:add(SpriteComponent(sprites[1]))
 
 	return entity
 end
@@ -381,28 +360,20 @@ function Blueprint:createDeathParticle(villager)
 			(villager:get("VillagerComponent"):getGender() == "male" and "boy" or "girl").." - SE")
 	end
 
-	local particleSystem = Blueprint.PARTICLE_SYSTEMS.DEATH
-	if not particleSystem then
-		particleSystem = love.graphics.newParticleSystem(spriteSheet:getImage(), 1)
-		particleSystem:setQuads(sprite:getQuad())
-		particleSystem:setColors(0.2, 0.2, 0.9, 0.8,
-		                         0.2, 0.2, 0.9, 0.5,
-								 0.2, 0.2, 0.9, 0.0)
-		particleSystem:setEmissionRate(10)
-		particleSystem:setEmitterLifetime(0.1)
-		local _, _, w, h = sprite:getQuad():getViewport()
-		particleSystem:setOffset(w/2, h/2)
-		particleSystem:setLinearAcceleration(-0.5, -3, 0.5, -3)
-		particleSystem:setRadialAcceleration(10)
-		particleSystem:setParticleLifetime(3)
-		particleSystem:emit(1)
+	local def = {
+		_buffer = 1,
+		_sprite = sprite,
+		colors = { 0.2, 0.2, 0.9, 0.8,
+		           0.2, 0.2, 0.9, 0.5,
+		           0.2, 0.2, 0.9, 0.0 },
+		emissionRate = 10,
+		emitterLifetime = 0.1,
+		linearAcceleration = { -0.5, -3, 0.5, -3 },
+		radialAcceleration = 10,
+		particleLifetime = 3
+	}
 
-		Blueprint.PARTICLE_SYSTEMS.DEATH = particleSystem
-	end
-
-	entity:add(ParticleComponent(particleSystem:clone(), true))
-	-- The quad has to be replaced in the particle system as well.
-	entity:get("ParticleComponent"):getParticleSystem():setQuads(sprite:getQuad())
+	entity:add(ParticleComponent(def, 1, true))
 	entity:add(SpriteComponent(sprite))
 	-- TODO: Either color swap to more phantasmal colours, or create new sprites.
 

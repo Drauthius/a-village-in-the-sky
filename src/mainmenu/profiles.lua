@@ -1,4 +1,5 @@
 local babel = require "lib.babel"
+local serpent = require "lib.serpent"
 local GameState = require "lib.hump.gamestate"
 local Timer = require "lib.hump.timer"
 
@@ -33,7 +34,24 @@ function Profiles:init()
 		ProfilePanel()
 	}
 
-	self.panels[1]:setContent(123, 14, 8)
+	for k,panel in ipairs(self.panels) do
+		if love.filesystem.getInfo("save"..k, "file") then
+			local content, err = love.filesystem.read("save"..k)
+			if not content then
+				print(err)
+			else
+				local ok, data = serpent.load(content, { safe = false }) -- Safety has to be turned off to load functions.
+				if ok then
+					panel:setContent(data.year, data.numVillagers, data.numBuildings)
+				else
+					print(data)
+					panel:setCorrupt()
+				end
+			end
+		else
+			panel:setContent()
+		end
+	end
 end
 
 function Profiles:enter(from)
@@ -128,7 +146,7 @@ function Profiles:mousereleased(x, y)
 
 	x, y = screen:getCoordinate(x, y)
 	for i,panel in ipairs(self.panels) do
-		if panel:isWithin(x, y) then
+		if panel:isWithin(x, y) and not panel:isDisabled() then
 			return GameState.switch(Game, i)
 		end
 	end

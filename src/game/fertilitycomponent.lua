@@ -2,6 +2,20 @@ local class = require "lib.middleclass"
 
 local FertilityComponent = class("FertilityComponent")
 
+function FertilityComponent.static:save()
+	return {
+		fertility = self.fertility
+	}
+end
+
+function FertilityComponent.static.load(_, data)
+	local component = FertilityComponent()
+
+	component.fertility = data.fertility
+
+	return component
+end
+
 function FertilityComponent:initialize()
 	-- This is the chance to produce a baby per intercourse.
 	self.fertility = love.math.random(55, 95) / 100.0

@@ -17,6 +17,22 @@ FieldComponent.static.STATE_NAMES = {
 	[FieldComponent.HARVESTING] = "harvesting"
 }
 
+function FieldComponent.static:save(cassette)
+	return {
+		state = self.state,
+		enclosure = cassette:saveEntity(self.enclosure),
+		index = self.index
+	}
+end
+
+function FieldComponent.static.load(cassette, data)
+	local component = FieldComponent(cassette:loadEntity(data.enclosure), data.index)
+
+	component:setState(data.state)
+
+	return component
+end
+
 function FieldComponent:initialize(enclosure, index)
 	self:setState(FieldComponent.UNCULTIVATED)
 	self:setEnclosure(enclosure)
