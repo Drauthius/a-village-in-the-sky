@@ -33,6 +33,7 @@ buttons=(
 close-button.aseprite
 details-button.aseprite
 info-panel-left.aseprite
+menu-button.aseprite
 minimize-button.aseprite
 )
 
@@ -55,7 +56,6 @@ info-panel-5.aseprite
 info-panel-6.aseprite
 info-panel-centre.aseprite
 iron-resource.aseprite
-menu-button.aseprite
 mountain-tile.aseprite
 objectives-panel.aseprite
 resource-panel.aseprite

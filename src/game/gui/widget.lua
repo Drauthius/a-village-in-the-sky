@@ -23,6 +23,9 @@ function Widget:draw(ox, oy)
 	if self.text then
 		love.graphics.setFont(self.text.font)
 		love.graphics.setColor(self.text.color)
+		if self.isDown then
+			ox, oy = ox + 1, oy + 1
+		end
 		love.graphics.printf(babel.translate(self.text.text),
 		                     self.x + self.text.ox + ox, self.y + self.text.oy + oy,
 		                     self.text.limit, self.text.align, 0, self.sx, self.sy)

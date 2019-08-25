@@ -1,7 +1,11 @@
 local babel = require "lib.babel"
 local class = require "lib.middleclass"
 local vector = require "lib.hump.vector"
+local GameState = require "lib.hump.gamestate"
 
+local InGameMenu = require "src.ingamemenu"
+
+local Button = require "src.game.gui.button"
 local DetailsPanel = require "src.game.gui.detailspanel"
 local InfoPanel = require "src.game.gui.infopanel"
 local ObjectivesPanel = require "src.game.gui.objectivespanel"
@@ -24,11 +28,12 @@ function GUI:initialize(engine, eventManager, map)
 	self.map = map
 
 	self.menuFont = love.graphics.newFont("asset/font/Norse.otf", 26)
+	self.menuButton = Button(0, 0, 0, 0, "menu-button", self.menuFont)
+	self.menuButton:setText(babel.translate("Menu"))
+
 	self.yearPanel = spriteSheet:getSprite("year-panel")
 	self.yearPanel.number = spriteSheet:getData("year-number")
 	self.yearPanel.text = spriteSheet:getData("year-text")
-	self.menuButton = spriteSheet:getSprite("menu-button")
-	self.menuButton.data = spriteSheet:getData("menutext-position")
 
 	-- Create the buttons (with bogus positions, since they're overwritten in resize() anyway).
 	local tileButtonSprite = spriteSheet:getSprite("button 0")
@@ -65,6 +70,7 @@ function GUI:initialize(engine, eventManager, map)
 	}
 
 	self:resize(screen:getDrawDimensions())
+	self:setHint(nil)
 end
 
 function GUI:resize(width, height)
@@ -76,6 +82,8 @@ function GUI:resize(width, height)
 	if height < screen.class.MIN_HEIGHT then
 		padding = 1
 	end
+
+	self.menuButton.x, self.menuButton.y = self.screenWidth - self.menuButton:getWidth() - 1, 1
 
 	self.tileButton:setPosition(
 		1,
@@ -113,16 +121,19 @@ end
 function GUI:back()
 	if self.infoPanel:isShown() then
 		self:_closeInfoPanel()
-		return true
 	else
-		print("toggle main menu")
-		soundManager:playEffect("toggleMainMenu")
+		GameState.push(InGameMenu)
 	end
-
-	return false
 end
 
 function GUI:update(dt)
+	if self.menuButton:isPressed() then
+		local x, y = screen:getCoordinate(love.mouse.getPosition())
+		if not self.menuButton:isWithin(x, y) then
+			self.menuButton:setPressed(false)
+		end
+	end
+
 	for type,button in ipairs(self.buttons) do
 		if type == self.infoPanel:getContentType() then
 			button.sprite = button.opened
@@ -253,20 +264,8 @@ function GUI:draw(camera)
 		love.graphics.setColor(1, 1, 1)
 	end
 
-	do -- Menu button
-		local x, y = self.screenWidth - self.menuButton:getWidth() - 1, 1
-		spriteSheet:draw(self.menuButton, x, y)
-
-		local h = (self.menuButton.data.bounds.h - self.menuFont:getHeight()) / 2
-		love.graphics.setColor(0, 0, 0)
-		love.graphics.setFont(self.menuFont)
-		love.graphics.printf(babel.translate("Menu"),
-			x + self.menuButton.data.bounds.x,
-			y + self.menuButton.data.bounds.y + h,
-			self.menuButton.data.bounds.w,
-			"center")
-		love.graphics.setColor(1, 1, 1)
-	end
+	-- Menu button
+	self.menuButton:draw()
 
 	-- Buttons
 	for _,button in ipairs(self.buttons) do
@@ -402,6 +401,14 @@ function GUI:handlePress(x, y, released)
 		return true
 	elseif self.objectivesPanel:isWithin(x, y) then
 		self.objectivesPanel:handlePress(released)
+		return true
+	end
+
+	if self.menuButton:isWithin(x,y) then
+		if released and self.menuButton:isPressed() then
+			GameState.push(InGameMenu)
+		end
+		self.menuButton:setPressed(not released)
 		return true
 	end
 

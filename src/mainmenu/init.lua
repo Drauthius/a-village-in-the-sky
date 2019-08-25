@@ -46,26 +46,6 @@ function MainMenu:init()
 	self.textOffset = 1.0
 	self.buttonOffset = 1.5
 
-	self.hasProfiles = false
-	self.nextFreeProfile = 1
-	for i=1,Profiles.NUM_PROFILES do
-		if love.filesystem.getInfo("save"..i, "file") then
-			self.hasProfiles = true
-		elseif not self.nextFreeProfile then
-			self.nextFreeProfile = i
-		end
-	end
-	if self.hasProfiles and love.filesystem.getInfo("latest", "file") then
-		local content = love.filesystem.read("latest")
-		if tonumber(content) ~= nil and
-		   tonumber(content) <= Profiles.NUM_PROFILES and
-		   love.filesystem.getInfo("save"..content, "file") then
-			self.latest = content
-		else
-			love.filesystem.remove("latest")
-		end
-	end
-
 	self.newGameButton = Button(0, 0, 0, 0, "details-button", self.buttonFont)
 	self.newGameButton:setText(babel.translate("New Game"))
 	self.newGameButton.action = function()
@@ -96,6 +76,44 @@ function MainMenu:init()
 		love.event.quit()
 	end
 
+	self.clouds = {
+		_createClouds(1),
+		_createClouds(2),
+		_createClouds(3),
+		_createClouds(4),
+		_createClouds(5),
+		_createClouds(6),
+		_createClouds(7),
+		_createClouds(8),
+		_createClouds(9)
+	}
+end
+
+function MainMenu:enter(previous, init)
+	self.hasProfiles = false
+	self.nextFreeProfile = 1
+	for i=1,Profiles.NUM_PROFILES do
+		if love.filesystem.getInfo("save"..i, "file") then
+			self.hasProfiles = true
+		elseif not self.nextFreeProfile then
+			self.nextFreeProfile = i
+		end
+	end
+	if self.hasProfiles and love.filesystem.getInfo("latest", "file") then
+		local content = love.filesystem.read("latest")
+		if tonumber(content) ~= nil and
+		   tonumber(content) <= Profiles.NUM_PROFILES and
+		   love.filesystem.getInfo("save"..content, "file") then
+			self.latest = content
+		else
+			love.filesystem.remove("latest")
+		end
+	end
+
+	if init and self.latest then
+		return GameState.switch(Game, self.latest)
+	end
+
 	if self.hasProfiles then
 		self.buttons = {
 			self.resumeButton,
@@ -111,27 +129,7 @@ function MainMenu:init()
 		}
 	end
 
-	self.clouds = {
-		_createClouds(1),
-		_createClouds(2),
-		_createClouds(3),
-		_createClouds(4),
-		_createClouds(5),
-		_createClouds(6),
-		_createClouds(7),
-		_createClouds(8),
-		_createClouds(9)
-	}
-
 	self:resize()
-
-	print(GameState.current())
-end
-
-function MainMenu:enter(previous, init)
-	if init and self.latest then
-		return GameState.switch(Game, self.latest)
-	end
 
 	love.graphics.setBackgroundColor(0.757, 0.875, 0.969)
 

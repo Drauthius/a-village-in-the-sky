@@ -337,8 +337,8 @@ function Game:keyreleased(key, scancode)
 	elseif key == "escape" then
 		if state:isPlacing() or state:hasSelection() then
 			self.eventManager:fireEvent(SelectionChangedEvent(nil))
-		elseif not self.gui:back() and scancode == "acback" then
-			love.event.quit()
+		else
+			self.gui:back()
 		end
 	elseif scancode == "`" then
 		self.speed = 0.5
@@ -497,7 +497,7 @@ function Game:touchreleased()
 	self:touchpressed()
 end
 
-function Game:resize(width, height)
+function Game:resize()
 	self.gui:resize(screen:getDrawDimensions())
 
 	self:_updateCameraBoundingBox()

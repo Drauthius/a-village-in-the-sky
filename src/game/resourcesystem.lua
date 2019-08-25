@@ -21,7 +21,7 @@ function ResourceSystem:onAddEntity(entity)
 	local resource = entity:get("ResourceComponent")
 
 	-- Only update harvested resources.
-	if resource:isUsable() then
+	if resource:isExtracted() then
 		local sprite = entity:get("SpriteComponent")
 		local grid = entity:get("PositionComponent"):getGrid()
 
@@ -32,6 +32,7 @@ function ResourceSystem:onAddEntity(entity)
 		sprite:setDrawPosition(ox, oy)
 
 		state:increaseResource(resource:getResource(), resource:getResourceAmount())
+		state:reserveResource(resource:getResource(), resource:getReservedAmount())
 	end
 end
 

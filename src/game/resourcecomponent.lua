@@ -59,6 +59,10 @@ function ResourceComponent:isUsable()
 	return self.extracted and self.reserved == nil
 end
 
+function ResourceComponent:isExtracted()
+	return self.extracted
+end
+
 function ResourceComponent:getReservedBy()
 	return self.reserved
 end

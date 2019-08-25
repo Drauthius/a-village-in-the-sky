@@ -114,6 +114,9 @@ function Cassette:load(engine, map, level)
 	self.entities = engine.entities
 	self.map = map
 
+	-- Zeroth pass: Flush the state.
+	state:initialize()
+
 	-- First pass: Create the entities.
 	for _,entity in ipairs(data.entities) do
 		local ent = lovetoys.Entity()
