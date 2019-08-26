@@ -39,11 +39,14 @@ function MainMenu:init()
 	self.font = love.graphics.newFont("asset/font/Norse-Bold.otf", 72)
 	self.textAlpha = 0.0
 	self.buttonFont = love.graphics.newFont("asset/font/Norse-Bold.otf", 32)
+	self.authorAlpha = 0.0
+	self.authorFont = love.graphics.newFont("asset/font/Norse-Bold.otf", 28)
 	self.buttonAlpha = 0.0
 
 	self.offsetX = 0.0
 	self.cloudOffset = 0.1
 	self.textOffset = 1.0
+	self.authorOffset = 3.0
 	self.buttonOffset = 1.5
 
 	self.newGameButton = Button(0, 0, 0, 0, "details-button", self.buttonFont)
@@ -114,20 +117,17 @@ function MainMenu:enter(previous, init)
 		return GameState.switch(Game, self.latest)
 	end
 
-	if self.hasProfiles then
-		self.buttons = {
-			self.resumeButton,
-			self.profilesButton,
-			self.optionsButton,
-			self.quitButton
-		}
+	self.buttons = {}
+	if self.latest then
+		table.insert(self.buttons, self.resumeButton)
 	else
-		self.buttons = {
-			self.newGameButton,
-			self.optionsButton,
-			self.quitButton
-		}
+		table.insert(self.buttons, self.newGameButton)
 	end
+	if self.hasProfiles then
+		table.insert(self.buttons, self.profilesButton)
+	end
+	table.insert(self.buttons, self.optionsButton)
+	table.insert(self.buttons, self.quitButton)
 
 	self:resize()
 
@@ -140,6 +140,9 @@ function MainMenu:enter(previous, init)
 	Timer.after(0.5, function()
 		Timer.tween(1.5, self, { textAlpha = 1.0 }, "out-quart", function()
 			Timer.tween(0.8, self, { buttonAlpha = 1.0 }, "out-quart")
+		end)
+		Timer.after(0.8, function()
+			Timer.tween(1.0, self, { authorAlpha = 1.0 }, "out-quart")
 		end)
 	end)
 end
@@ -194,6 +197,16 @@ function MainMenu:draw()
 	love.graphics.setColor(color[1], color[2], color[3], self.textAlpha)
 	love.graphics.print("A Village in the Sky", x - 3, y - 3)
 
+	love.graphics.setFont(self.authorFont)
+	x, y = unpack(self.authorPosition)
+	x = x + self.offsetX * self.authorOffset
+	color = spriteSheet:getWoodPalette().dark
+	love.graphics.setColor(color[1], color[2], color[3], self.authorAlpha)
+	love.graphics.print("Created by @Drauthius", x, y)
+	color = spriteSheet:getWoodPalette().bright
+	love.graphics.setColor(color[1], color[2], color[3], self.authorAlpha)
+	love.graphics.print("Created by @Drauthius", x - 1, y - 1)
+
 	for _,button in ipairs(self.buttons) do
 		love.graphics.setColor(1, 1, 1, self.buttonAlpha)
 		button.text.color[4] = self.buttonAlpha
@@ -237,25 +250,18 @@ function MainMenu:resize()
 
 	self.imagePosition = { dw - self.image:getWidth() * 1.5, (dh - self.image:getHeight()) / 2 }
 	self.textPosition = { dw / 20, dh / 6 }
+	self.authorPosition = { dw - self.authorFont:getWidth("Created by @Drauthius  "),
+	                        dh - self.authorFont:getHeight() * 1.25 }
 	self.cloudPosition = { 0, 0 }
 
 	local x = dw / 8
 	local y = dh / 2.5
 	local padding = dh / 10
 
-	if self.hasProfiles then
-		self.resumeButton.x, self.resumeButton.y = x, y
-		y = y + padding
-		self.profilesButton.x, self.profilesButton.y = x, y
-		y = y + padding
-	else
-		self.newGameButton.x, self.newGameButton.y = x, y
+	for _,button in ipairs(self.buttons) do
+		button.x, button.y = x, y
 		y = y + padding
 	end
-
-	self.optionsButton.x, self.optionsButton.y = x, y
-	y = y + padding
-	self.quitButton.x, self.quitButton.y = x, y
 
 	self.originalPositions = {
 		image = self.imagePosition[1]

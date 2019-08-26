@@ -21,6 +21,7 @@ function Cassette:save(engine, map, level)
 		version = 1,
 		year = 0,
 		numVillagers = 0,
+		numTiles = 0,
 		numBuildings = 0,
 		entities = {},
 		map = {},
@@ -83,6 +84,11 @@ function Cassette:save(engine, map, level)
 	for _ in pairs(engine:getEntitiesWithComponent("VillagerComponent")) do
 		data.numVillagers = data.numVillagers + 1
 	end
+	for _,ti in pairs(data.map.tile) do
+		for _ in pairs(ti) do
+			data.numTiles = data.numTiles + 1
+		end
+	end
 	for _,entity in pairs(engine:getEntitiesWithComponent("BuildingComponent")) do
 		if not entity:has("RunestoneComponent") then -- Pretend runestones aren't buildings.
 			data.numBuildings = data.numBuildings + 1
@@ -113,9 +119,6 @@ function Cassette:load(engine, map, level)
 	-- Caches
 	self.entities = engine.entities
 	self.map = map
-
-	-- Zeroth pass: Flush the state.
-	state:initialize()
 
 	-- First pass: Create the entities.
 	for _,entity in ipairs(data.entities) do

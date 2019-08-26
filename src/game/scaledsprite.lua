@@ -17,6 +17,10 @@ function ScaledSprite:fromSprite(sprite, sx, sy)
 	return newSprite
 end
 
+function ScaledSprite:getScale()
+	return self.sx, self.sy
+end
+
 function ScaledSprite:setScale(sx, sy)
 	self.sx = sx or 1
 	self.sy = sy or self.sx

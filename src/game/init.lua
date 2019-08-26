@@ -95,6 +95,9 @@ function Game:enter(_, profile)
 
 	self.speed = 1
 
+	-- Flush the state, in case we're jumping between profiles.
+	state:initialize()
+
 	-- Set up the map.
 	self.map = Map()
 
@@ -511,6 +514,13 @@ function Game:resize()
 	self.worldCanvas = love.graphics.newCanvas(screen:getDrawDimensions())
 
 	-- TODO: Clouds depend on draw area.
+end
+
+function Game:focus(focused)
+	-- Focus is lost on mobile when switching out of the app.
+	if not focused then
+		self:_save()
+	end
 end
 
 --
