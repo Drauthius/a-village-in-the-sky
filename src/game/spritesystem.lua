@@ -162,7 +162,8 @@ function SpriteSystem:updateVillager(dt, entity)
 		walking = true
 		assert(targetAnimation, "Missing carrying animation for villager")
 	elseif entity:has("WorkingComponent") then
-		if entity:has("WalkingComponent") or not entity:get("WorkingComponent"):getWorking() then
+		if (entity:has("WalkingComponent") and entity:get("WalkingComponent"):getDelay() <= 0.0) or
+		   not entity:get("WorkingComponent"):getWorking() then
 			targetAnimation = SpriteSystem.ANIMATIONS.walking_to_work[adult:getOccupation()]
 			assert(targetAnimation, "Missing walking animation")
 			walking = true
@@ -183,7 +184,7 @@ function SpriteSystem:updateVillager(dt, entity)
 			assert(targetAnimation, "Missing working animation. " ..
 			       "Occupation: "..adult:getOccupationName()..", Direction: "..cardinalDir)
 		end
-	elseif entity:has("WalkingComponent") then
+	elseif entity:has("WalkingComponent") and entity:get("WalkingComponent"):getDelay() <= 0.0 then
 		targetAnimation = walkingBase.nothing
 		walking = true
 	else

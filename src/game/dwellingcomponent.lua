@@ -7,7 +7,7 @@ function DwellingComponent.static:save(cassette)
 		food = self.food,
 		gettingFood = self.gettingFood,
 		numBoys = self.numBoys,
-		numGirls = self.numGirs,
+		numGirls = self.numGirls,
 		children = cassette:saveEntityList(self.children),
 		related = self.related
 	}

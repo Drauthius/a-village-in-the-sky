@@ -1,5 +1,6 @@
 local astar = require "lib.ai.astar"
 local lovetoys = require "lib.lovetoys.lovetoys"
+local table  = require "lib.table"
 local vector = require "lib.hump.vector"
 
 local EntityMovedEvent = require "src.game.entitymovedevent"
@@ -9,7 +10,7 @@ local TargetUnreachableEvent = require "src.game.targetunreachableevent"
 local Map = require "src.game.map"
 local ResourceComponent = require "src.game.resourcecomponent"
 local TileComponent = require "src.game.tilecomponent"
-local TimerComponent = require "src.game.timercomponent"
+local VillagerComponent = require "src.game.villagercomponent"
 local WalkingComponent = require "src.game.walkingcomponent"
 
 local state = require "src.game.state"
@@ -21,7 +22,14 @@ WalkingSystem.static.DISTANCE_CHANGE_GRID = 10
 -- Distance squared before a new next grid is retrieved.
 WalkingSystem.static.DISTANCE_NEXT_GRID = 0.05
 -- How often to recalculate the path.
-WalkingSystem.static.RECALC_DELAY = 5
+WalkingSystem.static.RECALC_DELAY = 4
+-- The maximum number of retries before giving up.
+WalkingSystem.static.MAX_RETRIES = 5
+
+WalkingSystem.static.WAIT_MOVE_DELAY = { 0.5, 1.5 }
+WalkingSystem.static.WAIT_BUSY_DELAY = { 0.4, 1.2 }
+WalkingSystem.static.WAIT_GRID_DELAY = { 0.5, 1.5 }
+WalkingSystem.static.WAIT_PATH_FAIL_DELAY = { 1.0, 2.0 }
 
 -- Unmodified walking speed.
 WalkingSystem.static.BASE_SPEED = 20
@@ -46,6 +54,21 @@ WalkingSystem.static.SPEED_MODIFIER = {
 	-- Being a senior.
 	SENIOR = 0.8
 }
+
+WalkingSystem.static.RAND = {
+	-- Chance to push a blocking idle villager.
+	PUSH_CHANCE = 0.8,
+	-- Chance to take a double step when pushed.
+	MOVE_DOUBLE_FORWARD_CHANCE = 0.5,
+	-- Chance to wait for the moving villager.
+	WAIT_MOVING_CHANCE = 0.9,
+	-- Chance to wait for a busy villager.
+	WAIT_BUSY_CHANCE = 0.5
+}
+
+local function _rand(n)
+	return love.math.random() * (n[2] - n[1]) + n[1]
+end
 
 function WalkingSystem.requires()
 	return {"WalkingComponent"}
@@ -82,35 +105,31 @@ function WalkingSystem:_walkTheWalk(entity, dt)
 		-- Initialise the path
 		if not self:_initiatePath(entity) then
 			--print("No path to thing")
-			self.eventManager:fireEvent(TargetUnreachableEvent(entity, nil, false, walking:getInstructions()))
+			self.eventManager:fireEvent(TargetUnreachableEvent(entity))
 			entity:remove("WalkingComponent")
 			return
 		end
 
 		path = walking:getPath()
+	end
 
-		-- Add a timer to recalculate the path regularly, to be more up to date with ones surroundings.
-		--[[ TODO: Reimplement
-		if walking:getInstructions() ~= WalkingComponent.INSTRUCTIONS.WANDER and
-		   walking:getInstructions() ~= WalkingComponent.INSTRUCTIONS.GET_OUT_THE_WAY then
-			if not entity:has("TimerComponent") then
-				local timer = TimerComponent()
-				timer:getTimer():every(WalkingSystem.RECALC_DELAY, function()
-					local oldPath = walking:getPath()
-					if oldPath and oldPath[1] then
-						local start = walking:getNextGrid() or entity:get("PositionComponent"):getGrid()
-						local newPath = self:_calculatePath(start, path[1])
-						if newPath then
-							walking:setPath(newPath)
-						end
-					end
-				end)
-				entity:add(timer)
-			else
-				print("Timer for instruction "..walking:getInstructions())
-			end
+	if walking:getDelay() > 0.0 then
+		walking:setDelay(math.max(0.0, walking:getDelay() - dt))
+		if walking:getDelay() > 0.0 then
+			return
 		end
-		--]]
+	end
+
+	walking:increasePathAge(dt)
+	if walking:getPathAge() > WalkingSystem.RECALC_DELAY and path[1] and
+	   walking:getInstructions() ~= WalkingComponent.INSTRUCTIONS.WANDER and
+	   walking:getInstructions() ~= WalkingComponent.INSTRUCTIONS.GET_OUT_THE_WAY then
+		local start = walking:getNextGrid() or entity:get("PositionComponent"):getGrid()
+		local newPath = self:_calculatePath(start, path[1])
+		if newPath then
+			walking:setPath(newPath)
+			path = newPath
+		end
 	end
 
 	local nextGrid = walking:getNextGrid()
@@ -124,50 +143,58 @@ function WalkingSystem:_walkTheWalk(entity, dt)
 			entity:remove("WalkingComponent")
 			return
 		elseif not self.map:isGridEmpty(nextGrid) then
-			-- Put back the next grid into the path, so that the things listening to the event can get the whole picture.
-			table.insert(path, nextGrid)
-			-- Do two takes, sending two events if necessary.
-			for i=1,2 do
-				local newPath
-				local retry = i == 1 and path[1] ~= nextGrid
-				local event = TargetUnreachableEvent(entity,
-				                                     self.map:getOccupyingVillager(nextGrid),
-				                                     retry,
-				                                     walking:getInstructions())
-				self.eventManager:fireEvent(event)
-				if path[1] == nextGrid then
-					print(entity, "Next is the destination :(")
-				end
+			local retries = walking:getNumRetries()
 
-				if event:shouldRetry() then
-					print(entity, "Trying new path")
+			if retries >= WalkingSystem.MAX_RETRIES or
+			   -- No sense in doing anything if just wandering about.
+			   walking:getInstructions() == WalkingComponent.INSTRUCTIONS.WANDER then
+				self.eventManager:fireEvent(TargetUnreachableEvent(entity))
+				entity:remove("WalkingComponent")
+				return
+			end
+			walking:setNumRetries(retries + 1)
+
+			local wait, delay = self:_shouldWait(entity, nextGrid)
+			if not wait then
+				print(entity, "Recalculating "..retries)
+				if not next(path) then
+					print(entity, "Next is target")
+					-- The next grid is our destination.
+					wait, delay = true, _rand(WalkingSystem.WAIT_GRID_DELAY)
+				else
 					-- XXX: The next grid might be walkable, but blocked by a villager. Change that temporarily.
 					local oldCollision = nextGrid.collision
 					nextGrid.collision = Map.COLL_STATIC
 
 					-- Calculate a new path, in case that is enough.
-					newPath = self:_calculatePath(entity:get("PositionComponent"):getGrid(), path[1])
+					local newPath = self:_calculatePath(entity:get("PositionComponent"):getGrid(), path[1])
 
 					nextGrid.collision = oldCollision
-				end
 
-				if newPath and #newPath > 1 then
-					print(entity, "New path!")
-					-- Set up movement to the next point, without breaking stride.
-					table.remove(newPath) -- Current grid
-					walking:setPath(newPath)
-					nextGrid = table.remove(newPath)
-					assert(nextGrid, "Recalculated path should not be empty.")
-					break
-				elseif not event:shouldRetry() then
-					entity:remove("WalkingComponent")
-					return
+					if newPath then
+						walking:setPath(newPath)
+						-- Set up movement to the next point, without breaking stride.
+						nextGrid = table.remove(newPath)
+						assert(nextGrid, "Recalculated path should not be empty.")
+						wait = false
+					else
+						wait, delay = true, _rand(WalkingSystem.WAIT_PATH_FAIL_DELAY)
+					end
 				end
+			end
+
+			if wait then
+				print(entity, "Waiting "..retries)
+				walking:setDelay((assert(delay)))
+				-- Put back the next grid into the path, so that the same thing can be retried later on!
+				table.insert(path, nextGrid)
+				return
 			end
 		end
 
 		self.map:occupy(entity, nextGrid)
 		walking:setNextGrid(nextGrid)
+		walking:setNumRetries(0)
 	end
 
 	-- Current ground position
@@ -533,6 +560,103 @@ function WalkingSystem:_updateWalkingSpeed(entity)
 	end
 
 	entity:get("WalkingComponent"):setSpeedModifier(speedModifier)
+end
+
+function WalkingSystem:_shouldWait(entity, nextGrid)
+	local blocker = self.map:getOccupyingVillager(nextGrid)
+	if not blocker or not blocker:has("VillagerComponent") then
+		-- Blocked by a non-villager. Recalculate a new path.
+		print(entity, "Blocked by non-villager")
+		return false
+	end
+
+	local blockingVillager = blocker:get("VillagerComponent")
+	local blockingGoal = blockingVillager:getGoal()
+
+	if blockingGoal == VillagerComponent.GOALS.NONE and not blocker:has("WalkingComponent") then
+		-- Blocked by an idle/wandering villager. If so, randomize whether we try to get a new path or send
+		-- them away to another grid that is preferably not in our way.
+		print(entity, "Blocked by idle villager")
+		if love.math.random() < WalkingSystem.RAND.PUSH_CHANCE then
+			print(entity, "Push")
+			blockingVillager:setGoal(VillagerComponent.GOALS.MOVING)
+
+			-- Three levels of priority for which grids to go to.
+			local walkable = {
+				{}, -- Free and unreserved.
+				{}, -- Free but reserved.
+				{}  -- Occupied
+			}
+			local here, there = entity:get("PositionComponent"):getGrid(), blocker:get("PositionComponent"):getGrid()
+			-- Go to a random walkable direction that is not here.
+			-- Not sure this randomness does anything...
+			for _,gi in ipairs(table.shuffle({ -1, 0, 1 })) do
+				for _,gj in ipairs(table.shuffle({ -1, 0, 1 })) do
+					local grid = self.map:getGrid(there.gi + gi, there.gj + gj)
+					if grid and grid ~= here and grid ~= there then
+						if self.map:isGridEmpty(grid) then
+							-- Maybe take two steps.
+							if self.map:isGridReserved(grid) or love.math.random() < WalkingSystem.RAND.MOVE_DOUBLE_FORWARD_CHANCE then
+								local newGrid = self.map:getGrid(grid.gi + gi, grid.gj + gj)
+								grid = (newGrid and self.map:isGridEmpty(newGrid) and
+										not self.map:isGridReserved(newGrid)) and newGrid or grid
+							end
+
+							if not self.map:isGridReserved(grid) then
+								-- Free and unreserved.
+								table.insert(walkable[1], grid)
+							else
+								-- Free but reserved.
+								table.insert(walkable[2], grid)
+							end
+						elseif self.map:isGridWalkable(grid) then
+							table.insert(walkable[3], grid)
+						end
+					end
+				end
+			end
+
+			walkable = table.flatten(walkable)
+			if next(walkable) then
+				local grid
+				-- Try to pick a grid that isn't directly in the way.
+				for _,g in ipairs(walkable) do
+					if g ~= nextGrid then
+						grid = g
+						break
+					end
+				end
+				blocker:add(WalkingComponent(nil, nil, { grid or walkable[1] }, WalkingComponent.INSTRUCTIONS.GET_OUT_THE_WAY))
+				return true, _rand(WalkingSystem.WAIT_MOVE_DELAY)
+			else
+				-- Blocking villager is blocked.
+				return false
+			end
+		else
+			return false
+		end
+	elseif blocker:has("WorkingComponent") and blocker:get("WorkingComponent"):getWorking() then
+		-- Villager is extremely focused and busy.
+		print(entity, "Blocked by busy villager")
+		return false
+	elseif blockingGoal == VillagerComponent.GOALS.MOVING then
+		print(entity, "Blocked by moving villager")
+		-- Villager is already moving away, probably. Wait a bit, probably.
+		if love.math.random() < WalkingSystem.RAND.WAIT_MOVING_CHANCE then
+			return true, _rand(WalkingSystem.WAIT_MOVE_DELAY)
+		else
+			return false
+		end
+	else
+		print(entity, "Blocked by temporarily busy villager")
+		-- Villager is probably preoccupied with something temporary. Randomize whether we try to get a new
+		-- path or wait for them to move.
+		if love.math.random() < WalkingSystem.RAND.WAIT_BUSY_CHANCE then
+			return true, _rand(WalkingSystem.WAIT_BUSY_DELAY)
+		else
+			return false
+		end
+	end
 end
 
 return WalkingSystem

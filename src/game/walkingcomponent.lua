@@ -17,13 +17,16 @@ WalkingComponent.static.INSTRUCTIONS = {
 function WalkingComponent.static:save(cassette)
 	local data = {
 		path = self.path and cassette:saveGridList(self.path),
+		pathAge = self.pathAge,
 		nextGrid = self.nextGrid and cassette:saveGrid(self.nextGrid),
 		ti = self.ti,
 		tj = self.tj,
 		grids = self.targetGrids and cassette:saveGridList(self.grids),
 		rotation = self.rotation,
 		instructions = self.instructions,
-		speedModifier = self.speedModifier
+		speedModifier = self.speedModifier,
+		delay = self.delay,
+		numRetries = self.numRetries
 	}
 
 	if self.targetEntity then -- XXX: A little bonkers.
@@ -58,8 +61,11 @@ function WalkingComponent.static.load(cassette, data)
 		data.instructions)
 
 	component.path = data.path and cassette:loadGridList(data.path) or nil
+	component.pathAge = data.pathAge
 	component.nextGrid = data.nextGrid and cassette:loadGrid(data.nextGrid) or nil
 	component.rotation = data.rotation
+	component.delay = data.delay
+	component.numRetries = data.numRetries
 
 	if data.targetEntity then -- XXX: A little bonkers.
 		if data.targetEntity.gi then
@@ -95,6 +101,8 @@ function WalkingComponent:initialize(ti, tj, grids, instructions)
 	self:setInstructions(instructions)
 	self:setNextStop(nil)
 	self:setSpeedModifier(1.0)
+	self:setDelay(0.0)
+	self:setNumRetries(0)
 end
 
 function WalkingComponent:getPath()
@@ -103,6 +111,15 @@ end
 
 function WalkingComponent:setPath(path)
 	self.path = path
+	self.pathAge = 0.0
+end
+
+function WalkingComponent:getPathAge()
+	return self.pathAge
+end
+
+function WalkingComponent:increasePathAge(dt)
+	self.pathAge = self.pathAge + dt
 end
 
 function WalkingComponent:getNextGrid()
@@ -167,6 +184,22 @@ end
 
 function WalkingComponent:setSpeedModifier(speed)
 	self.speedModifier = speed
+end
+
+function WalkingComponent:getDelay()
+	return self.delay
+end
+
+function WalkingComponent:setDelay(dt)
+	self.delay = dt
+end
+
+function WalkingComponent:getNumRetries()
+	return self.numRetries
+end
+
+function WalkingComponent:setNumRetries(retries)
+	self.numRetries = retries
 end
 
 return WalkingComponent
