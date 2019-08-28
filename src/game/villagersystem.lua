@@ -219,16 +219,12 @@ function VillagerSystem:update(dt)
 					local targetRotation = vill:getTargetRotation()
 					local ti, tj = data[3], data[4]
 
-					if targetRotation then
-						targetGrid = { targetGrid, targetRotation, ent }
-					end
-
 					local VillComp = require "src.game.villagercomponent"
 					local WalkComp = require "src.game.walkingcomponent"
 
 					-- Go next.
 					if data[2] == VillComp.GOALS.WORK_PICKING_UP then
-						ent:add(WalkComp(ti, tj, { targetGrid }, WalkComp.INSTRUCTIONS.WORK))
+						ent:add(WalkComp(ti, tj, { { targetGrid, targetRotation, ent } }, WalkComp.INSTRUCTIONS.WORK))
 						vill:setGoal(VillComp.GOALS.WORK)
 					else
 						ent:add(WalkComp(ti, tj, { targetGrid }, WalkComp.INSTRUCTIONS.GO_HOME))

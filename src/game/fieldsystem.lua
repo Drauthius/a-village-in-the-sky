@@ -60,7 +60,7 @@ end
 function FieldSystem:_update(entity)
 	local fieldEnclosure = entity:get("FieldEnclosureComponent")
 	local fields = fieldEnclosure:getFields()
-	if not fields then
+	if not fields or not next(fields) then
 		fields = self:_initiate(entity)
 	end
 

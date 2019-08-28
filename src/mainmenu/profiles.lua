@@ -37,12 +37,6 @@ function Profiles:init()
 	self.deleteButton:setText(babel.translate("Delete"))
 	self.deleteButton.action = function()
 		love.filesystem.remove("save"..self.confirmDeletion)
-		for i,button in ipairs(self.buttons) do
-			if button.i == self.confirmDeletion then
-				table.remove(self.buttons, i)
-				break
-			end
-		end
 		self.confirmDeletion = nil
 		self:_updateProfiles()
 	end
@@ -59,6 +53,18 @@ function Profiles:init()
 		ProfilePanel(),
 		ProfilePanel()
 	}
+
+	self.deleteButtons = {
+		Button(0, 0, 0, 0, "trashcan", false),
+		Button(0, 0, 0, 0, "trashcan", false),
+		Button(0, 0, 0, 0, "trashcan", false),
+		Button(0, 0, 0, 0, "trashcan", false)
+	}
+	for i,button in ipairs(self.deleteButtons) do
+		button.action = function()
+			self.confirmDeletion = i
+		end
+	end
 end
 
 function Profiles:enter(from)
@@ -67,12 +73,6 @@ function Profiles:enter(from)
 
 	self.mainMenu:leave()
 	self.mainMenu:moveLeft()
-
-	self.buttons = {
-		self.backButton,
-		self.deleteButton,
-		self.cancelButton
-	}
 
 	local dw = screen:getDrawDimensions()
 	self.offsetX = dw * 1.1
@@ -232,6 +232,22 @@ function Profiles:resize()
 	self.panels[3]:setPosition(self.panelPositions[1][1], self.panelPositions[2][2])
 	self.panels[4]:setPosition(self.panelPositions[2][1], self.panelPositions[2][2])
 
+	for i,button in ipairs(self.deleteButtons) do
+		local x, y = self.panels[i]:getPosition()
+		if i == 1 or i == 3 then
+			x = x - button:getWidth() + 1
+		else
+			x = x + self.panels[i]:getWidth() - 1
+		end
+		if i == 3 or i == 4 then
+			y = y + self.panels[i]:getHeight() - button:getHeight() - 1
+		else
+			y = y + 1
+		end
+
+		button.x, button.y = x, y
+	end
+
 	self.confirmationPosition = {
 		(dw - self.confirmationDialogue:getWidth()) / 2,
 		(dh - self.confirmationDialogue:getHeight()) / 2
@@ -249,7 +265,11 @@ function Profiles:resize()
 end
 
 function Profiles:_updateProfiles()
-	local deleteSprite = spriteSheet:getSprite("trashcan (Up)")
+	self.buttons = {
+		self.backButton,
+		self.deleteButton,
+		self.cancelButton
+	}
 
 	for i,panel in ipairs(self.panels) do
 		if love.filesystem.getInfo("save"..i, "file") then
@@ -267,24 +287,7 @@ function Profiles:_updateProfiles()
 				end
 			end
 
-			local x, y = panel:getPosition()
-			if i == 1 or i == 3 then
-				x = x - deleteSprite:getWidth() + 1
-			else
-				x = x + panel:getWidth() - 1
-			end
-			if i == 3 or i == 4 then
-				y = y + panel:getHeight() - deleteSprite:getHeight() - 1
-			else
-				y = y + 1
-			end
-
-			local button = Button(x, y, 0, 0, "trashcan", false)
-			button.i = i
-			button.action = function()
-				self.confirmDeletion = i
-			end
-			table.insert(self.buttons, button)
+			table.insert(self.buttons, self.deleteButtons[i])
 		else
 			panel:setContent()
 		end
