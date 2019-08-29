@@ -100,151 +100,161 @@ end
 
 function VillagerSystem:update(dt)
 	for _,entity in pairs(self.targets) do
-		local villager = entity:get("VillagerComponent")
-		local age = villager:getAge()
-		local goal = villager:getGoal()
+		self:_update(entity, dt)
+	end
+end
 
-		if villager:getDelay() > 0.0 then
-			villager:decreaseDelay(dt)
-		end
+function VillagerSystem:_update(entity, dt)
+	local villager = entity:get("VillagerComponent")
+	local age = villager:getAge()
+	local goal = villager:getGoal()
 
-		villager:increaseAge(TimerComponent.YEARS_PER_SECOND * dt)
-		if math.floor(age) ~= math.floor(villager:getAge()) then
-			-- Happy birthday!
-			self.eventManager:fireEvent(VillagerAgedEvent(entity))
-			age = villager:getAge()
-		end
+	if villager:getDelay() > 0.0 then
+		villager:decreaseDelay(dt)
+	end
 
-		if (not villager:isHome() or goal ~= VillagerComponent.GOALS.EAT) and age >= VillagerSystem.CHILDHOOD then
-			local hunger = math.min(1.0, villager:getHunger() + VillagerSystem.FOOD.HUNGER_PER_SECOND * dt)
-			villager:setHunger(hunger)
-			-- Don't starve a mother giving birth, for nicety reasons.
-			if hunger >= 1.0 and goal ~= VillagerComponent.GOALS.CHILDBIRTH then
-				local starvation = math.min(1.0, villager:getStarvation() + VillagerSystem.FOOD.STARVATION_PER_SECOND * dt)
-				villager:setStarvation(starvation)
-				if starvation >= 1.0 then
-					print(entity, "died of hunger")
-					self.engine:removeEntity(entity)
-					return
-				end
+	-- Increase age.
+	villager:increaseAge(TimerComponent.YEARS_PER_SECOND * dt)
+	if math.floor(age) ~= math.floor(villager:getAge()) then
+		-- Happy birthday!
+		self.eventManager:fireEvent(VillagerAgedEvent(entity))
+		age = villager:getAge()
+	end
 
-				if villager:getHome() and
-				   goal ~= VillagerComponent.GOALS.NONE and
-				   goal ~= VillagerComponent.GOALS.FOOD_PICKUP and
-				   goal ~= VillagerComponent.GOALS.FOOD_DROPOFF and
-				   goal ~= VillagerComponent.GOALS.SLEEP and
-				   goal ~= VillagerComponent.GOALS.EAT then
-					-- Villager needs to eat. Drop what yer doing.
-					self:_stopAll(entity)
-					self:_prepare(entity, true)
-				end
+	-- Increase hunger if not eating (and not an infant).
+	if goal ~= VillagerComponent.GOALS.EATING and age >= VillagerSystem.CHILDHOOD then
+		local hunger = math.min(1.0, villager:getHunger() + VillagerSystem.FOOD.HUNGER_PER_SECOND * dt)
+		villager:setHunger(hunger)
+		-- Don't starve a mother giving birth, for nicety reasons.
+		if hunger >= 1.0 and goal ~= VillagerComponent.GOALS.CHILDBIRTH then
+			local starvation = math.min(1.0, villager:getStarvation() + VillagerSystem.FOOD.STARVATION_PER_SECOND * dt)
+			villager:setStarvation(starvation)
+			if starvation >= 1.0 then
+				print(entity, "died of hunger")
+				self.engine:removeEntity(entity)
+				return
+			end
+
+			if villager:getHome() and
+			   goal ~= VillagerComponent.GOALS.NONE and
+			   goal ~= VillagerComponent.GOALS.FOOD_PICKUP and
+			   goal ~= VillagerComponent.GOALS.FOOD_PICKING_UP and
+			   goal ~= VillagerComponent.GOALS.FOOD_DROPOFF and
+			   goal ~= VillagerComponent.GOALS.SLEEP and
+			   goal ~= VillagerComponent.GOALS.SLEEPING and
+			   goal ~= VillagerComponent.GOALS.EAT and
+			   goal ~= VillagerComponent.GOALS.EATING then
+				-- Villager needs to eat. Drop what yer doing.
+				self:_stopAll(entity)
+				self:_prepare(entity, true)
 			end
 		end
+	end
 
-		if not villager:isHome() or goal ~= VillagerComponent.GOALS.SLEEP then
-			local sleepiness = math.min(1.0, villager:getSleepiness() + VillagerSystem.SLEEP.IDLE_GAIN_PER_SECOND * dt)
-			villager:setSleepiness(sleepiness)
-		end
+	-- Increase sleepiness if not sleeping.
+	if goal ~= VillagerComponent.GOALS.SLEEPING then
+		local sleepiness = math.min(1.0, villager:getSleepiness() + VillagerSystem.SLEEP.IDLE_GAIN_PER_SECOND * dt)
+		villager:setSleepiness(sleepiness)
+	end
 
-		if goal == VillagerComponent.GOALS.EAT then
-			if villager:isHome() then -- Home might have been destroyed.
-				if villager:getDelay() > 0.0 then
-					-- Decrease the hunger.
-					villager:setHunger(math.max(0.0, villager:getHunger() - VillagerSystem.FOOD.LOSS_PER_SECOND * dt))
-					return
-				end
-			end
-
-			villager:setGoal(VillagerComponent.GOALS.NONE)
-			villager:setDelay(0.0)
-		elseif goal == VillagerComponent.GOALS.SLEEP then
-			if villager:isHome() then -- Home might have been destroyed.
-				if villager:getDelay() > 0.0 then
-					-- Decrease the sleepiness.
-					villager:setSleepiness(math.max(0.0, villager:getSleepiness() - VillagerSystem.SLEEP.LOSS_PER_SECOND * dt))
-					return
-				end
-			end
-
-			villager:setGoal(VillagerComponent.GOALS.NONE)
-			villager:setDelay(0.0)
-		elseif goal == VillagerComponent.GOALS.DROPPING_OFF then
-			if villager:getDelay() <= 0.0 then
-				local grid = villager:getTargetGrid()
-				-- Second take that the grid is still empty...
-				if self.map:isGridEmpty(grid) then
-					-- Stop carrying the stuff.
-					self:_dropCarrying(entity, grid)
-					villager:setDelay(VillagerSystem.TIMERS.DROPOFF_AFTER)
-				--else
-					-- The default action will make sure we drop it somewhere else.
-				end
-
-				villager:setTargetGrid(nil)
-				villager:setGoal(VillagerComponent.GOALS.NONE)
-			end
-		elseif goal == VillagerComponent.GOALS.FOOD_PICKING_UP or
-		       goal == VillagerComponent.GOALS.WORK_PICKING_UP then
-			if villager:getDelay() <= 0.0 then
-				-- Start carrying the stuff.
-				local resourceEntity = villager:getTargetEntity()
-				local resource = resourceEntity:get("ResourceComponent")
-				local res, amount = resource:getResource(), resource:getReservedAmount()
-				entity:add(CarryingComponent(res, amount))
-				resource:decreaseAmount(amount)
-
-				if resource:getResourceAmount() < 1 then
-					-- Remove it from the engine.
-					self.engine:removeEntity(resourceEntity, true)
-				else
-					-- Sprite component needs to be updated.
-					resourceEntity:get("SpriteComponent"):setNeedsRefresh(true)
-					resource:setReserved(nil)
-				end
-
-				-- Update the state here, since dropping it off anywhere will increase the counter again.
-				state:removeReservedResource(res, amount)
-				state:decreaseResource(res, amount)
-				villager:setTargetEntity(nil)
-				villager:setDelay(VillagerSystem.TIMERS.PICKUP_AFTER + 1.0) -- Just something
-
-				local grid = villager:getTargetGrid()
-				entity:add(TimerComponent(VillagerSystem.TIMERS.PICKUP_AFTER,
-					{ entity,
-					  goal,
-					  self.map:gridToTileCoords(grid.gi, grid.gj) }, function(data)
-					local ent = data[1]
-					local vill = ent:get("VillagerComponent")
-					local targetGrid = vill:getTargetGrid()
-					local targetRotation = vill:getTargetRotation()
-					local ti, tj = data[3], data[4]
-
-					local VillComp = require "src.game.villagercomponent"
-					local WalkComp = require "src.game.walkingcomponent"
-
-					-- Go next.
-					if data[2] == VillComp.GOALS.WORK_PICKING_UP then
-						ent:add(WalkComp(ti, tj, { { targetGrid, targetRotation, ent } }, WalkComp.INSTRUCTIONS.WORK))
-						vill:setGoal(VillComp.GOALS.WORK)
-					else
-						ent:add(WalkComp(ti, tj, { targetGrid }, WalkComp.INSTRUCTIONS.GO_HOME))
-						vill:setGoal(VillComp.GOALS.FOOD_DROPOFF)
-					end
-
-					vill:setTargetGrid(nil)
-					vill:setTargetRotation(nil)
-					vill:setDelay(0.0)
-					ent:remove("TimerComponent")
-				end))
-			end
-		elseif goal == VillagerComponent.GOALS.NONE then
+	if goal == VillagerComponent.GOALS.EATING then
+		if villager:isHome() then -- Home might have been destroyed.
 			if villager:getDelay() > 0.0 then
-				if not villager:isHome() and villager:getDelay() > VillagerSystem.TIMERS.IDLE_FIDGET_MIN then
-					self:_fidget(entity)
-				end
-			else
-				self:_takeAction(entity, dt)
+				-- Decrease the hunger.
+				villager:setHunger(math.max(0.0, villager:getHunger() - VillagerSystem.FOOD.LOSS_PER_SECOND * dt))
+				return
 			end
+		end
+
+		villager:setGoal(VillagerComponent.GOALS.NONE)
+		villager:setDelay(0.0)
+	elseif goal == VillagerComponent.GOALS.SLEEPING then
+		if villager:isHome() then -- Home might have been destroyed.
+			if villager:getDelay() > 0.0 then
+				-- Decrease the sleepiness.
+				villager:setSleepiness(math.max(0.0, villager:getSleepiness() - VillagerSystem.SLEEP.LOSS_PER_SECOND * dt))
+				return
+			end
+		end
+
+		villager:setGoal(VillagerComponent.GOALS.NONE)
+		villager:setDelay(0.0)
+	elseif goal == VillagerComponent.GOALS.DROPPING_OFF then
+		if villager:getDelay() <= 0.0 then
+			local grid = villager:getTargetGrid()
+			-- Second take that the grid is still empty...
+			if self.map:isGridEmpty(grid) then
+				-- Stop carrying the stuff.
+				self:_dropCarrying(entity, grid)
+				villager:setDelay(VillagerSystem.TIMERS.DROPOFF_AFTER)
+			--else
+				-- The default action will make sure we drop it somewhere else.
+			end
+
+			villager:setTargetGrid(nil)
+			villager:setGoal(VillagerComponent.GOALS.NONE)
+		end
+	elseif goal == VillagerComponent.GOALS.FOOD_PICKING_UP or
+	       goal == VillagerComponent.GOALS.WORK_PICKING_UP then
+		if villager:getDelay() <= 0.0 then
+			-- Start carrying the stuff.
+			local resourceEntity = villager:getTargetEntity()
+			local resource = resourceEntity:get("ResourceComponent")
+			local res, amount = resource:getResource(), resource:getReservedAmount()
+			entity:add(CarryingComponent(res, amount))
+			resource:decreaseAmount(amount)
+
+			if resource:getResourceAmount() < 1 then
+				-- Remove it from the engine.
+				self.engine:removeEntity(resourceEntity, true)
+			else
+				-- Sprite component needs to be updated.
+				resourceEntity:get("SpriteComponent"):setNeedsRefresh(true)
+				resource:setReserved(nil)
+			end
+
+			-- Update the state here, since dropping it off anywhere will increase the counter again.
+			state:removeReservedResource(res, amount)
+			state:decreaseResource(res, amount)
+			villager:setTargetEntity(nil)
+			villager:setDelay(VillagerSystem.TIMERS.PICKUP_AFTER + 1.0) -- Just something
+
+			local grid = villager:getTargetGrid()
+			entity:add(TimerComponent(VillagerSystem.TIMERS.PICKUP_AFTER,
+				{ entity,
+				  goal,
+				  self.map:gridToTileCoords(grid.gi, grid.gj) }, function(data)
+				local ent = data[1]
+				local vill = ent:get("VillagerComponent")
+				local targetGrid = vill:getTargetGrid()
+				local targetRotation = vill:getTargetRotation()
+				local ti, tj = data[3], data[4]
+
+				local VillComp = require "src.game.villagercomponent"
+				local WalkComp = require "src.game.walkingcomponent"
+
+				-- Go next.
+				if data[2] == VillComp.GOALS.WORK_PICKING_UP then
+					ent:add(WalkComp(ti, tj, { { targetGrid, targetRotation, ent } }, WalkComp.INSTRUCTIONS.WORK))
+					vill:setGoal(VillComp.GOALS.WORK)
+				else
+					ent:add(WalkComp(ti, tj, { targetGrid }, WalkComp.INSTRUCTIONS.GO_HOME))
+					vill:setGoal(VillComp.GOALS.FOOD_DROPOFF)
+				end
+
+				vill:setTargetGrid(nil)
+				vill:setTargetRotation(nil)
+				vill:setDelay(0.0)
+				ent:remove("TimerComponent")
+			end))
+		end
+	elseif goal == VillagerComponent.GOALS.NONE then
+		if villager:getDelay() > 0.0 then
+			if not villager:isHome() and villager:getDelay() > VillagerSystem.TIMERS.IDLE_FIDGET_MIN then
+				self:_fidget(entity)
+			end
+		else
+			self:_takeAction(entity, dt)
 		end
 	end
 end
@@ -538,6 +548,13 @@ function VillagerSystem:_fidget(entity, force)
 		self:_prepare(entity)
 	end
 
+	if self.map:isGridReserved(entity:get("PositionComponent"):getGrid()) then
+		-- The villager is standing on a reserved grid, and probably needs to move to avoid further collisions and
+		-- slowdowns.
+	end
+
+	entity:get("VillagerComponent"):setDelay(VillagerSystem.TIMERS.IDLE_FIDGET_MIN)
+
 	--[[ TODO: Reimplement
 	-- Wander around and fidget a little by rotating the villager.
 	if not entity:has("TimerComponent") and not entity:has("WalkingComponent") then
@@ -612,7 +629,7 @@ function VillagerSystem:_eat(entity)
 	end
 
 	assert(villager:isHome(), "Uh-oh")
-	villager:setGoal(VillagerComponent.GOALS.EAT)
+	villager:setGoal(VillagerComponent.GOALS.EATING)
 
 	local eating = 0.5
 	dwelling:setFood(dwelling:getFood() - eating)
@@ -628,7 +645,7 @@ function VillagerSystem:_sleep(entity)
 	local villager = entity:get("VillagerComponent")
 
 	assert(villager:isHome(), "Uh-oh")
-	villager:setGoal(VillagerComponent.GOALS.SLEEP)
+	villager:setGoal(VillagerComponent.GOALS.SLEEPING)
 	villager:setDelay(villager:getSleepiness() / VillagerSystem.SLEEP.LOSS_PER_SECOND)
 end
 
@@ -950,13 +967,17 @@ function VillagerSystem:unassignedEvent(event)
 
 	self.homeRelatedGoals = self.homeRelatedGoals or {
 		VillagerComponent.GOALS.FOOD_PICKUP,
+		VillagerComponent.GOALS.FOOD_PICKING_UP,
 		VillagerComponent.GOALS.FOOD_DROPOFF,
 		VillagerComponent.GOALS.SLEEP,
+		VillagerComponent.GOALS.SLEEPING,
 		VillagerComponent.GOALS.EAT,
+		VillagerComponent.GOALS.EATING,
 		VillagerComponent.GOALS.CHILDBIRTH
 	}
 	self.workRelatedGoals = self.workRelatedGoals or {
 		VillagerComponent.GOALS.WORK_PICKUP,
+		VillagerComponent.GOALS.WORK_PICKING_UP,
 		VillagerComponent.GOALS.WORK
 	}
 

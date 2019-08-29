@@ -14,10 +14,11 @@ VillagerComponent.static.GOALS = {
 	WORK_PICKING_UP = 8,
 	WORK = 9,
 	SLEEP = 10,
-	EAT = 11,
-	WAIT = 12,
-	MOVING = 13,
-	CHILDBIRTH = 14
+	SLEEPING = 11,
+	EAT = 12,
+	EATING = 13,
+	MOVING = 14,
+	CHILDBIRTH = 15
 }
 
 function VillagerComponent.static:save(cassette)

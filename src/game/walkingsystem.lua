@@ -156,7 +156,7 @@ function WalkingSystem:_walkTheWalk(entity, dt)
 
 			local wait, delay = self:_shouldWait(entity, nextGrid)
 			if not wait then
-				print(entity, "Recalculating "..retries)
+				print(entity, "Recalculating ("..retries.."/"..WalkingSystem.MAX_RETRIES..")")
 				if not next(path) then
 					print(entity, "Next is target")
 					-- The next grid is our destination.
@@ -184,7 +184,7 @@ function WalkingSystem:_walkTheWalk(entity, dt)
 			end
 
 			if wait then
-				print(entity, "Waiting "..retries)
+				print(entity, "Waiting "..delay.."s ("..retries.."/"..WalkingSystem.MAX_RETRIES..")")
 				walking:setDelay((assert(delay)))
 				-- Put back the next grid into the path, so that the same thing can be retried later on!
 				table.insert(path, nextGrid)

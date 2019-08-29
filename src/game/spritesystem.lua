@@ -4,7 +4,6 @@ local BuildingComponent = require "src.game.buildingcomponent"
 local FieldComponent = require "src.game.fieldcomponent"
 local InteractiveComponent = require "src.game.interactivecomponent"
 local ResourceComponent = require "src.game.resourcecomponent"
-local VillagerComponent = require "src.game.villagercomponent"
 local WorkComponent = require "src.game.workcomponent"
 
 local WorkEvent = require "src.game.workevent"
@@ -162,13 +161,11 @@ function SpriteSystem:updateVillager(dt, entity)
 		walking = true
 		assert(targetAnimation, "Missing carrying animation for villager")
 	elseif entity:has("WorkingComponent") then
-		if (entity:has("WalkingComponent") and entity:get("WalkingComponent"):getDelay() <= 0.0) or
-		   not entity:get("WorkingComponent"):getWorking() then
+		if entity:has("WalkingComponent") or not entity:get("WorkingComponent"):getWorking() then
 			targetAnimation = SpriteSystem.ANIMATIONS.walking_to_work[adult:getOccupation()]
 			assert(targetAnimation, "Missing walking animation")
 			walking = true
-			-- XXX: Didn't want to make a check like this, but here we are.
-			if villager:getGoal() == VillagerComponent.GOALS.WAIT then
+			if entity:has("WalkingComponent") and entity:get("WalkingComponent"):getDelay() > 0.0 then
 				animated = false
 			end
 		else
