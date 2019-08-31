@@ -59,7 +59,7 @@ function TimerComponent:initialize(delay, data, callback, oneshot)
 	self.time = self.delay
 
 	-- Data can be omitted.
-	if (callback ~= nil or type(callback) == "boolean") and type(data) == "function" then
+	if (callback == nil or type(callback) == "boolean") and type(data) == "function" then
 		self.data = nil
 		self.callback = data
 		self.oneshot = callback or true

@@ -6,13 +6,13 @@ local EntranceComponent = class("EntranceComponent")
 
 EntranceComponent.static.GRIDS = {
 	[BuildingComponent.DWELLING] = {
-		ogi = -3, ogj = 1
+		rotation = 225, ogi = -3, ogj = 1,
 	},
 	[BuildingComponent.BLACKSMITH] = {
-		ogi = 0, ogj = -8
+		rotation = 135, ogi = 0, ogj = -8
 	},
 	[BuildingComponent.BAKERY] = {
-		ogi = 1, ogj = -6
+		rotation = 135, ogi = 1, ogj = -6
 	}
 }
 

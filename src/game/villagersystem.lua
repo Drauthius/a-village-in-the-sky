@@ -30,6 +30,7 @@ local state = require "src.game.state"
 local VillagerSystem = lovetoys.System:subclass("VillagerSystem")
 
 VillagerSystem.static.TIMERS = {
+	MIN_DELAY = 0.25,
 	PICKUP_BEFORE = 0.25,
 	PICKUP_AFTER = 0.35,
 	DROPOFF_BEFORE = 0.25,
@@ -86,6 +87,9 @@ VillagerSystem.static.ADULTHOOD = 14
 VillagerSystem.static.SENIORHOOD = 55
 -- The chance to die of old age, accumulated per year after reaching seniorhood.
 VillagerSystem.static.DEATH_CHANCE = 0.005
+
+-- How far away, in grids, to try and move when standing on a reserved grid.
+VillagerSystem.static.RESERVE_GRID_DISTANCE = 3
 
 function VillagerSystem.requires()
 	return {"VillagerComponent"}
@@ -250,7 +254,10 @@ function VillagerSystem:_update(entity, dt)
 		end
 	elseif goal == VillagerComponent.GOALS.NONE then
 		if villager:getDelay() > 0.0 then
-			if not villager:isHome() and villager:getDelay() > VillagerSystem.TIMERS.IDLE_FIDGET_MIN then
+			if not villager:isHome() and
+			   villager:getDelay() > VillagerSystem.TIMERS.IDLE_FIDGET_MIN and
+			   not entity:has("TimerComponent") and
+			   not entity:has("WalkingComponent") then
 				self:_fidget(entity)
 			end
 		else
@@ -529,74 +536,143 @@ function VillagerSystem:_takeAction(entity)
 
 	-- If the entity is waiting or walking around, let them do that.
 	if entity:has("TimerComponent") or entity:has("WalkingComponent") then
+		-- Add some kind of delay, so that we don't thrash around too much.
+		villager:setDelay(VillagerSystem.TIMERS.MIN_DELAY)
 		return
 	end
 
-	if villager:isHome() then
-		-- Leave the house.
-		self.eventManager:fireEvent(BuildingLeftEvent(villager:getHome(), entity))
-		-- Move away from the door.
-		self:_fidget(entity, true)
-	else
-		-- TODO: Walk closer to home, if wandered too far.
-		self:_fidget(entity)
-	end
+	-- Leave the house, if inside.
+	self:_prepare(entity, false)
+	-- Move away from any reserved grid, or fidget a bit.
+	self:_fidget(entity)
 end
 
-function VillagerSystem:_fidget(entity, force)
-	if force then
-		self:_prepare(entity)
-	end
+function VillagerSystem:_fidget(entity)
+	local villager = entity:get("VillagerComponent")
+
+	local dirConv = require("src.game.worksystem").DIR_CONV[villager:getCardinalDirection()] -- XXX
+	local grid = entity:get("PositionComponent"):getGrid()
 
 	if self.map:isGridReserved(entity:get("PositionComponent"):getGrid()) then
 		-- The villager is standing on a reserved grid, and probably needs to move to avoid further collisions and
 		-- slowdowns.
+		local freeGrid = self:_getNearbyFreeGrid(grid, dirConv)
+
+		if freeGrid then
+			entity:add(WalkingComponent(nil, nil, { freeGrid }, WalkingComponent.INSTRUCTIONS.GET_OUT_THE_WAY))
+			villager:setDelay(VillagerSystem.TIMERS.MIN_DELAY)
+			return
+		else
+			print(entity, "Failed to find a free grid in the vicinity.")
+		end
 	end
 
-	entity:get("VillagerComponent"):setDelay(VillagerSystem.TIMERS.IDLE_FIDGET_MIN)
+	local min, max = VillagerSystem.TIMERS.IDLE_FIDGET_MIN, VillagerSystem.TIMERS.IDLE_FIDGET_MAX
+	local delay = love.math.random() * (max - min) + min
+	villager:setDelay(delay)
+	-- XXX: Dummy timer component to avoid doing anything until the delay is up...
+	entity:add(TimerComponent(delay, { entity }, function(data)
+		data[1]:remove("TimerComponent")
+	end))
 
-	--[[ TODO: Reimplement
-	-- Wander around and fidget a little by rotating the villager.
-	if not entity:has("TimerComponent") and not entity:has("WalkingComponent") then
-		local villager = entity:get("VillagerComponent")
-		local isAdult = entity:has("AdultComponent")
+	-- 2/3 chance to rotate/fidget in place.
+	local dir = villager:getDirection()
+	villager:setDirection(((dir + 45 * love.math.random(-1, 1)) + 360) % 360)
 
-		local timer = love.math.random() *
-		              (VillagerSystem.TIMERS.IDLE_FIDGET_MAX - VillagerSystem.TIMERS.IDLE_FIDGET_MIN) +
-		              VillagerSystem.TIMERS.IDLE_FIDGET_MIN
-		-- Make sure that the villager doesn't loiter on a reserved grid.
-		if force or self.map:isGridReserved(entity:get("PositionComponent"):getGrid()) then
-			force = true
-			timer = 0
+	if love.math.random() < VillagerSystem.RAND.WANDER_FORWARD_CHANCE then
+		local target = self.map:getGrid(grid.gi + dirConv[1], grid.gj + dirConv[2])
+
+		-- Don't bring the villager to an occupied or reserved grid.
+		if target and self.map:isGridEmpty(target) and not self.map:isGridReserved(target) then
+			if not entity:has("AdultComponent") and love.math.random() < VillagerSystem.RAND.CHILD_DOUBLE_FORWARD_CHANCE then
+				local other = self.map:getGrid(target.gi + dirConv[1], target.gj + dirConv[2])
+				if other and self.map:isGridEmpty(other) and not self.map:isGridReserved(other) then
+					target = other
+				end
+			end
+
+			entity:add(WalkingComponent(nil, nil, { target }, WalkingComponent.INSTRUCTIONS.WANDER))
 		end
+	end
+end
 
-		entity:add(TimerComponent(timer, function()
-				local dir = villager:getDirection()
-				villager:setDirection((dir + 45 * love.math.random(-1, 1)) % 360)
-				entity:remove("TimerComponent")
+function VillagerSystem:_getNearbyFreeGrid(grid, dirConv)
+	local sign = love.math.random(0, 1)
+	if sign == 0 then
+		sign = -1
+	end
 
-				if force or love.math.random() < VillagerSystem.RAND.WANDER_FORWARD_CHANCE then
-					-- XXX:
-					local dirConv = require("src.game.worksystem").DIR_CONV[villager:getCardinalDirection()]
+	if math.abs(dirConv[1] + dirConv[2]) == 1 then
+		-- Split into four quadrants, prioritizing forward, then either of the sides, and then backwards.
+		local dirs = {
+			dirConv,
+			{ dirConv[2] * sign, dirConv[1] * sign },
+			{ dirConv[2] * -sign, dirConv[1] * -sign },
+			{ -dirConv[1], -dirConv[2] }
+		}
+		for _,dir in ipairs(dirs) do
+			for i=1,VillagerSystem.RESERVE_GRID_DISTANCE do
+				local gi, gj = grid.gi + (dir[1] * i), grid.gj + (dir[2] * i)
 
-					local grid = entity:get("PositionComponent"):getGrid()
-					local target = self.map:getGrid(grid.gi + dirConv[1], grid.gj + dirConv[2])
-					if target then
-						if self.map:isGridReserved(target) or
-						   (not isAdult and love.math.random() < VillagerSystem.RAND.CHILD_DOUBLE_FORWARD_CHANCE) then
-							target = self.map:getGrid(target.gi + dirConv[1], target.gj + dirConv[2]) or target
-						end
-
-						-- Don't bring the villager to an occupied or reserved grid.
-						if self.map:isGridEmpty(target) and not self.map:isGridReserved(target) then
-							entity:add(WalkingComponent(nil, nil, { target }, WalkingComponent.INSTRUCTIONS.WANDER))
-						end
+				local available = {}
+				for w=-i,i do
+					local target
+					if dir[1] == 0 then
+						-- Expanding up or down. v
+						--                       ^
+						target = self.map:getGrid(grid.gi + w, gj)
+					elseif dir[2] == 0 then
+						-- Expanding sideways. ><
+						target = self.map:getGrid(gi, grid.gj + w)
+					end
+					if target and self.map:isGridEmpty(target) and not self.map:isGridReserved(target) then
+						table.insert(available, target)
 					end
 				end
-			end)
-		)
+
+				local _,target = next(table.shuffle(available))
+				if target then
+					return target
+				end
+			end
+		end
+	else
+		-- Split into four quadrants, prioritizing forward, then either of the sides, and then backwards.
+		local dirs = {
+			dirConv,
+			{ dirConv[1] * -sign, dirConv[2] * sign },
+			{ dirConv[1] * sign, dirConv[2] * -sign },
+			{ -dirConv[1], -dirConv[2] }
+		}
+		for _,dir in ipairs(dirs) do
+			for i=1,VillagerSystem.RESERVE_GRID_DISTANCE do
+				local gi, gj = grid.gi + (dir[1] * i), grid.gj + (dir[2] * i)
+
+				local available = {}
+				for w=0,i*-dir[1],-dir[1] do
+					local target = self.map:getGrid(gi + w, gj)
+					if target and self.map:isGridEmpty(target) and not self.map:isGridReserved(target) then
+						table.insert(available, target)
+					end
+				end
+
+				-- Note: 0,0 (gi,gj) is added twice to available if it is free. Feature?
+				for h=0,i*-dir[2],-dir[2] do
+					local target = self.map:getGrid(gi, gj + h)
+					if target and self.map:isGridEmpty(target) and not self.map:isGridReserved(target) then
+						table.insert(available, target)
+					end
+				end
+
+				local _,target = next(table.shuffle(available))
+				if target then
+					return target
+				end
+			end
+		end
 	end
-	--]]
+
+	return nil
 end
 
 function VillagerSystem:_goToBuilding(entity, building, instructions)
@@ -1022,13 +1098,20 @@ function VillagerSystem:buildingEnteredEvent(event)
 		entity:add(TimerComponent(VillagerSystem.TIMERS.BUILDING_TEMP_ENTER,
 		                          { entity, VillagerComponent.GOALS.NONE }, function(data)
 			local ent = data[1]
+			local vill = ent:get("VillagerComponent")
+
 			ent:add(require("src.game.spritecomponent")())
 
-			ent:get("VillagerComponent"):setGoal(data[2])
 			if ent:has("WorkingComponent") then
 				ent:remove("WorkingComponent")
 			end
 			ent:remove("TimerComponent")
+
+			vill:setGoal(data[2])
+			vill:setDelay(0.5)
+			-- The villager's direction should be the opposite.
+			-- TODO: The villager can temporarily enter a building from a variety of angles.
+			vill:setDirection((((vill:getDirection() + 180) + love.math.random(-2, 2) * 45) + 360) % 360)
 		end))
 	else
 		entity:remove("SpriteComponent")
@@ -1066,6 +1149,9 @@ function VillagerSystem:buildingLeftEvent(event)
 			{ { 0.45, 0.45, 0.45, 1.0 },
 			  { 0.55, 0.55, 0.55, 1.0 } })
 	end
+
+	-- The villager's direction should be away from the door.
+	villager:setDirection(((entrance.rotation + love.math.random(-2, 2) * 45) + 360) % 360)
 
 	villager:setIsHome(false)
 	villager:setGoal(VillagerComponent.GOALS.NONE)
