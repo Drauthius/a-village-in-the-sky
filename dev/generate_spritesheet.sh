@@ -59,6 +59,7 @@ info-panel-centre.aseprite
 iron-resource.aseprite
 mountain-tile.aseprite
 objectives-panel.aseprite
+objectives-panel2.aseprite
 resource-panel.aseprite
 smoke.aseprite
 spark.aseprite

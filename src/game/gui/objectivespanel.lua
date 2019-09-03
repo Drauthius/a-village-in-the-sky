@@ -12,13 +12,15 @@ function ObjectivesPanel:initialize(eventManager, y)
 	self.eventManager = eventManager
 	self.panels = {}
 	self.font = love.graphics.newFont("asset/font/Norse.otf", 15)
-	self.panelSprite = spriteSheet:getSprite("objectives-panel")
-	self.panelData = spriteSheet:getData("objectives-panel-text")
+	self.panelSprite1 = spriteSheet:getSprite("objectives-panel")
+	self.panelSprite2 = spriteSheet:getSprite("objectives-panel2")
+	self.panelData1 = spriteSheet:getData("objectives-panel-text")
+	self.panelData2 = spriteSheet:getData("objectives-panel2-text")
 
 	-- Widget:
 	self.x, self.y = 1, y
 	self.ox, self.oy = 0, 0
-	self.w, self.h = self.panelSprite:getWidth(), 0
+	self.w, self.h = self.panelSprite1:getWidth(), 0
 end
 
 function ObjectivesPanel:draw()
@@ -37,17 +39,20 @@ end
 function ObjectivesPanel:addObjective(text, skipTween)
 	local numPanels = #self.panels
 
-	local panel = Widget(self.x, self.y + numPanels * self.panelSprite:getHeight() - 1, 0, 0, self.panelSprite)
-	panel:addText(text, self.font, spriteSheet:getOutlineColor(),
-	              self.panelData.bounds.x, self.panelData.bounds.y, self.panelData.bounds.w)
-	table.insert(self.panels, panel)
-
-	if self.font:getWidth(text) > self.panelData.bounds.w then
-		print("Objective is too big for objective panel.") -- TODO
+	local panel
+	if self.font:getWidth(text) > self.panelData1.bounds.w then
+		self.font:setLineHeight(1.2)
+		panel = Widget(self.x, self.y + numPanels * self.panelSprite2:getHeight() - 1, 0, 0, self.panelSprite2)
+		panel:addText(text, self.font, spriteSheet:getOutlineColor(),
+		              self.panelData2.bounds.x, self.panelData2.bounds.y, self.panelData2.bounds.w)
+	else
+		panel = Widget(self.x, self.y + numPanels * self.panelSprite1:getHeight() - 1, 0, 0, self.panelSprite1)
+		panel:addText(text, self.font, spriteSheet:getOutlineColor(),
+		              self.panelData1.bounds.x, self.panelData1.bounds.y, self.panelData1.bounds.w)
 	end
 
-	self.h = self.h + self.panelSprite:getHeight()
-
+	self.h = self.h + panel:getHeight()
+	table.insert(self.panels, panel)
 	panel.uniqueID = ObjectivesPanel.uniqueID
 	ObjectivesPanel.static.uniqueID = ObjectivesPanel.uniqueID + 1
 
@@ -55,13 +60,14 @@ function ObjectivesPanel:addObjective(text, skipTween)
 		-- Create a nice tween effect (reverse of the remove one).
 		local panelNum = numPanels + 1
 		self.panels[panelNum].sx, self.panels[panelNum].sy = 1, 0
+		local oldOy = self.panels[panelNum].text.oy
 		self.panels[panelNum].text.oy = 0
 
 		local time = 2.5
 		local tween = "in-bounce"
 
 		self.panels[panelNum].timers = {
-			Timer.tween(time, self.panels[panelNum].text, { oy = self.panelData.bounds.y }, tween),
+			Timer.tween(time, self.panels[panelNum].text, { oy = oldOy }, tween),
 			Timer.tween(time, self.panels[panelNum], { sy = 1 }, tween)
 		}
 	end
