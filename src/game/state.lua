@@ -17,11 +17,16 @@ function State:initialize()
 	}
 	self.year = 0.0
 	self.yearModifier = 1.0
+	self.timeStopped = false
 	self.placing = nil
 	self.selected = nil
 	self.headers = {
 		buildings = false,
 		villagers = false
+	}
+	self.available = {
+		terrain = nil,
+		buildings = nil
 	}
 	self.resources = {
 		[ResourceComponent.WOOD] = 0,
@@ -84,6 +89,14 @@ function State:setYearModifier(mod)
 	self.yearModifier = mod
 end
 
+function State:isTimeStopped()
+	return self.timeStopped
+end
+
+function State:setTimeStopped(stopped)
+	self.timeStopped = stopped
+end
+
 --
 -- Placing
 --
@@ -141,6 +154,27 @@ end
 
 function State:showVillagerHeaders(show)
 	self.headers.villagers = show
+end
+
+--
+-- Availabilities
+-- (Misplaced?)
+--
+
+function State:getAvailableTerrain()
+	return self.available.terrain
+end
+
+function State:setAvailableTerrain(available)
+	self.available.terrain = available
+end
+
+function State:getAvailableBuildings()
+	return self.available.buildings
+end
+
+function State:setAvailableBuildings(available)
+	self.available.buildings = available
 end
 
 --

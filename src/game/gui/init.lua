@@ -2,6 +2,7 @@ local babel = require "lib.babel"
 local class = require "lib.middleclass"
 local vector = require "lib.hump.vector"
 local GameState = require "lib.hump.gamestate"
+local Timer = require "lib.hump.timer"
 
 local InGameMenu = require "src.ingamemenu"
 
@@ -34,6 +35,7 @@ function GUI:initialize(engine, eventManager, map)
 	self.yearPanel = spriteSheet:getSprite("year-panel")
 	self.yearPanel.number = spriteSheet:getData("year-number")
 	self.yearPanel.text = spriteSheet:getData("year-text")
+	self.yearPanel.y = 1
 
 	-- Create the buttons (with bogus positions, since they're overwritten in resize() anyway).
 	local tileButtonSprite = spriteSheet:getSprite("button 0")
@@ -115,7 +117,7 @@ function GUI:resize(width, height)
 	self.detailsPanel = DetailsPanel(self.eventManager, select(2, self.listBuildingButton:getPosition()) - padding)
 	self.detailsPanel:hide()
 
-	self.objectivesPanel = ObjectivesPanel(self.eventManager, self.yearPanel:getHeight() + padding * 2)
+	self.objectivesPanel = ObjectivesPanel(self.eventManager, self.yearPanel:getHeight() + 10)
 end
 
 function GUI:back()
@@ -240,7 +242,7 @@ function GUI:draw(camera)
 	love.graphics.setColor(1, 1, 1)
 
 	do -- Year panel
-		local x, y = 1, 1
+		local x, y = 1, self.yearPanel.y
 		spriteSheet:draw(self.yearPanel, x, y)
 
 		love.graphics.setColor(0, 0, 0)
@@ -448,6 +450,35 @@ function GUI:updateHint()
 
 		hint:rotateAround(x + button:getWidth() / 2, y + button:getHeight() / 2 + 5, button:getWidth() * 0.4)
 		self.infoPanel:setHint(nil)
+	end
+end
+
+function GUI:changeAvailibility(type)
+	if not self.infoPanel:isShown() then
+		return
+	end
+
+	if self.infoPanel:getContentType() == type then
+		-- FIXME: This will remove selections and other things.
+		self.infoPanel:setContent(self.infoPanel:getContentType())
+	end
+end
+
+function GUI:showYearPanel(instant)
+	local y = 1
+	if instant then
+		self.yearPanel.y = y
+	else
+		Timer.tween(0.5, self.yearPanel, { y = y }, "in-back")
+	end
+end
+
+function GUI:hideYearPanel(instant)
+	local y = -self.yearPanel:getHeight()
+	if instant then
+		self.yearPanel.y = y
+	else
+		Timer.tween(0.5, self.yearPanel, { y = y }, "in-back")
 	end
 end
 

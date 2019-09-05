@@ -397,6 +397,10 @@ function RenderSystem:_drawHeader(entity)
 	-- FIXME: Headers are shown even when the entity is outside of the screen and has been culled.
 
 	if entity:has("VillagerComponent") then
+		if state:isTimeStopped() then
+			return -- Don't show any headers during a gameplay pause.
+		end
+
 		local villager = entity:get("VillagerComponent")
 
 		-- Multiple icons are chained together beautifully.

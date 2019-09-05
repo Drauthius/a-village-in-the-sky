@@ -117,48 +117,50 @@ function VillagerSystem:_update(entity, dt)
 		villager:decreaseDelay(dt)
 	end
 
-	-- Increase age.
-	villager:increaseAge(TimerComponent.YEARS_PER_SECOND * dt)
-	if math.floor(age) ~= math.floor(villager:getAge()) then
-		-- Happy birthday!
-		self.eventManager:fireEvent(VillagerAgedEvent(entity))
-		age = villager:getAge()
-	end
+	if not state:isTimeStopped() then
+		-- Increase age.
+		villager:increaseAge(TimerComponent.YEARS_PER_SECOND * dt)
+		if math.floor(age) ~= math.floor(villager:getAge()) then
+			-- Happy birthday!
+			self.eventManager:fireEvent(VillagerAgedEvent(entity))
+			age = villager:getAge()
+		end
 
-	-- Increase hunger if not eating (and not an infant).
-	if goal ~= VillagerComponent.GOALS.EATING and age >= VillagerSystem.CHILDHOOD then
-		local hunger = math.min(1.0, villager:getHunger() + VillagerSystem.FOOD.HUNGER_PER_SECOND * dt)
-		villager:setHunger(hunger)
-		-- Don't starve a mother giving birth, for nicety reasons.
-		if hunger >= 1.0 and goal ~= VillagerComponent.GOALS.CHILDBIRTH then
-			local starvation = math.min(1.0, villager:getStarvation() + VillagerSystem.FOOD.STARVATION_PER_SECOND * dt)
-			villager:setStarvation(starvation)
-			if starvation >= 1.0 then
-				print(entity, "died of hunger")
-				self.engine:removeEntity(entity)
-				return
-			end
+		-- Increase hunger if not eating (and not an infant).
+		if goal ~= VillagerComponent.GOALS.EATING and age >= VillagerSystem.CHILDHOOD then
+			local hunger = math.min(1.0, villager:getHunger() + VillagerSystem.FOOD.HUNGER_PER_SECOND * dt)
+			villager:setHunger(hunger)
+			-- Don't starve a mother giving birth, for nicety reasons.
+			if hunger >= 1.0 and goal ~= VillagerComponent.GOALS.CHILDBIRTH then
+				local starvation = math.min(1.0, villager:getStarvation() + VillagerSystem.FOOD.STARVATION_PER_SECOND * dt)
+				villager:setStarvation(starvation)
+				if starvation >= 1.0 then
+					print(entity, "died of hunger")
+					self.engine:removeEntity(entity)
+					return
+				end
 
-			if villager:getHome() and
-			   goal ~= VillagerComponent.GOALS.NONE and
-			   goal ~= VillagerComponent.GOALS.FOOD_PICKUP and
-			   goal ~= VillagerComponent.GOALS.FOOD_PICKING_UP and
-			   goal ~= VillagerComponent.GOALS.FOOD_DROPOFF and
-			   goal ~= VillagerComponent.GOALS.SLEEP and
-			   goal ~= VillagerComponent.GOALS.SLEEPING and
-			   goal ~= VillagerComponent.GOALS.EAT and
-			   goal ~= VillagerComponent.GOALS.EATING then
-				-- Villager needs to eat. Drop what yer doing.
-				self:_stopAll(entity)
-				self:_prepare(entity, true)
+				if villager:getHome() and
+				   goal ~= VillagerComponent.GOALS.NONE and
+				   goal ~= VillagerComponent.GOALS.FOOD_PICKUP and
+				   goal ~= VillagerComponent.GOALS.FOOD_PICKING_UP and
+				   goal ~= VillagerComponent.GOALS.FOOD_DROPOFF and
+				   goal ~= VillagerComponent.GOALS.SLEEP and
+				   goal ~= VillagerComponent.GOALS.SLEEPING and
+				   goal ~= VillagerComponent.GOALS.EAT and
+				   goal ~= VillagerComponent.GOALS.EATING then
+					-- Villager needs to eat. Drop what yer doing.
+					self:_stopAll(entity)
+					self:_prepare(entity, true)
+				end
 			end
 		end
-	end
 
-	-- Increase sleepiness if not sleeping.
-	if goal ~= VillagerComponent.GOALS.SLEEPING then
-		local sleepiness = math.min(1.0, villager:getSleepiness() + VillagerSystem.SLEEP.IDLE_GAIN_PER_SECOND * dt)
-		villager:setSleepiness(sleepiness)
+		-- Increase sleepiness if not sleeping.
+		if goal ~= VillagerComponent.GOALS.SLEEPING then
+			local sleepiness = math.min(1.0, villager:getSleepiness() + VillagerSystem.SLEEP.IDLE_GAIN_PER_SECOND * dt)
+			villager:setSleepiness(sleepiness)
+		end
 	end
 
 	if goal == VillagerComponent.GOALS.EATING then

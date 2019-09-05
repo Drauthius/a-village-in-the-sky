@@ -42,11 +42,11 @@ function ObjectivesPanel:addObjective(text, skipTween)
 	local panel
 	if self.font:getWidth(text) > self.panelData1.bounds.w then
 		self.font:setLineHeight(1.2)
-		panel = Widget(self.x, self.y + numPanels * self.panelSprite2:getHeight() - 1, 0, 0, self.panelSprite2)
+		panel = Widget(self.x, self.y + self.h - 1, 0, 0, self.panelSprite2)
 		panel:addText(text, self.font, spriteSheet:getOutlineColor(),
 		              self.panelData2.bounds.x, self.panelData2.bounds.y, self.panelData2.bounds.w)
 	else
-		panel = Widget(self.x, self.y + numPanels * self.panelSprite1:getHeight() - 1, 0, 0, self.panelSprite1)
+		panel = Widget(self.x, self.y + self.h - 1, 0, 0, self.panelSprite1)
 		panel:addText(text, self.font, spriteSheet:getOutlineColor(),
 		              self.panelData1.bounds.x, self.panelData1.bounds.y, self.panelData1.bounds.w)
 	end
@@ -104,9 +104,11 @@ function ObjectivesPanel:removeObjective(uniqueID)
 				break
 			end
 		end
+		self.h = self.h - self.panels[newPanelNum]:getHeight()
 		table.remove(self.panels, newPanelNum)
 		for i=newPanelNum,#self.panels do
-			Timer.tween(0.5, self.panels[i], { y = self.panels[i].y - self.panels[i].h }, tween)
+			local y = i == 1 and self.y or (self.panels[i].y - self.panels[i-1].h)
+			Timer.tween(0.5, self.panels[i], { y = y }, tween)
 		end
 	end)
 

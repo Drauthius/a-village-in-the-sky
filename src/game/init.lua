@@ -272,8 +272,10 @@ function Game:update(dt)
 		loops = 1
 	end
 	for _=1,loops do
-		state:increaseYear(TimerComponent.YEARS_PER_SECOND * dt)
-		state:setYearModifier(math.max(1.0, 6.0 - state:getYear()/15.0))
+		if not state:isTimeStopped() then
+			state:increaseYear(TimerComponent.YEARS_PER_SECOND * dt)
+			state:setYearModifier(math.max(1.0, 6.0 - state:getYear()/15.0))
+		end
 
 		Timer.update(dt)
 		for _,background in ipairs(self.backgrounds) do

@@ -271,7 +271,8 @@ function InfoPanel:setContent(type)
 	local x = self.contentBounds.x + mysteryOffset
 
 	if type == InfoPanel.CONTENT.PLACE_TERRAIN then
-		for _,terrain in pairs({ TileComponent.GRASS, TileComponent.FOREST, TileComponent.MOUNTAIN }) do
+		local terrains = state:getAvailableTerrain() or { TileComponent.GRASS, TileComponent.FOREST, TileComponent.MOUNTAIN }
+		for _,terrain in ipairs(terrains) do
 			local sprite = spriteSheet:getSprite(TileComponent.TILE_NAME[terrain] .. "-tile")
 			local w, h = sprite:getWidth() + margin, self.contentBounds.h -- We assume that all sprites are the same width.
 
@@ -283,8 +284,9 @@ function InfoPanel:setContent(type)
 			table.insert(content, item)
 		end
 	elseif type == InfoPanel.CONTENT.PLACE_BUILDING then
-		for _,building in pairs({ BuildingComponent.DWELLING, BuildingComponent.BLACKSMITH,
-		                          BuildingComponent.FIELD, BuildingComponent.BAKERY }) do
+		local buildings = state:getAvailableBuildings() or { BuildingComponent.DWELLING, BuildingComponent.BLACKSMITH,
+		                                                     BuildingComponent.FIELD, BuildingComponent.BAKERY }
+		for _,building in ipairs(buildings) do
 			local sprite = spriteSheet:getSprite(BuildingComponent.BUILDING_NAME[building] ..
 			                                     (building == BuildingComponent.FIELD and "" or " 0"))
 			local w, h = sprite:getWidth() + margin, self.contentBounds.h -- We assume that all sprites are the same width.

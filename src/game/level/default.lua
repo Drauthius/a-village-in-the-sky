@@ -13,12 +13,21 @@ local TileComponent = require "src.game.tilecomponent"
 local InfoPanel = require "src.game.gui.infopanel"
 
 local blueprint = require "src.game.blueprint"
+local state = require "src.game.state"
 local spriteSheet = require "src.game.spritesheet"
 
 local DefaultLevel = Level:subclass("DefaultLevel")
 
 function DefaultLevel:initialize(...)
 	Level.initialize(self, ...)
+
+	state:setTimeStopped(true)
+	self.gui:hideYearPanel(true)
+
+	state:setAvailableTerrain({ TileComponent.GRASS })
+	state:setAvailableBuildings({ BuildingComponent.DWELLING })
+	self.gui:changeAvailibility(InfoPanel.CONTENT.PLACE_TERRAIN)
+	self.gui:changeAvailibility(InfoPanel.CONTENT.PLACE_BUILDING)
 
 	self.objectives = {
 		{
@@ -55,6 +64,35 @@ function DefaultLevel:initialize(...)
 			cond = function()
 				for _,entity in pairs(self.engine:getEntitiesWithComponent("ConstructionComponent")) do
 					if entity:get("AssignmentComponent"):getNumAssignees() > 0 then
+						return true
+					end
+				end
+			end
+		},
+		{
+			text = "Once done, assign a villager to the house",
+			cond = function()
+				for _,entity in pairs(self.engine:getEntitiesWithComponent("DwellingComponent")) do
+					if entity:get("AssignmentComponent"):getNumAssignees() > 0 then
+						return true
+					end
+				end
+			end
+		},
+		{
+			text = "Build a blacksmith",
+			pre = function()
+				state:setAvailableBuildings({ BuildingComponent.DWELLING, BuildingComponent.BLACKSMITH })
+				self.gui:changeAvailibility(InfoPanel.CONTENT.PLACE_BUILDING)
+
+				self.gui:setHint(InfoPanel.CONTENT.PLACE_BUILDING, BuildingComponent.BLACKSMITH)
+
+				state:setTimeStopped(false)
+				self.gui:showYearPanel()
+			end,
+			cond = function()
+				for _,entity in pairs(self.engine:getEntitiesWithComponent("ProductionComponent")) do
+					if entity:get("BuildingComponent"):getType() == BuildingComponent.BLACKSMITH then
 						return true
 					end
 				end
@@ -156,6 +194,18 @@ function DefaultLevel:initial()
 				self.engine:addEntity(villager)
 			end
 		end
+	end
+end
+
+function DefaultLevel:load(...)
+	Level.load(self, ...)
+
+	if self.currentObjective > 4 then
+		state:setTimeStopped(false)
+		self.gui:showYearPanel(true)
+
+		state:setAvailableTerrain({ TileComponent.GRASS })
+		state:setAvailableBuildings({ BuildingComponent.DWELLING, BuildingComponent.BLACKSMITH })
 	end
 end
 

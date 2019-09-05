@@ -76,8 +76,10 @@ function Cassette:save(engine, map, level)
 	data.state.viewport = state.viewport
 	data.state.year = state.year
 	data.state.yearModifier = state.yearModifier
+	data.state.timeStopped = state.timeStopped
 	data.state.selected = state.selected and self:saveEntity(state.selected) or nil
 	data.state.placing = state.placing and self:saveEntity(state.placing) or nil
+	data.state.available = state.available
 
 	-- Fifth pass: Fill in the information used by the profile screen.
 	data.year = math.floor(data.state.year)
@@ -174,8 +176,10 @@ function Cassette:load(engine, map, level)
 	state.viewport = data.state.viewport
 	state.year = data.state.year
 	state.yearModifier = data.state.yearModifier
+	state.timeStopped = data.state.timeStopped
 	state.selected = data.state.selected and self:loadEntity(data.state.selected) or nil
 	state.placing = data.state.placing and self:loadEntity(data.state.placing) or nil
+	state.available = data.state.available
 
 	-- Fifth pass: Anything the level felt worth saving.
 	level:load(self, data.level)
