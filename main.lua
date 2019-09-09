@@ -28,9 +28,6 @@ local MainMenu = require "src.mainmenu"
 local screen = require "src.screen"
 
 function love.load()
-	--local Bound = require "lib.gui.bound"
-	--Bound.static.debug = true
-
 	GameState.registerEvents()
 
 	screen:setUp()
