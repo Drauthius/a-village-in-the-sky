@@ -1,0 +1,2 @@
+Norse (Norse.otf & Norse-Bold.otf):
+  Free. See Norse_LICENSE.txt
