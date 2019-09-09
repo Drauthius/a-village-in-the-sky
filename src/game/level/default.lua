@@ -211,13 +211,33 @@ end
 
 function DefaultLevel:getResources(tileType)
 	if tileType == TileComponent.GRASS then
-		-- TODO: Would be nice with some trees, but not the early levels
-		return 0, 0 --return math.max(0, math.floor((love.math.random(9) - 5) / 2)), 0
+		local numTiles = 0
+		for _ in pairs(self.engine:getEntitiesWithComponent("TileComponent")) do
+			numTiles = numTiles + 1
+			if numTiles >= 8 then
+				return math.max(0, math.floor((love.math.random(9) - 5) / 2)), 0
+			end
+		end
+		return 0, 0
 	elseif tileType == TileComponent.FOREST then
 		return love.math.random(2, 6), 0
 	elseif tileType == TileComponent.MOUNTAIN then
 		return math.max(0, love.math.random(5) - 4), love.math.random(2, 4)
 	end
+end
+
+function DefaultLevel:shouldPlaceRunestone(ti, tj)
+	for _,entity in pairs(self.engine:getEntitiesWithComponent("RunestoneComponent")) do
+		local tti, ttj = entity:get("PositionComponent"):getTile()
+		-- Manhattan distance.
+		local distance = math.abs(tti - ti) + math.abs(ttj - tj)
+		if distance < 3 then
+			return false
+		end
+	end
+
+	-- FIXME: An unlucky player might not be able to expand their village.
+	return love.math.random() < 0.3
 end
 
 return DefaultLevel

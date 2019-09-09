@@ -94,7 +94,7 @@ end
 
 function MainMenu:enter(previous, init)
 	self.hasProfiles = false
-	self.nextFreeProfile = 1
+	self.nextFreeProfile = nil
 	for i=1,Profiles.NUM_PROFILES do
 		if love.filesystem.getInfo("save"..i, "file") then
 			self.hasProfiles = true
