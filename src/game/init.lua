@@ -544,6 +544,10 @@ function Game:focus(focused)
 	end
 end
 
+function Game:fastforward(fastforward)
+	self.speed = fastforward and 3 or 1
+end
+
 --
 -- Internal functions
 --

@@ -51,6 +51,8 @@ function GUI:initialize(engine, eventManager, map)
 	self.menuButton = Button(0, 0, 0, 0, "menu-button", self.menuFont)
 	self.menuButton:setText(babel.translate("Menu"))
 
+	self.fastforwardButton = Button(0, 0, 0, 0, "fastforward-button", false)
+
 	self.yearPanel = spriteSheet:getSprite("year-panel")
 	self.yearPanel.number = spriteSheet:getData("year-number")
 	self.yearPanel.text = spriteSheet:getData("year-text")
@@ -105,6 +107,8 @@ function GUI:resize(width, height)
 	end
 
 	self.menuButton.x, self.menuButton.y = self.screenWidth - self.menuButton:getWidth() - 1, 1
+	self.fastforwardButton.x = self.menuButton.x - self.fastforwardButton:getWidth() - 1
+	self.fastforwardButton.y = self.menuButton.y
 
 	self.tileButton:setPosition(
 		1,
@@ -285,8 +289,9 @@ function GUI:draw(camera)
 		love.graphics.setColor(1, 1, 1)
 	end
 
-	-- Menu button
+	-- Menu buttons
 	self.menuButton:draw()
+	self.fastforwardButton:draw()
 
 	-- Buttons
 	for _,button in ipairs(self.buttons) do
@@ -425,11 +430,18 @@ function GUI:handlePress(x, y, released)
 		return true
 	end
 
-	if self.menuButton:isWithin(x,y) then
+	if self.menuButton:isWithin(x, y) then
 		if released and self.menuButton:isPressed() then
 			GameState.push(InGameMenu)
 		end
 		self.menuButton:setPressed(not released)
+		return true
+	end
+
+	if self.fastforwardButton:isWithin(x, y) and not released then
+		-- FIXME: The fast-forward button behaves a bit inconsistently with other buttons.
+		self.fastforwardButton:setPressed(not self.fastforwardButton:isPressed())
+		love.event.push("fastforward", self.fastforwardButton:isPressed())
 		return true
 	end
 

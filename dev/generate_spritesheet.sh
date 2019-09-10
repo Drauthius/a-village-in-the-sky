@@ -48,6 +48,7 @@ down_layer='Down'
 buttons=(
 close-button.aseprite
 details-button.aseprite
+fastforward-button.aseprite
 info-panel-left.aseprite
 menu-button.aseprite
 minimize-button.aseprite

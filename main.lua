@@ -20,14 +20,13 @@ along with A Village in the Sky. If not, see <http://www.gnu.org/licenses/>.
 -- Set the default filter before loading anything.
 love.graphics.setDefaultFilter("linear", "nearest")
 
-local babel = require "lib.babel"
-local GameState = require "lib.hump.gamestate"
-
-local MainMenu = require "src.mainmenu"
-
 local screen = require "src.screen"
 
 function love.load()
+	local babel = require "lib.babel"
+	local GameState = require "lib.hump.gamestate"
+	local MainMenu = require "src.mainmenu"
+
 	GameState.registerEvents()
 
 	screen:setUp()
@@ -41,4 +40,9 @@ end
 
 function love.resize(width, height)
 	screen:resize(width, height)
+end
+
+function love.handlers.fastforward(fastforward)
+	-- Hump will expect this function to be called.
+	love.fastforward(fastforward)
 end

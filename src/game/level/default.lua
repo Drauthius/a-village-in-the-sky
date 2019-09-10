@@ -219,7 +219,7 @@ end
 function DefaultLevel:load(...)
 	Level.load(self, ...)
 
-	if self.currentObjective > 4 then
+	if self.currentObjective and self.currentObjective > 4 then
 		state:setTimeStopped(false)
 		self.gui:showYearPanel(true)
 
