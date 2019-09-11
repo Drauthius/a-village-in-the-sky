@@ -112,41 +112,11 @@ function MainMenu:init()
 end
 
 function MainMenu:enter(previous, init)
-	self.hasProfiles = false
-	self.nextFreeProfile = nil
-	for i=1,Profiles.NUM_PROFILES do
-		if love.filesystem.getInfo("save"..i, "file") then
-			self.hasProfiles = true
-		elseif not self.nextFreeProfile then
-			self.nextFreeProfile = i
-		end
-	end
-	if self.hasProfiles and love.filesystem.getInfo("latest", "file") then
-		local content = love.filesystem.read("latest")
-		if tonumber(content) ~= nil and
-		   tonumber(content) <= Profiles.NUM_PROFILES and
-		   love.filesystem.getInfo("save"..content, "file") then
-			self.latest = content
-		else
-			love.filesystem.remove("latest")
-		end
-	end
+	self:reevaluate()
 
 	if init and self.latest then
 		return GameState.switch(Game, self.latest)
 	end
-
-	self.buttons = {}
-	if self.latest then
-		table.insert(self.buttons, self.resumeButton)
-	else
-		table.insert(self.buttons, self.newGameButton)
-	end
-	if self.hasProfiles then
-		table.insert(self.buttons, self.profilesButton)
-	end
-	table.insert(self.buttons, self.optionsButton)
-	table.insert(self.buttons, self.quitButton)
 
 	self:resize()
 
@@ -168,6 +138,9 @@ end
 
 function MainMenu:resume(oldState)
 	self.oldState = oldState
+
+	self:reevaluate()
+	self:resize()
 
 	Timer.after(1.0, function()
 		self.oldState = nil
@@ -306,6 +279,41 @@ function MainMenu:moveBack()
 
 	Timer.tween(0.5, self, { offsetX = 0 }, "out-sine")
 	Timer.tween(0.5, self.imagePosition, { [1] = self.originalPositions.image }, "out-sine")
+end
+
+function MainMenu:reevaluate()
+	self.hasProfiles = false
+	self.nextFreeProfile = nil
+	self.latest = nil
+	for i=1,Profiles.NUM_PROFILES do
+		if love.filesystem.getInfo("save"..i, "file") then
+			self.hasProfiles = true
+		elseif not self.nextFreeProfile then
+			self.nextFreeProfile = i
+		end
+	end
+	if self.hasProfiles and love.filesystem.getInfo("latest", "file") then
+		local content = love.filesystem.read("latest")
+		if tonumber(content) ~= nil and
+		   tonumber(content) <= Profiles.NUM_PROFILES and
+		   love.filesystem.getInfo("save"..content, "file") then
+			self.latest = content
+		else
+			love.filesystem.remove("latest")
+		end
+	end
+
+	self.buttons = {}
+	if self.latest then
+		table.insert(self.buttons, self.resumeButton)
+	elseif self.nextFreeProfile then
+		table.insert(self.buttons, self.newGameButton)
+	end
+	if self.hasProfiles then
+		table.insert(self.buttons, self.profilesButton)
+	end
+	table.insert(self.buttons, self.optionsButton)
+	table.insert(self.buttons, self.quitButton)
 end
 
 return MainMenu
