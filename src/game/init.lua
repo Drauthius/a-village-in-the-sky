@@ -219,16 +219,16 @@ function Game:enter(_, profile)
 		self:onRemoveEntity(entity)
 	end
 
-	-- Set up the level.
-	self.level = DefaultLevel(self.engine, self.map, self.gui)
-	--self.level = require("src.game.level.hallway")(self.engine, self.map, self.gui)
-	--self.level = require("src.game.level.runestones")(self.engine, self.map, self.gui)
-
 	-- Load the game, or create an initial save.
 	self.cassette = Cassette(profile)
 	if self.cassette:isValid() then
-		self.cassette:load(self.engine, self.map, self.level)
+		self.level = self.cassette:load(self.engine, self.map, self.gui)
 	else
+		-- Set up the level.
+		self.level = DefaultLevel(self.engine, self.map, self.gui)
+		--self.level = require("src.game.level.hallway")(self.engine, self.map, self.gui)
+		--self.level = require("src.game.level.runestone")(self.engine, self.map, self.gui)
+
 		self.level:initial()
 		self:_save()
 	end

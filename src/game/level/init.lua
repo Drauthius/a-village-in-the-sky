@@ -25,6 +25,8 @@ function Level:initialize(engine, map, gui)
 	self.engine = engine
 	self.map = map
 	self.gui = gui
+
+	self.source = self.class.name:gsub("Level$", ""):gsub("%u", string.lower)
 end
 
 function Level:initial()
@@ -85,12 +87,15 @@ end
 
 function Level:save(cassette)
 	return {
+		source = self.source,
 		currentObjective = self.currentObjective,
 		numObjectives = self.numObjectives
 	}
 end
 
 function Level:load(cassette, data)
+	assert(self.source == data.source, "Loading the wrong level")
+
 	self.currentObjective = data.currentObjective
 	self.numObjectives = data.numObjectives
 end

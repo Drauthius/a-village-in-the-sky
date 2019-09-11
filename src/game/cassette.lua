@@ -123,7 +123,7 @@ function Cassette:save(engine, map, level)
 	--print("Saving done. Took "..os.difftime(os.time(), start).." seconds.")
 end
 
-function Cassette:load(engine, map, level)
+function Cassette:load(engine, map, gui)
 	local data
 	local content, err = love.filesystem.read("save"..self.index)
 	if not content then
@@ -200,12 +200,15 @@ function Cassette:load(engine, map, level)
 	state.placing = data.state.placing and self:loadEntity(data.state.placing) or nil
 	state.available = data.state.available
 
-	-- Fifth pass: Anything the level felt worth saving.
+	-- Fifth pass: The level and anything it felt worth saving.
+	local level = require("src.game.level." .. data.level.source)(engine, map, gui)
 	level:load(self, data.level)
 
 	-- Remove the caches
 	self.entities = nil
 	self.map = nil
+
+	return level
 end
 
 --
