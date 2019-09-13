@@ -506,21 +506,16 @@ function RenderSystem:_drawHeader(entity)
 		end
 
 		local headerData = spriteSheet:getData("dwelling-header")
-		for _,type in ipairs({ "boys", "girls", "food" }) do
+		for _,type in ipairs({ "boys", "girls" }) do
 			local data = spriteSheet:getData(type .. "-count")
 			local Fx, Fy = x + data.bounds.x - headerData.bounds.x, y + data.bounds.y - headerData.bounds.y
 
 			local amount
-			if type == "food" then
-				love.graphics.setFont(love.graphics.newFont("asset/font/Norse.otf", data.bounds.h))
-				amount = dwelling:getFood()
+			love.graphics.setFont(love.graphics.newFont(data.bounds.h))
+			if type == "boys" then
+				amount = dwelling:getNumBoys()
 			else
-				love.graphics.setFont(love.graphics.newFont(data.bounds.h))
-				if type == "boys" then
-					amount = dwelling:getNumBoys()
-				else
-					amount = dwelling:getNumGirls()
-				end
+				amount = dwelling:getNumGirls()
 			end
 
 			-- Drop shadow
@@ -546,6 +541,29 @@ function RenderSystem:_drawHeader(entity)
 		local vacantIcon = spriteSheet:getSprite("headers", "vacant-icon")
 		for i=j,2 do
 			spriteSheet:draw(vacantIcon, 10 + x + ((i - 1) * (vacantIcon:getWidth() + 1)), y + 1)
+		end
+
+		local breads = { spriteSheet:getData("bread1-placement"), spriteSheet:getData("bread2-placement") }
+		local food = dwelling:getFood()
+		if food == 0 then
+			local noFoodIcon = spriteSheet:getSprite("headers", "hungry-icon")
+			spriteSheet:draw(noFoodIcon,
+				x + (breads[1].bounds.x - headerData.bounds.x)
+				  + ((breads[1].bounds.w + breads[2].bounds.w + 2) - noFoodIcon:getWidth()) / 2,
+				y + (breads[1].bounds.y - headerData.bounds.y))
+		else
+			local wholeBreadIcon = spriteSheet:getSprite("headers", "whole-bread-icon")
+			local halfBreadIcon = spriteSheet:getSprite("headers", "half-bread-icon")
+			for i=1,math.min(2, food+0.5) do
+				local bread = wholeBreadIcon
+				if i - food == 0.5 then
+					bread = halfBreadIcon
+				end
+
+				spriteSheet:draw(bread,
+					x + (breads[i].bounds.x - headerData.bounds.x),
+					y + (breads[i].bounds.y - headerData.bounds.y))
+			end
 		end
 	elseif entity:has("AssignmentComponent") and entity:has("BuildingComponent") then
 		local spots = entity:get("AssignmentComponent"):getMaxAssignees()
