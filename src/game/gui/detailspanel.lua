@@ -46,6 +46,23 @@ DetailsPanel.static.BUTTON = {
 	UPGRADE = 3
 }
 
+DetailsPanel.static.VILLAGER_DETAILS = {
+	{ "Name", "getName" },
+	{ "Age", "getAge" },
+	{ "Hunger", "getHunger" },
+	{ "Sleepiness", "getSleepiness" },
+	{},
+	{ "Occupation", "getOccupationName", true },
+	{ "Strength", "getStrength" },
+	{ "Craftsmanship", "getCraftsmanship" }
+}
+
+DetailsPanel.static.DWELLING_DETAILS = {
+	{ "Number of sons", "getNumBoys" },
+	{ "Number of daughters", "getNumGirls" },
+	{ "Stored food", "getFood" }
+}
+
 function DetailsPanel:initialize(eventManager, y)
 	self.eventManager = eventManager
 
@@ -63,17 +80,6 @@ function DetailsPanel:initialize(eventManager, y)
 	                     self.y + background:getHeight() - buttonSprite:getHeight() - self.font:getHeight() - 6,
 	                     1, 5, "details-button", self.fontBold)
 	self.buttonState = DetailsPanel.BUTTON.HIDDEN
-
-	self.villagerDetails = {
-		{ "Name", "getName" },
-		{ "Age", "getAge" },
-		{ "Hunger", "getHunger" },
-		{ "Sleepiness", "getSleepiness" },
-		{},
-		{ "Occupation", "getOccupationName", true },
-		{ "Strength", "getStrength" },
-		{ "Craftsmanship", "getCraftsmanship" }
-	}
 end
 
 function DetailsPanel:update(dt)
@@ -109,14 +115,14 @@ function DetailsPanel:draw()
 
 		love.graphics.setColor(spriteSheet:getOutlineColor())
 
-		for _,details in ipairs(self.villagerDetails) do
+		for _,details in ipairs(DetailsPanel.VILLAGER_DETAILS) do
 			local key, value, adultComp = details[1], details[2], details[3]
 			if not key then
 				if not adult then
 					break
 				end
 			else
-				key = key .. ": "
+				key = babel.translate(key) .. ": "
 				if adultComp then
 					value = adult[value](adult)
 				else
@@ -135,8 +141,7 @@ function DetailsPanel:draw()
 		end
 	elseif selection:has("BuildingComponent") then
 		local building = selection:get("BuildingComponent")
-		local type = building:getType()
-		local name = babel.translate(BuildingComponent.BUILDING_NAME[type])
+		local name = babel.translate(BuildingComponent.BUILDING_NAME[building:getType()])
 
 		love.graphics.setFont(self.fontHeader)
 		love.graphics.setColor(spriteSheet:getOutlineColor())
@@ -178,6 +183,26 @@ function DetailsPanel:draw()
 
 			y = y + progressBar.icon:getHeight() + 1
 			self.buttonState = DetailsPanel.BUTTON.CANCEL
+		elseif selection:has("DwellingComponent") then
+			local dwelling = selection:get("DwellingComponent")
+
+			love.graphics.setColor(spriteSheet:getOutlineColor())
+
+			for _,details in ipairs(DetailsPanel.DWELLING_DETAILS) do
+				local key, value = details[1], details[2]
+				key = babel.translate(key) .. ": "
+				value = dwelling[value](dwelling)
+
+				if type(value) == "number" and value == "getFood" then
+					value = string.format("%.1f", value)
+				end
+				love.graphics.setFont(self.fontBold)
+				love.graphics.print(key, x, y)
+
+				love.graphics.setFont(self.font)
+				love.graphics.print(value, x + self.fontBold:getWidth(key), y)
+				y = y + math.floor(self.fontBold:getHeight() * 1.5)
+			end
 		end
 
 		if selection:has("RunestoneComponent") then
