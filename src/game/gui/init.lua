@@ -403,8 +403,8 @@ function GUI:handlePress(x, y, released)
 
 					self:updateHint()
 
-					state:showBuildingHeaders(type == "buildings")
-					state:showVillagerHeaders(type == "villagers")
+					state:showBuildingHeaders(type == InfoPanel.CONTENT.LIST_BUILDINGS)
+					state:showVillagerHeaders(type == InfoPanel.CONTENT.LIST_VILLAGERS)
 				end
 			end
 			return true
