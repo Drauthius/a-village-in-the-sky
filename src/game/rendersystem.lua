@@ -73,7 +73,8 @@ end
 function RenderSystem:initialize()
 	lovetoys.System.initialize(self)
 
-	self.font = love.graphics.newFont("asset/font/Norse-Bold.otf", 16)
+	self.constructionFont = love.graphics.newFont("asset/font/Norse-Bold.otf", 16)
+	self.runestoneFont = love.graphics.newFont("asset/font/Norse-Bold.otf", 14)
 
 	RenderSystem.COLOR_OUTLINE_SHADER:send("noShadow", false)
 	RenderSystem.COLOR_OUTLINE_SHADER:send("shadowOnly", false)
@@ -389,10 +390,10 @@ function RenderSystem:_drawEntity(i, entity)
 	-- Text overlay
 	if entity:has("ConstructionComponent") then
 		local percent = entity:get("ConstructionComponent"):getPercentDone()
-		love.graphics.setFont(self.font)
+		love.graphics.setFont(self.constructionFont)
 		percent = percent .. "%"
 
-		local fw, fh = self.font:getWidth(percent), self.font:getHeight()
+		local fw, fh = self.constructionFont:getWidth(percent), self.constructionFont:getHeight()
 
 		-- Calculate position
 		dx, dy = sprite:getDrawPosition()
@@ -634,6 +635,35 @@ function RenderSystem:_drawHeader(entity)
 		for i=j,spots do
 			spriteSheet:draw(vacantIcon, 9 + x + ((i - 1) * (vacantIcon:getWidth() + 1)), y + 1)
 		end
+	elseif entity:has("RunestoneComponent") then
+		if not isSelected and not state:getShowBuildingHeaders() then
+			return
+		end
+
+		local runestone = entity:get("RunestoneComponent")
+		local header = spriteSheet:getSprite("headers", "1-spot-building-header")
+		local x, y = sprite:getOriginalDrawPosition()
+		local w, h = header:getDimensions()
+		local tw = sprite:getSprite():getWidth()
+
+		x = x + (tw - w) / 2
+		y = y - h / 2
+		spriteSheet:draw(header, x, y)
+
+		local icon = spriteSheet:getSprite("headers", "runestone-icon")
+		spriteSheet:draw(icon, x - icon:getWidth() / 2 - 1, y + (h - icon:getHeight()) / 2)
+
+		local ox = 7 -- XXX: Value
+		x = x + ox
+		y = y - 1
+
+		love.graphics.setFont(self.runestoneFont)
+		love.graphics.setColor(spriteSheet:getOutlineColor())
+		love.graphics.printf(runestone:getLevel(), x + 1, y + 1, header:getWidth() - ox - 2, "center")
+
+		love.graphics.setColor(0.565, 0.827, 0.871, 1) -- (90d3de) XXX: Should get it from sprite.
+		love.graphics.printf(runestone:getLevel(), x, y, header:getWidth() - ox - 2, "center")
+		love.graphics.setColor(1, 1, 1, 1)
 	end
 end
 
