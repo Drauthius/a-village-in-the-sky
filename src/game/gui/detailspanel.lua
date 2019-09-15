@@ -136,7 +136,7 @@ function DetailsPanel:draw()
 
 				love.graphics.setFont(self.font)
 				love.graphics.print(value, x + self.fontBold:getWidth(key), y)
-				y = y + math.floor(self.fontBold:getHeight() * 1.5)
+				y = y + math.floor(self.fontBold:getHeight() * 1.25)
 			end
 		end
 	elseif selection:has("BuildingComponent") then
@@ -201,7 +201,12 @@ function DetailsPanel:draw()
 
 				love.graphics.setFont(self.font)
 				love.graphics.print(value, x + self.fontBold:getWidth(key), y)
-				y = y + math.floor(self.fontBold:getHeight() * 1.5)
+				y = y + math.floor(self.fontBold:getHeight() * 1.25)
+			end
+
+			if dwelling:isRelated() then
+				love.graphics.setFont(self.fontBold)
+				love.graphics.printf(babel.translate("Adults are related!"), x, y * 1.035, w, "center")
 			end
 		end
 
