@@ -492,6 +492,7 @@ function RenderSystem:_drawHeader(entity)
 		end
 
 		local header = spriteSheet:getSprite("headers", "dwelling-header")
+		local headerData = spriteSheet:getData("dwelling-header")
 		local x, y = sprite:getOriginalDrawPosition()
 		local w, h = header:getDimensions()
 		local tw = sprite:getSprite():getWidth()
@@ -500,69 +501,68 @@ function RenderSystem:_drawHeader(entity)
 		y = y - h / 2
 		spriteSheet:draw(header, x, y)
 
-		if dwelling:isRelated() then
-			-- XXX: Value
-			spriteSheet:draw(spriteSheet:getSprite("headers", "family-ties-icon"), x + 22, y)
-		end
-
-		local headerData = spriteSheet:getData("dwelling-header")
-		for _,type in ipairs({ "boys", "girls" }) do
-			local data = spriteSheet:getData(type .. "-count")
-			local Fx, Fy = x + data.bounds.x - headerData.bounds.x, y + data.bounds.y - headerData.bounds.y
-
-			local amount
-			love.graphics.setFont(love.graphics.newFont(data.bounds.h))
-			if type == "boys" then
-				amount = dwelling:getNumBoys()
-			else
-				amount = dwelling:getNumGirls()
+		do -- Adult icons
+			local maleIcon = spriteSheet:getSprite("headers", "male-icon")
+			local femaleIcon = spriteSheet:getSprite("headers", "female-icon")
+			local villagers = entity:get("AssignmentComponent"):getAssignees()
+			local j = 1
+			for i=1,#villagers do
+				local icon = villagers[i]:get("VillagerComponent"):getGender() == "male" and maleIcon or femaleIcon
+				spriteSheet:draw(icon, 10 + x + ((i - 1) * (icon:getWidth() + 1)), y + 1)
+				j = j + 1
 			end
 
-			-- Drop shadow
-			--love.graphics.setColor(0, 0, 0, 0.5)
-			love.graphics.setColor(RenderSystem.NEW_OUTLINE_COLOR)
-			love.graphics.print(tostring(amount), Fx + 1, Fy + 1)
-			-- Text
-			love.graphics.setColor(RenderSystem.BEHIND_OUTLINE_COLOR)
-			love.graphics.print(tostring(amount), Fx, Fy)
-		end
-		love.graphics.setColor(1, 1, 1, 1)
+			local vacantIcon = spriteSheet:getSprite("headers", "vacant-icon")
+			for i=j,2 do
+				spriteSheet:draw(vacantIcon, 10 + x + ((i - 1) * (vacantIcon:getWidth() + 1)), y + 1)
+			end
 
-		local maleIcon = spriteSheet:getSprite("headers", "male-icon")
-		local femaleIcon = spriteSheet:getSprite("headers", "female-icon")
-		local villagers = entity:get("AssignmentComponent"):getAssignees()
-		local j = 1
-		for i=1,#villagers do
-			local icon = villagers[i]:get("VillagerComponent"):getGender() == "male" and maleIcon or femaleIcon
-			spriteSheet:draw(icon, 10 + x + ((i - 1) * (icon:getWidth() + 1)), y + 1)
-			j = j + 1
+			if dwelling:isRelated() then
+				-- XXX: Value
+				spriteSheet:draw(spriteSheet:getSprite("headers", "family-ties-icon"), x + 22, y)
+			end
 		end
 
-		local vacantIcon = spriteSheet:getSprite("headers", "vacant-icon")
-		for i=j,2 do
-			spriteSheet:draw(vacantIcon, 10 + x + ((i - 1) * (vacantIcon:getWidth() + 1)), y + 1)
+		do -- Child icons
+			local boyIcon = spriteSheet:getSprite("headers", "boy-icon")
+			local girlIcon = spriteSheet:getSprite("headers", "girl-icon")
+			local childBox = spriteSheet:getData("child-row-1")
+
+			for i,child in ipairs(dwelling:getChildren()) do
+				local icon = child:get("VillagerComponent"):getGender() == "male" and boyIcon or girlIcon
+				local iconsPerRow = math.floor(childBox.bounds.w / icon:getWidth())
+				local row = spriteSheet:getData("child-row-"..math.floor((i - 1) / iconsPerRow + 1))
+				local col = (i - 1) % iconsPerRow
+
+				spriteSheet:draw(
+					icon,
+					x + row.bounds.x - headerData.bounds.x + col * icon:getWidth(),
+					y + row.bounds.y - headerData.bounds.y)
+			end
 		end
 
-		local breads = { spriteSheet:getData("bread1-placement"), spriteSheet:getData("bread2-placement") }
-		local food = dwelling:getFood()
-		if food == 0 then
-			local noFoodIcon = spriteSheet:getSprite("headers", "hungry-icon")
-			spriteSheet:draw(noFoodIcon,
-				x + (breads[1].bounds.x - headerData.bounds.x)
-				  + ((breads[1].bounds.w + breads[2].bounds.w + 2) - noFoodIcon:getWidth()) / 2,
-				y + (breads[1].bounds.y - headerData.bounds.y))
-		else
-			local wholeBreadIcon = spriteSheet:getSprite("headers", "whole-bread-icon")
-			local halfBreadIcon = spriteSheet:getSprite("headers", "half-bread-icon")
-			for i=1,math.min(2, food+0.5) do
-				local bread = wholeBreadIcon
-				if i - food == 0.5 then
-					bread = halfBreadIcon
+		do -- Bread icons
+			local breads = { spriteSheet:getData("bread1-placement"), spriteSheet:getData("bread2-placement") }
+			local food = dwelling:getFood()
+			if food == 0 then
+				local noFoodIcon = spriteSheet:getSprite("headers", "hungry-icon")
+				spriteSheet:draw(noFoodIcon,
+					x + (breads[1].bounds.x - headerData.bounds.x)
+					  + ((breads[1].bounds.w + breads[2].bounds.w + 2) - noFoodIcon:getWidth()) / 2,
+					y + (breads[1].bounds.y - headerData.bounds.y) + (breads[1].bounds.h - noFoodIcon:getHeight()) / 2)
+			else
+				local wholeBreadIcon = spriteSheet:getSprite("headers", "whole-bread-icon")
+				local halfBreadIcon = spriteSheet:getSprite("headers", "half-bread-icon")
+				for i=1,math.min(2, food+0.5) do
+					local bread = wholeBreadIcon
+					if i - food == 0.5 then
+						bread = halfBreadIcon
+					end
+
+					spriteSheet:draw(bread,
+						x + (breads[i].bounds.x - headerData.bounds.x),
+						y + (breads[i].bounds.y - headerData.bounds.y))
 				end
-
-				spriteSheet:draw(bread,
-					x + (breads[i].bounds.x - headerData.bounds.x),
-					y + (breads[i].bounds.y - headerData.bounds.y))
 			end
 		end
 	elseif entity:has("AssignmentComponent") and entity:has("BuildingComponent") then

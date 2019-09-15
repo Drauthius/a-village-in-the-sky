@@ -86,6 +86,10 @@ function DwellingComponent:setNumGirls(numGirls)
 	self.numGirls = numGirls
 end
 
+function DwellingComponent:getNumChildren()
+	return self:getNumBoys() + self:getNumGirls()
+end
+
 function DwellingComponent:addChild(child)
 	table.insert(self.children, child)
 

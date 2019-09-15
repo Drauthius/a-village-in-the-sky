@@ -98,7 +98,7 @@ function VillagerComponent:initialize(stats, mother, father)
 	self.name = stats.name or "Uh"
 	self.age = stats.age or 0.0 -- 0-death
 	self.hairy = stats.hairy or false
-	self.gender = stats.gender
+	self.gender = stats.gender -- "male" or "female"
 
 	self.alive = true
 

@@ -42,6 +42,8 @@ PregnancySystem.static.MENOPAUSE_CHANCE = 0.05
 PregnancySystem.static.INTERCOURSE_CHANCE = 0.33
 -- Decrease for each child.
 PregnancySystem.static.INTERCOURSE_CHILD_DECREASE = 0.05
+-- Maximum number of children.
+PregnancySystem.static.MAX_CHILDREN = 6
 
 -- Number of days that the pregnancy can be early or late, in years.
 PregnancySystem.static.PREGNANCY_VARIATION = 15 / 365
@@ -139,9 +141,8 @@ function PregnancySystem:buildingEnteredEvent(event)
 		end
 	end
 
-	-- Check whether the individuals are related.
-	-- Cached in the dwelling.
-	if dwelling:isRelated() then
+	-- Check whether the individuals are related, or if there are already too many children.
+	if dwelling:isRelated() or dwelling:getNumChildren() >= PregnancySystem.MAX_CHILDREN then
 		return
 	end
 
