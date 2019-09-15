@@ -37,6 +37,21 @@ RenderSystem.static.SELECTED_BEHIND_OUTLINE_COLOR = { 0.60, 0.95, 0.60, 1.0 }
 RenderSystem.static.MAX_REPLACE_COLORS = 16
 
 RenderSystem.static.COLOR_OUTLINE_SHADER = love.graphics.newShader([[
+// "Jitter-free" pixel art scaling from https://www.youtube.com/watch?v=2JbhkZe22bE
+// Doesn't seem to do a lot of difference, except some extra jitter when the camera slides.
+//
+//#pragma language glsl3
+//vec4 texturePointSmooth(Image tex, vec2 uv) {
+//	vec2 size = vec2(textureSize(tex, 0));
+//	vec2 pixel = vec2(1.0) / size;
+//	uv -= pixel * vec2(0.5);
+//	vec2 uv_pixels = uv * size;
+//	vec2 delta_pixel = fract(uv_pixels) - vec2(0.5);
+//	vec2 ddxy = fwidth(uv_pixels);
+//	vec2 mip = log2(ddxy) - 0.5;
+//	return textureLod(tex, uv + (clamp(delta_pixel / ddxy, 0.0, 1.0) - delta_pixel) * pixel, min(mip.x, mip.y));
+//}
+
 uniform bool noShadow;
 uniform bool shadowOnly;
 uniform bool outlineOnly;
@@ -44,9 +59,10 @@ uniform int numColorReplaces;
 uniform vec4 oldColor[]]..RenderSystem.MAX_REPLACE_COLORS..[[];
 uniform vec4 newColor[]]..RenderSystem.MAX_REPLACE_COLORS..[[];
 
-vec4 effect(vec4 color, Image texture, vec2 texture_coords, vec2 screen_coords)
+vec4 effect(vec4 color, Image tex, vec2 texture_coords, vec2 screen_coords)
 {
-	vec4 texturecolor = Texel(texture, texture_coords);
+	vec4 texturecolor = Texel(tex, texture_coords);
+	//vec4 texturecolor = texturePointSmooth(tex, texture_coords);
 
 	if(texturecolor.a == 0.0)
 		discard; // Don't count for stencil tests.
