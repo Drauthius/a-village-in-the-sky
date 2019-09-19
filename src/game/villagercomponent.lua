@@ -40,6 +40,9 @@ VillagerComponent.static.GOALS = {
 	CHILDBIRTH = 15
 }
 
+VillagerComponent.static.FEMININE_NAMES = require "asset.misc.feminine_names"
+VillagerComponent.static.MASCULINE_NAMES = require "asset.misc.masculine_names"
+
 function VillagerComponent.static:save(cassette)
 	return {
 		name = self.name,
@@ -95,10 +98,15 @@ function VillagerComponent.static.load(cassette, data)
 end
 
 function VillagerComponent:initialize(stats, mother, father)
-	self.name = stats.name or "Uh"
 	self.age = stats.age or 0.0 -- 0-death
 	self.hairy = stats.hairy or false
 	self.gender = stats.gender -- "male" or "female"
+
+	if self.gender == "male" then
+		self.name = VillagerComponent.MASCULINE_NAMES[love.math.random(1, #VillagerComponent.MASCULINE_NAMES)]
+	else
+		self.name = VillagerComponent.FEMININE_NAMES[love.math.random(1, #VillagerComponent.FEMININE_NAMES)]
+	end
 
 	self.alive = true
 
