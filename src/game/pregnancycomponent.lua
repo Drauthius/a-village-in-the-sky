@@ -24,14 +24,18 @@ local PregnancyComponent = class("PregnancyComponent")
 function PregnancyComponent.static:save(cassette)
 	return {
 		expected = self.expected,
-		father = cassette:saveEntity(self.father),
+		father = (self.father and self.father.alive) and cassette:saveEntity(self.father) or nil,
+		fatherUnique = self.fatherUnique,
 		inLabour = self.inLabour
 	}
 end
 
 function PregnancyComponent.static.load(cassette, data)
-	local component = PregnancyComponent(data.expected, cassette:loadEntity(data.father))
+	local component = PregnancyComponent:allocate()
 
+	component.expected = data.expected
+	component.father = data.father and cassette:loadEntity(data.father) or nil
+	component.fatherUnique = data.fatherUnique
 	component.inLabour = data.inLabour
 
 	return component
@@ -40,6 +44,7 @@ end
 function PregnancyComponent:initialize(expected, father)
 	self.expected = expected
 	self.father = father
+	self.fatherUnique = father:get("VillagerComponent"):getUnqiue()
 	self.inLabour = false
 end
 
@@ -60,7 +65,7 @@ function PregnancyComponent:setInLabour(inLabour)
 end
 
 function PregnancyComponent:getFather()
-	return self.father
+	return self.father, self.fatherUnique
 end
 
 return PregnancyComponent

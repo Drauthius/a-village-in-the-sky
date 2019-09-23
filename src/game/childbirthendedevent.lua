@@ -21,8 +21,10 @@ local class = require "lib.middleclass"
 
 local ChildbirthEndedEvent = class("ChildbirthEndedEvent")
 
-function ChildbirthEndedEvent:initialize(mother, father, motherDied, childDied, isIndoors)
+function ChildbirthEndedEvent:initialize(mother, father, fatherUnique, motherDied, childDied, isIndoors)
 	self.mother = mother
+	self.father = father
+	self.fatherUnqiue = fatherUnique
 	self.motherDied = motherDied
 	self.childDied = childDied
 	self.isIndoors = isIndoors
@@ -33,7 +35,7 @@ function ChildbirthEndedEvent:getMother()
 end
 
 function ChildbirthEndedEvent:getFather()
-	return self.father
+	return self.father, self.fatherUnique
 end
 
 function ChildbirthEndedEvent:didMotherSurvive()

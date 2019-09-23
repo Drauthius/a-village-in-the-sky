@@ -970,48 +970,26 @@ function VillagerSystem:assignedEvent(event)
 		local assignees = site:get("AssignmentComponent"):getAssignees()
 		local other = assignees[1] ~= entity and assignees[1] or assignees[2]
 		if other then
+			other = other:get("VillagerComponent")
+			local isRelated, _
 			-- Set the related flag.
-			-- This is done by checking for the parents and grandparents.
-			-- TODO: This means that great-grandparents and great-uncles/aunts aren't considered related,
-			--       but first cousins are.
-			local related = { villager }
-			local mother = villager:getMother()
-			if mother then
-				table.insert(related, mother)
-				table.insert(related, mother:get("VillagerComponent"):getMother())
-				table.insert(related, mother:get("VillagerComponent"):getFather())
-			end
-			local father = villager:getFather()
-			if father then
-				table.insert(related, father)
-				table.insert(related, father:get("VillagerComponent"):getMother())
-				table.insert(related, father:get("VillagerComponent"):getFather())
-			end
+			-- This is done by checking the parent uniques.
+			-- TODO: This means that grandparents, cousins, and uncles/aunts aren't considered related,
+			--       but the alternative is to save some kind of family tree for everyone.
+			local myUnique, myMotherUnique, myFatherUnique
+			local otherUnique, otherMotherUnique, otherFatherUnique
+			myUnique, otherUnique = villager:getUnique(), other:getUnique()
+			_, myMotherUnique = villager:getMother()
+			_, myFatherUnique = villager:getFather()
+			_, otherMotherUnique = other:getMother()
+			_, otherFatherUnique = other:getFather()
 
-			local isRelated = false
-			for _,v in ipairs(related) do
-				mother = other:get("VillagerComponent"):getMother()
-				father = other:get("VillagerComponent"):getFather()
-
-				if other == v then
-					isRelated = true
-					break
-				elseif mother then
-					if mother == v or
-					   mother:get("VillagerComponent"):getMother() == v or
-					   mother:get("VillagerComponent"):getFather() == v then
-						isRelated = true
-						break
-					end
-				elseif father then
-					if father == v or
-					   father:get("VillagerComponent"):getMother() == v or
-					   father:get("VillagerComponent"):getFather() == v then
-						isRelated = true
-						break
-					end
-				end
-			end
+			isRelated = myUnique == otherMotherUnique or
+			            myUnique == otherFatherUnique or
+			            otherUnique == myMotherUnique or
+			            otherUnique == myFatherUnique or
+			            myFatherUnique == otherFatherUnique or
+			            myMotherUnique == otherMotherUnique
 
 			site:get("DwellingComponent"):setRelated(isRelated)
 		end
@@ -1213,8 +1191,16 @@ function VillagerSystem:childbirthEndedEvent(event)
 	self:_stopAll(entity)
 	self:_prepare(entity, true)
 
+	local father, fatherUnique = event:getFather()
 	-- The child is created even if she didn't make it, so that the death animation can be played correctly.
-	local child = blueprint:createVillager(entity, event:getFather())
+	local child = blueprint:createVillager(entity, father)
+
+	-- Father might have died already.
+	child:get("VillagerComponent").fatherUnique = fatherUnique
+	if father and not father.alive then
+		child:get("VillagerComponent"):clearFather()
+	end
+
 	if event:wasIndoors() then
 		child:remove("SpriteComponent") -- Don't need that.
 		child:get("VillagerComponent"):setHome(villager:getHome())
@@ -1321,30 +1307,19 @@ function VillagerSystem:onRemoveEntity(entity)
 		self:_dropCarrying(entity)
 	end
 
-	-- The component isn't removed immediately, because it is used to determine ancestry to a certain degree.
-	villager:setDead()
-
-	-- Free the great-grandparents, if everyone is dead.
-	-- TODO: Inefficient and incorrect. Can leave behind childless villagers,
-	--       and cause other problems.
+	-- Free up resources so as not to save them.
 	local parents = {}
-	table.insert(parents, villager:getMother())
-	table.insert(parents, villager:getFather())
-	local grandParents = {}
-	for _,v in ipairs(parents) do
-		v = v:get("VillagerComponent")
-		if v:isDead() then
-			table.insert(grandParents, v:getMother())
-			table.insert(grandParents, v:getFather())
-		end
+	table.insert(parents, (villager:getMother()))
+	table.insert(parents, (villager:getFather()))
+	for _,parent in ipairs(parents) do
+		parent:get("VillagerComponent"):removeChild(entity)
 	end
-	for _,v in ipairs(grandParents) do
-		v = v:get("VillagerComponent")
-		if v:isDead() then
-			-- TODO: A fair bit hacky, no?
-			assert(not v:getMother() or v:getMother():get("VillagerComponent"):isDead(), "Great-grandmother not dead. :(")
-			assert(not v:getFather() or v:getFather():get("VillagerComponent"):isDead(), "Great-grandfather not dead. :(")
-			v:clear()
+
+	for _,child in ipairs(villager:getChildren()) do
+		if villager:getGender() == "male" then
+			child:get("VillagerComponent"):clearFather()
+		else
+			child:get("VillagerComponent"):clearMother()
 		end
 	end
 end

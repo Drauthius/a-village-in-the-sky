@@ -90,7 +90,8 @@ function PregnancySystem:update(dt)
 				motherDied = love.math.random() < PregnancySystem.MORTALITY_MOTHER
 				entity:remove("PregnancyComponent")
 
-				self.eventManager:fireEvent(ChildbirthEndedEvent(entity, pregnancy:getFather(), motherDied, childDied, indoors))
+				local father, fatherUnique = pregnancy:getFather()
+				self.eventManager:fireEvent(ChildbirthEndedEvent(entity, father, fatherUnique, motherDied, childDied, indoors))
 				return
 			end
 		end

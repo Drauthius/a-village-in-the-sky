@@ -40,16 +40,17 @@ VillagerComponent.static.GOALS = {
 	CHILDBIRTH = 15
 }
 
+VillagerComponent.static.UNIQUE = 0
 VillagerComponent.static.FEMININE_NAMES = require "asset.misc.feminine_names"
 VillagerComponent.static.MASCULINE_NAMES = require "asset.misc.masculine_names"
 
 function VillagerComponent.static:save(cassette)
 	return {
+		unique = self.unique,
 		name = self.name,
 		age = self.age,
 		hairy = self.hairy,
 		gender = self.gender,
-		alive = self.alive,
 		strength = self.strength,
 		craftsmanship = self.craftsmanship,
 		hunger = self.hunger,
@@ -64,7 +65,9 @@ function VillagerComponent.static:save(cassette)
 		home = self.home and cassette:saveEntity(self.home) or nil,
 		isAtHome = self.isAtHome,
 		mother = self.mother and cassette:saveEntity(self.mother) or nil,
+		motherUnique = self.motherUnique,
 		father = self.father and cassette:saveEntity(self.father) or nil,
+		fatherUnique = self.fatherUnique,
 		children = cassette:saveEntityList(self.children)
 	}
 end
@@ -72,11 +75,11 @@ end
 function VillagerComponent.static.load(cassette, data)
 	local component = VillagerComponent:allocate()
 
+	component.unique = data.unique
 	component.name = data.name
 	component.age = data.age
 	component.hairy = data.hairy
 	component.gender = data.gender
-	component.alive = data.alive
 	component.strength = data.strength
 	component.craftsmanship = data.craftsmanship
 	component.hunger = data.hunger
@@ -91,13 +94,18 @@ function VillagerComponent.static.load(cassette, data)
 	component.home = data.home and cassette:loadEntity(data.home) or nil
 	component.isAtHome = data.isAtHome
 	component.mother = data.mother and cassette:loadEntity(data.mother) or nil
+	component.motherUnique = data.motherUnique
 	component.father = data.father and cassette:loadEntity(data.father) or nil
+	component.fatherUnique = data.fatherUnique
 	component.children = cassette:loadEntityList(data.children)
 
 	return component
 end
 
 function VillagerComponent:initialize(stats, mother, father)
+	self.unique = VillagerComponent.UNIQUE
+	VillagerComponent.static.UNIQUE = VillagerComponent.UNIQUE + 1
+
 	self.age = stats.age or 0.0 -- 0-death
 	self.hairy = stats.hairy or false
 	self.gender = stats.gender -- "male" or "female"
@@ -107,8 +115,6 @@ function VillagerComponent:initialize(stats, mother, father)
 	else
 		self.name = VillagerComponent.FEMININE_NAMES[love.math.random(1, #VillagerComponent.FEMININE_NAMES)]
 	end
-
-	self.alive = true
 
 	self.strength = stats.strength or 0.5 -- 0-1
 	self.craftsmanship = stats.craftsmanship or 0.5 -- 0.1
@@ -132,6 +138,15 @@ function VillagerComponent:initialize(stats, mother, father)
 	self.mother = mother
 	self.father = father
 	self.children = {}
+
+	-- XXX: The uniques will someday ruin someone's game.
+	-- Note to self: Do not pass math.huge to love.math.random. It will not return a valid number.
+	self.motherUnique = mother and mother:get("VillagerComponent"):getUnique() or -love.math.random(math.pow(2, 31))
+	self.fatherUnique = father and father:get("VillagerComponent"):getUnique() or -love.math.random(math.pow(2, 31))
+end
+
+function VillagerComponent:getUnique()
+	return self.unique
 end
 
 function VillagerComponent:getName()
@@ -160,14 +175,6 @@ end
 
 function VillagerComponent:getCraftsmanship()
 	return self.craftsmanship
-end
-
-function VillagerComponent:isDead()
-	return not self.alive
-end
-
-function VillagerComponent:setDead()
-	self.alive = false
 end
 
 function VillagerComponent:getHunger()
@@ -288,11 +295,19 @@ function VillagerComponent:setTargetRotation(rotation)
 end
 
 function VillagerComponent:getMother()
-	return self.mother
+	return self.mother, self.motherUnique
+end
+
+function VillagerComponent:clearMother()
+	self.mother = nil
 end
 
 function VillagerComponent:getFather()
-	return self.mother
+	return self.father, self.fatherUnique
+end
+
+function VillagerComponent:clearFather()
+	self.father = nil
 end
 
 function VillagerComponent:addChild(child)
@@ -303,10 +318,15 @@ function VillagerComponent:getChildren()
 	return self.children
 end
 
-function VillagerComponent:clear()
-	self.mother = nil
-	self.father = nil
-	self.children = {}
+function VillagerComponent:removeChild(child)
+	for i,v in ipairs(self.children) do
+		if v == child then
+			table.remove(self.children, i)
+			return
+		end
+	end
+
+	error("Child not found")
 end
 
 return VillagerComponent
