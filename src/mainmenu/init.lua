@@ -18,6 +18,7 @@ along with A Village in the Sky. If not, see <http://www.gnu.org/licenses/>.
 --]]
 
 local babel = require "lib.babel"
+local table = require "lib.table"
 local GameState = require "lib.hump.gamestate"
 local Timer = require "lib.hump.timer"
 
@@ -240,7 +241,11 @@ end
 function MainMenu:resize()
 	local dw, dh = screen:getDrawDimensions()
 
-	self.imagePosition = { dw - self.image:getWidth() * 1.5, (dh - self.image:getHeight()) / 2 }
+	self.originalPositions = {
+		dw - self.image:getWidth() * 1.5,
+		(dh - self.image:getHeight()) / 2
+	}
+	self.imagePosition = self.imagePosition or table.clone(self.originalPositions)
 	self.textPosition = { dw / 20, dh / 6 }
 	self.authorPosition = { dw - self.authorFont:getWidth("Created by @Drauthius  "),
 	                        dh - self.authorFont:getHeight() * 1.25 }
@@ -255,9 +260,6 @@ function MainMenu:resize()
 		y = y + padding
 	end
 
-	self.originalPositions = {
-		image = self.imagePosition[1]
-	}
 end
 
 function MainMenu:moveLeft()
@@ -278,7 +280,7 @@ function MainMenu:moveBack()
 	Timer.clear()
 
 	Timer.tween(0.5, self, { offsetX = 0 }, "out-sine")
-	Timer.tween(0.5, self.imagePosition, { [1] = self.originalPositions.image }, "out-sine")
+	Timer.tween(0.5, self.imagePosition, self.originalPositions, "out-sine")
 end
 
 function MainMenu:reevaluate()
