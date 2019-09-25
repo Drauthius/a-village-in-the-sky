@@ -27,6 +27,7 @@ function Engine:addEntity(entity)
     -- Getting the next free ID or insert into table
     local newId = #self.entities + 1
     entity.id = newId
+    entity.alive = true
     self.entities[entity.id] = entity
 
     -- If a rootEntity entity is defined and the entity doesn't have a parent yet, the rootEntity entity becomes the entity's parent

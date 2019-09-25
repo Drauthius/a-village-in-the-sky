@@ -147,6 +147,7 @@ function Cassette:load(engine, map, gui)
 
 		ent.eventManager = engine.eventManager
 		ent.id = entity.id
+		ent.alive = true
 		engine.entities[ent.id] = ent
 	end
 
@@ -216,6 +217,18 @@ end
 --
 
 function Cassette:saveEntity(entity)
+	if not entity.alive then
+		if entity.id then
+			print("Entity id: " .. entity.id, entity)
+		else
+			print("Entity has not been added to any engine yet. (No entity.id)")
+		end
+		print("Entity's components:")
+		for index, component in pairs(entity.components) do
+			print(index, component)
+		end
+		error("Entity not alive")
+	end
 	return { type = "entity", id = entity.id }
 end
 
