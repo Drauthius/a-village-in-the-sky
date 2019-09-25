@@ -291,6 +291,8 @@ function VillagerSystem:_takeAction(entity)
 	local villager = entity:get("VillagerComponent")
 	local adult = entity:has("AdultComponent") and entity:get("AdultComponent")
 	local starving = villager:getStarvation() > 0.0
+	local canWork = adult and ((adult:getOccupation() == WorkComponent.BUILDER and not villager:getHome()) or
+	                           (not starving and villager:getHome()))
 
 	-- Babies don't consume food or go outside.
 	if villager:getAge() < VillagerSystem.CHILDHOOD then
@@ -399,7 +401,7 @@ function VillagerSystem:_takeAction(entity)
 	end
 
 	-- If adult with a work place, start working.
-	if not starving and adult and adult:getWorkPlace() then
+	if canWork and adult:getWorkPlace() then
 		local workPlace = adult:getWorkPlace()
 		local ti, tj = workPlace:get("PositionComponent"):getTile()
 
@@ -487,7 +489,7 @@ function VillagerSystem:_takeAction(entity)
 	end
 
 	-- If adult with a special work area, get a place to work there.
-	if not starving and adult and adult:getWorkArea() and
+	if canWork and adult:getWorkArea() and
 	       (adult:getOccupation() == WorkComponent.WOODCUTTER or
 	        adult:getOccupation() == WorkComponent.MINER or
 	        adult:getOccupation() == WorkComponent.FARMER) then
@@ -529,7 +531,7 @@ function VillagerSystem:_takeAction(entity)
 	end
 
 	-- If a builder, then look for other places to help out.
-	if not starving and adult and adult:getOccupation() == WorkComponent.BUILDER then
+	if canWork and adult:getOccupation() == WorkComponent.BUILDER then
 		local minDistance, closest = math.huge
 		local cgrid = entity:has("PositionComponent") and
 		              entity:get("PositionComponent"):getGrid() or
