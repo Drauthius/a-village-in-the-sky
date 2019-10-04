@@ -56,7 +56,6 @@ function GUI:initialize(engine, eventManager, map)
 	self.yearPanel = spriteSheet:getSprite("year-panel")
 	self.yearPanel.number = spriteSheet:getData("year-number")
 	self.yearPanel.text = spriteSheet:getData("year-text")
-	self.yearPanel.y = 1
 
 	-- Create the buttons (with bogus positions, since they're overwritten in resize() anyway).
 	local tileButtonSprite = spriteSheet:getSprite("button 0")
@@ -100,15 +99,19 @@ function GUI:resize(width, height)
 	self.screenWidth, self.screenHeight = width, height
 
 	-- Between buttons
-	local padding = 5
+	local padding = 3
 
 	if height < screen.class.MIN_HEIGHT then
 		padding = 1
 	end
 
-	self.menuButton.x, self.menuButton.y = self.screenWidth - self.menuButton:getWidth() - 1, 1
-	self.fastforwardButton.x = self.menuButton.x - self.fastforwardButton:getWidth() - 1
+	self.menuButton.x, self.menuButton.y = 2, 2
+	self.fastforwardButton.x = self.menuButton.x + self.menuButton:getWidth() + 2
 	self.fastforwardButton.y = self.menuButton.y
+
+	self.objectivesPanel = ObjectivesPanel(self.eventManager, 2, self.menuButton:getHeight() + 10)
+
+	self.yearPanel.x, self.yearPanel.y = self.screenWidth - self.yearPanel:getWidth(), 0
 
 	self.tileButton:setPosition(
 		1,
@@ -139,8 +142,6 @@ function GUI:resize(width, height)
 
 	self.detailsPanel = DetailsPanel(self.eventManager, select(2, self.listBuildingButton:getPosition()) - padding)
 	self.detailsPanel:hide()
-
-	self.objectivesPanel = ObjectivesPanel(self.eventManager, self.yearPanel:getHeight() + 10)
 end
 
 function GUI:back()
@@ -265,7 +266,7 @@ function GUI:draw(camera)
 	love.graphics.setColor(1, 1, 1)
 
 	do -- Year panel
-		local x, y = 1, self.yearPanel.y
+		local x, y = self.yearPanel.x, self.yearPanel.y
 		spriteSheet:draw(self.yearPanel, x, y)
 
 		love.graphics.setColor(0, 0, 0)
@@ -496,7 +497,7 @@ function GUI:changeAvailibility(type)
 end
 
 function GUI:showYearPanel(instant)
-	local y = 1
+	local y = 0
 	if instant then
 		self.yearPanel.y = y
 	else

@@ -27,7 +27,7 @@ local ObjectivesPanel = Widget:subclass("ObjectivesPanel")
 
 ObjectivesPanel.static.uniqueID = 0
 
-function ObjectivesPanel:initialize(eventManager, y)
+function ObjectivesPanel:initialize(eventManager, x, y)
 	self.eventManager = eventManager
 	self.panels = {}
 	self.font = love.graphics.newFont("asset/font/Norse.otf", 15)
@@ -37,7 +37,7 @@ function ObjectivesPanel:initialize(eventManager, y)
 	self.panelData2 = spriteSheet:getData("objectives-panel2-text")
 
 	-- Widget:
-	self.x, self.y = 1, y
+	self.x, self.y = x, y
 	self.ox, self.oy = 0, 0
 	self.w, self.h = self.panelSprite1:getWidth(), 0
 end
