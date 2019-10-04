@@ -68,10 +68,6 @@ function BuildItem:initialize(x, y, w, h, sprite, font, type, isBuilding, bluepr
 	self.h = self.h - dy
 end
 
-function BuildItem:draw(offset)
-	InfoPanelItem.draw(self, offset)
-end
-
 function BuildItem:drawOverlay(offset)
 	local name
 	if self.isBuilding then

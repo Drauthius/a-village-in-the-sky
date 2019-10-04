@@ -3314,6 +3314,7 @@
    { "name": "child-row-2", "color": "#0000ffff", "keys": [{ "frame": 0, "bounds": {"x": 106, "y": 38, "w": 18, "h": 6 } }] },
    { "name": "boy-icon", "color": "#0000ffff", "keys": [{ "frame": 0, "bounds": {"x": 105, "y": 46, "w": 6, "h": 6 } }] },
    { "name": "girl-icon", "color": "#0000ffff", "keys": [{ "frame": 0, "bounds": {"x": 105, "y": 53, "w": 6, "h": 6 } }] },
+   { "name": "death-icon", "color": "#0000ffff", "keys": [{ "frame": 0, "bounds": {"x": 91, "y": 46, "w": 13, "h": 13 } }] },
    { "name": "objectives-panel-text", "color": "#0000ffff", "keys": [{ "frame": 0, "bounds": {"x": 15, "y": 2, "w": 122, "h": 16 } }] },
    { "name": "objectives-panel2-text", "color": "#0000ffff", "keys": [{ "frame": 0, "bounds": {"x": 15, "y": 2, "w": 122, "h": 35 } }] },
    { "name": "Wood-icon", "color": "#0000ffff", "keys": [{ "frame": 0, "bounds": {"x": 40, "y": 18, "w": 13, "h": 13 } }] },

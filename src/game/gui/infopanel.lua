@@ -24,6 +24,7 @@ local Timer = require "lib.hump.timer"
 local BuildItem = require "src.game.gui.builditem"
 local BuildingItem = require "src.game.gui.buildingitem"
 local Button = require "src.game.gui.button"
+local EventItem = require "src.game.gui.eventitem"
 local VillagerItem = require "src.game.gui.villageritem"
 
 local SelectionChangedEvent = require "src.game.selectionchangedevent"
@@ -343,6 +344,23 @@ function InfoPanel:setContent(type)
 				item:select()
 			end
 		end
+	elseif type == InfoPanel.CONTENT.LIST_EVENTS then
+		margin = 5 -- ?
+		local events = state:getEvents()
+
+		for i=#events,1,-1 do -- Latest first
+			local event = events[i]
+			local item = EventItem(x, self.contentBounds.y, self.contentBounds.h, self.itemFont, self.itemFontBold, event)
+
+			x = x + item:getDimensions() + margin
+			table.insert(content, item)
+
+			if i > state:getLastEventSeen() then
+				item:setUnseen()
+			end
+		end
+
+		state:setLastEventSeen(#events)
 	end
 
 	self.content = content

@@ -183,7 +183,7 @@ end
 function PlacingSystem:onSelectionChanged(event)
 	local selection = event:getSelection()
 
-	if selection and selection:has("RunestoneComponent") then
+	if selection and selection:isInstanceOf(lovetoys.Entity) and selection:has("RunestoneComponent") then
 		self.recalculateTileArea = true
 	elseif self.tileArea and self.tileArea.polygons ~= self.polygons then
 		self.recalculateTileArea = true

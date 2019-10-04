@@ -36,14 +36,18 @@ local BuildingComponent = require "src.game.buildingcomponent"
 local ConstructionComponent = require "src.game.constructioncomponent"
 local InteractiveComponent = require "src.game.interactivecomponent"
 local PositionComponent = require "src.game.positioncomponent"
+local ResourceComponent = require "src.game.resourcecomponent"
 local SpriteComponent = require "src.game.spritecomponent"
 local TimerComponent = require "src.game.timercomponent"
+local WorkComponent = require "src.game.workcomponent"
 -- Events
 local AssignedEvent = require "src.game.assignedevent"
+local GameEvent = require "src.game.gameevent"
 local SelectionChangedEvent = require "src.game.selectionchangedevent"
 local TileDroppedEvent = require "src.game.tiledroppedevent"
 local TilePlacedEvent = require "src.game.tileplacedevent"
 local UnassignedEvent = require "src.game.unassignedevent"
+local VillagerDeathEvent = require "src.game.villagerdeathevent"
 -- Systems
 local BuildingSystem
 local DebugSystem
@@ -178,12 +182,15 @@ function Game:enter(_, profile)
 	self.engine:stopSystem("ResourceSystem")
 
 	-- Event handling for logging/the player, state handling, and stuff that didn't fit anywhere else.
+	self.eventManager:addListener("BuildingCompletedEvent", self, self.onBuildingCompleted)
 	self.eventManager:addListener("BuildingRazedEvent", self, self.onBuildingRazed)
 	self.eventManager:addListener("ChildbirthEndedEvent", self, self.childbirthEndedEvent)
 	self.eventManager:addListener("ChildbirthStartedEvent", self, self.childbirthStartedEvent)
 	self.eventManager:addListener("ConstructionCancelledEvent", self, self.onConstructionCancelled)
+	self.eventManager:addListener("ResourceDepletedEvent", self, self.onResourceDepleted)
 	self.eventManager:addListener("RunestoneUpgradingEvent", self, self.onRunestoneUpgrading)
 	self.eventManager:addListener("SelectionChangedEvent", self, self.onSelectionChanged)
+	self.eventManager:addListener("VillagerDeathEvent", self, self.onVillagerDeath)
 
 	-- Events between the systems.
 	self.eventManager:addListener("AssignedEvent", villagerSystem, villagerSystem.assignedEvent)
@@ -980,9 +987,41 @@ function Game:childbirthStartedEvent(event)
 end
 
 function Game:childbirthEndedEvent(event)
-	print("Childbirth ended. Mother "..
-		(event:didMotherSurvive() and "survived" or "died").." and child "..
-		(event:didChildSurvive() and "survived" or "died"))
+	local villager = event:getMother():get("VillagerComponent")
+	local mother = villager:getName()
+	local father = event:getFather() and event:getFather():get("VillagerComponent"):getName()
+
+	local ti, tj
+	if villager:getHome() then
+		ti, tj = villager:getHome():get("PositionComponent"):getTile()
+	else
+		ti, tj = event:getMother():get("PositionComponent"):getTile()
+	end
+
+	if event:didChildSurvive() then
+		state:addEvent(GameEvent(GameEvent.TYPES.CHILD_BORN, ti, tj, ("%s%s has had a child."):format(
+			father and (father.." and ") or "", mother)))
+
+		local numVillagers = state:getNumMaleVillagers() + state:getNumFemaleVillager() +
+		                     state:getNumMaleChildren() + state:getNumFemaleChildren()
+		if numVillagers % 50 == 0 and state:getLastPopulationEvent() < numVillagers then
+			state:setLastPopulationEvent(numVillagers)
+			state:addEvent(GameEvent(GameEvent.TYPES.POPULATION, 0, 0, ("%d villagers now call your village their home."):format(
+				numVillagers)))
+		end
+	else
+		state:addEvent(GameEvent(GameEvent.TYPES.CHILD_DEATH, ti, tj, ("%s%s's baby died in childbirth."):format(
+			father and (father.."'s and ") or "", mother)))
+	end
+
+	-- Mother death is handled elsewhere.
+end
+
+function Game:onBuildingCompleted(event)
+	local ti, tj = event:getBuilding():get("PositionComponent"):getTile()
+	state:addEvent(GameEvent(GameEvent.TYPES.BUILDING_COMPLETE, ti, tj, ("A %s has been %s."):format(
+		BuildingComponent.BUILDING_NAME[event:getBuilding():get("BuildingComponent"):getType()],
+		event:getBuilding():get("BuildingComponent"):getType() == BuildingComponent.RUNESTONE and "upgraded" or "built")))
 end
 
 function Game:onBuildingRazed(event)
@@ -991,6 +1030,15 @@ end
 
 function Game:onConstructionCancelled(event)
 	self:_removeBuilding(event:getBuilding())
+end
+
+function Game:onResourceDepleted(event)
+	local ti, tj = event:getTile()
+	local resource = event:getResource()
+
+	state:addEvent(GameEvent(
+		resource == ResourceComponent.WOOD and GameEvent.TYPES.WOOD_DEPLETED or GameEvent.TYPES.IRON_DEPLETED,
+		ti, tj, ("A %s resource has been depleted."):format(ResourceComponent.RESOURCE_NAME[resource])))
 end
 
 function Game:onRunestoneUpgrading(event)
@@ -1004,6 +1052,22 @@ end
 function Game:onSelectionChanged(event)
 	local selection = event:getSelection()
 	local isPlacing = event:isPlacing()
+
+	-- If selecting an event, move the camera there.
+	if selection and selection:isInstanceOf(GameEvent) then
+		local ti, tj = selection:getTile()
+		if ti and tj then
+			local x, y = self.map:tileToWorldCoords(ti + 0.5, tj + 0.5)
+			-- Mimic a drag event, so that the camera moves to the desired position smoothly.
+			self.dragging = {
+				cx = x,
+				cy = y,
+				released = true,
+				dragged = true
+			}
+		end
+		return
+	end
 
 	-- Make sure that to clear any potential placing piece before adding another one, or selecting something else.
 	if state:isPlacing() then
@@ -1025,6 +1089,34 @@ function Game:onSelectionChanged(event)
 		soundManager:playEffect("clearSelection")
 		state:clearSelection()
 	end
+end
+
+local _deathReasons
+function Game:onVillagerDeath(event)
+	local entity = event:getVillager()
+	local villager = entity:get("VillagerComponent")
+	local occupation = entity:has("AdultComponent") and
+	                   WorkComponent.WORK_NAME[entity:get("AdultComponent"):getOccupation()] or
+	                   "child"
+
+	local ti, tj
+	if villager:getHome() then
+		ti, tj = villager:getHome():get("PositionComponent"):getTile()
+	else
+		ti, tj = entity:get("PositionComponent"):getTile()
+	end
+
+	_deathReasons = _deathReasons or {
+		[VillagerDeathEvent.REASONS.AGE] = "due to old age",
+		[VillagerDeathEvent.REASONS.STARVATION] = "due to starvation",
+		[VillagerDeathEvent.REASONS.CHILDBIRTH] = "in childbirth"
+	}
+
+	state:addEvent(GameEvent(GameEvent.TYPES.VILLAGER_DEATH, ti, tj, ("%s the %s died at the age of %d %s."):format(
+		villager:getName(),
+		occupation,
+		villager:getAge(),
+		_deathReasons[event:getReason()])))
 end
 
 function Game:onRemoveEntity(entity)

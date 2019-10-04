@@ -25,8 +25,10 @@ local AssignedEvent = require "src.game.assignedevent"
 local BuildingEnteredEvent = require "src.game.buildingenteredevent"
 local BuildingLeftEvent = require "src.game.buildingleftevent"
 local ChildbirthStartedEvent = require "src.game.childbirthstartedevent"
+local ResourceDepletedEvent = require "src.game.resourcedepletedevent"
 local UnassignedEvent = require "src.game.unassignedevent"
 local VillagerAgedEvent = require "src.game.villageragedevent"
+local VillagerDeathEvent = require "src.game.villagerdeathevent"
 
 local AdultComponent = require "src.game.adultcomponent"
 local BuildingComponent = require "src.game.buildingcomponent"
@@ -154,8 +156,8 @@ function VillagerSystem:_update(entity, dt)
 				local starvation = math.min(1.0, villager:getStarvation() + VillagerSystem.FOOD.STARVATION_PER_SECOND * dt)
 				villager:setStarvation(starvation)
 				if starvation >= 1.0 then
-					print(entity, "died of hunger")
-					self.engine:removeEntity(entity)
+					self.eventManager:fireEvent(VillagerDeathEvent(entity, VillagerDeathEvent.REASONS.STARVATION))
+					self.engine:removeEntity(entity, true)
 					return
 				end
 
@@ -523,6 +525,9 @@ function VillagerSystem:_takeAction(entity)
 				-- For farms, try again later.
 				villager:setDelay(VillagerSystem.TIMERS.FARM_WAIT)
 			else
+				self.eventManager:fireEvent(ResourceDepletedEvent(
+					adult:getOccupation() == WorkComponent.WOODCUTTER and ResourceComponent.WOOD or ResourceComponent.IRON,
+					adult:getWorkArea()))
 				adult:setWorkArea(nil)
 			end
 		end
@@ -1226,6 +1231,7 @@ function VillagerSystem:childbirthEndedEvent(event)
 	self.engine:addEntity(child)
 
 	if not event:didChildSurvive() then
+		-- No need to fire a death event here, since the child never technically became a villager.
 		self.engine:removeEntity(child, true)
 	end
 
@@ -1233,6 +1239,7 @@ function VillagerSystem:childbirthEndedEvent(event)
 		villager:setDelay(VillagerSystem.TIMERS.CHILDBIRTH_RECOVERY_DELAY)
 		villager:setGoal(VillagerComponent.GOALS.NONE)
 	else
+		self.eventManager:fireEvent(VillagerDeathEvent(entity, VillagerDeathEvent.REASONS.CHILDBIRTH))
 		self.engine:removeEntity(entity, true)
 	end
 end
@@ -1455,8 +1462,7 @@ function VillagerSystem:villagerAgedEvent(event)
 	--print(villager:getAge(), ageDiff * VillagerSystem.DEATH_CHANCE)
 	if ageDiff > 0 and
 	   love.math.random() < ageDiff * VillagerSystem.DEATH_CHANCE then
-		print(entity, "has died of old age, at the age of "..villager:getAge()) -- TODO: Send event
-
+		self.eventManager:fireEvent(VillagerDeathEvent(entity, VillagerDeathEvent.REASONS.AGE))
 		self.engine:removeEntity(entity, true)
 	end
 end

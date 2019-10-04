@@ -22,6 +22,7 @@ local lovetoys = require "lib.lovetoys.lovetoys"
 local serpent = require "lib.serpent"
 
 local state = require "src.game.state"
+local GameEvent = require "src.game.gameevent"
 
 local Cassette = class("Cassette")
 
@@ -99,6 +100,9 @@ function Cassette:save(engine, map, level)
 	data.state.selected = state.selected and self:saveEntity(state.selected) or nil
 	data.state.placing = state.placing and self:saveEntity(state.placing) or nil
 	data.state.available = state.available
+	data.state.events = state.events
+	data.state.lastPopulationEvent = state.lastPopulationEvent
+	data.state.lastEventSeen = state.lastEventSeen
 
 	-- Fifth pass: Fill in the information used by the profile screen.
 	data.year = math.floor(data.state.year)
@@ -200,6 +204,11 @@ function Cassette:load(engine, map, gui)
 	state.selected = data.state.selected and self:loadEntity(data.state.selected) or nil
 	state.placing = data.state.placing and self:loadEntity(data.state.placing) or nil
 	state.available = data.state.available
+	for _,event in ipairs(data.state.events) do
+		table.insert(state.events, GameEvent(unpack(event)))
+	end
+	state.lastPopulationEvent = data.state.lastPopulationEvent
+	state.lastEventSeen = data.state.lastEventSeen
 
 	-- Fifth pass: The level and anything it felt worth saving.
 	local level = require("src.game.level." .. data.level.source)(engine, map, gui)

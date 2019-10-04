@@ -47,6 +47,9 @@ function State:initialize()
 		terrain = nil,
 		buildings = nil
 	}
+	self.events = {}
+	self.lastPopulationEvent = 0
+	self.lastEventSeen = 0
 	self.resources = {
 		[ResourceComponent.WOOD] = 0,
 		[ResourceComponent.IRON] = 0,
@@ -194,6 +197,34 @@ end
 
 function State:setAvailableBuildings(available)
 	self.available.buildings = available
+end
+
+--
+-- Events
+--
+
+function State:getEvents()
+	return self.events
+end
+
+function State:addEvent(event)
+	table.insert(self.events, event)
+end
+
+function State:getLastEventSeen()
+	return self.lastEventSeen
+end
+
+function State:setLastEventSeen(eventNum)
+	self.lastEventSeen = eventNum
+end
+
+function State:getLastPopulationEvent()
+	return self.lastPopulationEvent
+end
+
+function State:setLastPopulationEvent(popNum)
+	self.lastPopulationEvent = popNum
 end
 
 --
