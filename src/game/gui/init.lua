@@ -91,6 +91,14 @@ function GUI:initialize(engine, eventManager, map)
 		[InfoPanel.CONTENT.LIST_BUILDINGS] = self.listBuildingButton
 	}
 
+	self.eventPanel = {
+		x = 0,
+		y = 0,
+		left = spriteSheet:getSprite("text-background-left"),
+		centre = spriteSheet:getSprite("text-background-centre")
+	}
+	self.eventPanel.font = love.graphics.newFont("asset/font/Norse.otf", self.eventPanel.left:getHeight() - 1)
+
 	self:resize(screen:getDrawDimensions())
 	self:setHint(nil)
 end
@@ -142,6 +150,10 @@ function GUI:resize(width, height)
 
 	self.detailsPanel = DetailsPanel(self.eventManager, select(2, self.listBuildingButton:getPosition()) - padding)
 	self.detailsPanel:hide()
+
+	local ox = 8
+	self.eventPanel.x = self.listEventButton:getPosition() + self.listEventButton:getWidth() - ox
+	self.eventPanel.y = select(2, self.listEventButton:getPosition()) + ox
 end
 
 function GUI:back()
@@ -297,6 +309,30 @@ function GUI:draw(camera)
 	-- Buttons
 	for _,button in ipairs(self.buttons) do
 		button:draw()
+	end
+
+	-- Event label
+	if state:getLastEventSeen() < state:getNumEvents() then
+		-- Background (draw right to left, since x,y are the end)
+		local text = tostring(state:getNumEvents() - state:getLastEventSeen())
+		local x, y = self.eventPanel.x, self.eventPanel.y
+		local w = self.eventPanel.font:getWidth(text)
+		-- Right
+		x = x - self.eventPanel.left:getWidth()
+		love.graphics.draw(spriteSheet:getImage(), self.eventPanel.left:getQuad(), x, y, 0, -1, 1)
+		-- Centre
+		x = x - w
+		love.graphics.draw(spriteSheet:getImage(), self.eventPanel.centre:getQuad(),
+			x, y, 0, w - 4, 1) -- XXX: What's with the 4?
+		-- Left
+		x = x - self.eventPanel.left:getWidth()
+		spriteSheet:draw(self.eventPanel.left, x, y)
+
+		-- Text
+		love.graphics.setFont(self.eventPanel.font)
+		love.graphics.setColor(spriteSheet:getOutlineColor())
+		love.graphics.print(text, x + 2, y)
+		love.graphics.setColor(1, 1, 1, 1)
 	end
 
 	-- Misc widgets
@@ -544,6 +580,16 @@ end
 
 function GUI:onSelectionChanged(event)
 	self.infoPanel:onSelectionChanged(event)
+end
+
+--
+-- Pseudo events, eh
+--
+
+function GUI:onEventsChanged()
+	if self.infoPanel:getContentType() == InfoPanel.CONTENT.LIST_EVENTS then
+		self.infoPanel:refresh()
+	end
 end
 
 --

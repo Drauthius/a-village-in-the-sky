@@ -203,12 +203,20 @@ end
 -- Events
 --
 
+local numEventCache
+
 function State:getEvents()
 	return self.events
 end
 
+function State:getNumEvents()
+	numEventCache = numEventCache or #self.events
+	return numEventCache
+end
+
 function State:addEvent(event)
 	table.insert(self.events, event)
+	numEventCache = (numEventCache or 0) + 1
 end
 
 function State:getLastEventSeen()

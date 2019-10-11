@@ -277,9 +277,12 @@ function InfoPanel:getContentType()
 	return self.type
 end
 
-function InfoPanel:setContent(type)
+function InfoPanel:refresh()
+	self:setContent(self:getContentType(), true)
+end
+
+function InfoPanel:setContent(type, refresh)
 	self.type = type
-	self.ox = 0
 
 	if self.selected ~= nil then
 		self.eventManager:fireEvent(SelectionChangedEvent(nil))
@@ -360,7 +363,15 @@ function InfoPanel:setContent(type)
 			end
 		end
 
-		state:setLastEventSeen(#events)
+		if not refresh then
+			state:setLastEventSeen(#events)
+		end
+	end
+
+	if refresh and self.ox ~= 0 and next(content) then
+		self.ox = self.ox + content[1]:getWidth() + margin
+	else
+		self.ox = 0
 	end
 
 	self.content = content

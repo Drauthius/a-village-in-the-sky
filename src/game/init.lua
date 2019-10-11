@@ -1015,6 +1015,8 @@ function Game:childbirthEndedEvent(event)
 	end
 
 	-- Mother death is handled elsewhere.
+
+	self.gui:onEventsChanged()
 end
 
 function Game:onBuildingCompleted(event)
@@ -1022,6 +1024,8 @@ function Game:onBuildingCompleted(event)
 	state:addEvent(GameEvent(GameEvent.TYPES.BUILDING_COMPLETE, ti, tj, ("A %s has been %s."):format(
 		BuildingComponent.BUILDING_NAME[event:getBuilding():get("BuildingComponent"):getType()],
 		event:getBuilding():get("BuildingComponent"):getType() == BuildingComponent.RUNESTONE and "upgraded" or "built")))
+
+	self.gui:onEventsChanged()
 end
 
 function Game:onBuildingRazed(event)
@@ -1039,6 +1043,8 @@ function Game:onResourceDepleted(event)
 	state:addEvent(GameEvent(
 		resource == ResourceComponent.WOOD and GameEvent.TYPES.WOOD_DEPLETED or GameEvent.TYPES.IRON_DEPLETED,
 		ti, tj, ("A %s resource has been depleted."):format(ResourceComponent.RESOURCE_NAME[resource])))
+
+	self.gui:onEventsChanged()
 end
 
 function Game:onRunestoneUpgrading(event)
@@ -1117,6 +1123,8 @@ function Game:onVillagerDeath(event)
 		occupation,
 		villager:getAge(),
 		_deathReasons[event:getReason()])))
+
+	self.gui:onEventsChanged()
 end
 
 function Game:onRemoveEntity(entity)
