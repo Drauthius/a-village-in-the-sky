@@ -153,7 +153,7 @@ function WorkSystem:workEvent(event)
 		end
 		construction:commitResources(committing * state:getYearModifier())
 
-		soundManager:playEffect("building")
+		soundManager:playEffect("building", entity:get("PositionComponent"):getGrid())
 
 		if not construction:canBuild() then
 			for _,worker in ipairs(workPlace:get("AssignmentComponent"):getAssignees()) do
@@ -170,7 +170,7 @@ function WorkSystem:workEvent(event)
 			if construction:isComplete() then
 				workPlace:remove("ConstructionComponent")
 				workPlace:remove("AssignmentComponent")
-				soundManager:playEffect("buildingComplete") -- TODO: Add type
+				soundManager:playEffect("building_complete", workPlace:get("PositionComponent"):getGrid()) -- TODO: Add type
 
 				self.eventManager:fireEvent(BuildingCompletedEvent(workPlace))
 			end
@@ -204,13 +204,17 @@ function WorkSystem:workEvent(event)
 			local resource = workPlace:get("ResourceComponent")
 			entity:add(CarryingComponent(resource:getResource(), resource:getResourceAmount()))
 
-			soundManager:playEffect(ResourceComponent.RESOURCE_NAME[resource:getResource()].."Gathered")
+			soundManager:playEffect(
+				ResourceComponent.RESOURCE_NAME[resource:getResource()].."_gathered",
+				entity:get("PositionComponent"):getGrid())
 
 			self.eventManager:fireEvent(WorkCompletedEvent(workPlace, entity))
 
 			self.engine:removeEntity(workPlace, true)
 		else
-			soundManager:playEffect(WorkComponent.WORK_NAME[work:getType()].."Working")
+			soundManager:playEffect(
+				WorkComponent.WORK_NAME[work:getType()].."_working",
+				entity:get("PositionComponent"):getGrid())
 		end
 	end
 end

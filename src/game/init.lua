@@ -92,6 +92,15 @@ Game.CAMERA_DRAG_THRESHOLD = 20
 -- Number of squared pixels (in camera space) before interpreting the camera movement as stopped.
 Game.CAMERA_EPSILON = 0.05
 
+-- How much each pixel in the world affects the sound volume.
+Game.SOUND_POSITION_COEFFICIENT = 30.0
+-- How much the camera scale affects the sound volume.
+Game.SOUND_SCALE_COEFFICIENT = 3.0
+-- How many pixels outside the screen before the sound effects can no longer be heard.
+-- Will be multiplied by the camera's scale value.
+Game.SOUND_CUTOFF_OFFSET_X = 10.0
+Game.SOUND_CUTOFF_OFFSET_Y = 10.0
+
 function Game:init()
 	lovetoys.initialize({ debug = true, middleclassPath = "lib.middleclass" })
 
@@ -246,6 +255,18 @@ function Game:enter(_, profile)
 	self:_updateCameraBoundingBox()
 	self.numTouches = 0
 
+	soundManager:setPositionFunction(function(grid)
+		local x, y = self.map:gridToWorldCoords(grid.gi + 0.5, grid.gj + 0.5)
+		local vpsx, vpsy, vpex, vpey = state:getViewport()
+		local ox = Game.SOUND_CUTOFF_OFFSET_X * self.camera.scale
+		local oy = Game.SOUND_CUTOFF_OFFSET_Y * self.camera.scale
+
+		local inRange = x >= vpsx - ox and x <= vpex + ox and
+						y >= vpsy - oy and y <= vpey + oy
+		return inRange, x / Game.SOUND_POSITION_COEFFICIENT, y / Game.SOUND_POSITION_COEFFICIENT
+	end)
+	self:_updateListenerPosition()
+
 	self.debug = false
 	self.fpsGraph = fpsGraph.createGraph()
 	self.memGraph = fpsGraph.createGraph(0, 30)
@@ -277,6 +298,8 @@ function Game:update(dt)
 				self.dragging.cx,
 				self.dragging.cy,
 				Camera.smooth.damped(10))
+		self:_updateListenerPosition()
+
 		if self.dragging.released and
 		   math.abs(self.dragging.cx - self.camera.x)^2 +
 		   math.abs(self.dragging.cy - self.camera.y)^2 <= Game.CAMERA_EPSILON then
@@ -671,6 +694,8 @@ function Game:_zoom(dz, mx, my)
 
 		self.camera.x = math.max(bb.xMin, math.min(bb.xMax, self.camera.x + dx))
 		self.camera.y = math.max(bb.yMin, math.min(bb.yMax, self.camera.y + dy))
+
+		self:_updateListenerPosition()
 	end
 end
 
@@ -976,6 +1001,12 @@ end
 
 function Game:_save()
 	self.cassette:save(self.engine, self.map, self.level)
+end
+
+function Game:_updateListenerPosition()
+	love.audio.setPosition(self.camera.x / Game.SOUND_POSITION_COEFFICIENT,
+	                       self.camera.y / Game.SOUND_POSITION_COEFFICIENT,
+	                       Game.SOUND_SCALE_COEFFICIENT / self.camera.scale)
 end
 
 --
