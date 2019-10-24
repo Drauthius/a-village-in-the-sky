@@ -1,0 +1,43 @@
+"affirmative.wav" by DrFortyseven licensed under CC0 1.0
+Downloaded from https://freesound.org/people/DrFortyseven/sounds/436109/
+
+"big_thud.wav" by Reitanna licensed under CC0 1.0
+Downloaded from https://freesound.org/people/Reitanna/sounds/332661/
+
+"building.wav" by blukotek licensed under CC0 1.0
+Downloaded from https://freesound.org/people/blukotek/sounds/337814/
+
+"collapse.wav" by RossBell licensed under CC0 1.0
+Downloaded from https://freesound.org/people/RossBell/sounds/389431/
+
+"death.wav" by lavaande licensed under CC0 1.0
+Downloaded from https://freesound.org/people/lavaande/sounds/435444/
+
+"deselect.wav" and "select.wav" by josepharaoh99 licensed under CC0 1.0
+Downloaded from https://freesound.org/people/josepharaoh99/sounds/367852/
+
+"drawer_close.wav" and "drawer_open.wav" by dmnvz licensed under CC0 1.0
+Downloaded from https://freesound.org/people/dmnvz/sounds/237698/
+
+"door_open.wav" and "door_close.wav" by toddcircle licensed under CC0 1.0
+Downloaded from https://freesound.org/people/toddcircle/sounds/442351/
+
+"event.wav" by Ranner licensed under CC0 1.0
+Downloaded from https://freesound.org/people/Ranner/sounds/487531/
+
+"gathering_logs.wav" by prabaker60 licensed under CC0 1.0
+Downloaded from https://freesound.org/people/prabaker60/sounds/328182/
+
+"gathering_stones.wav" by mbezzola licensed under CC0 1.0
+Downloaded from https://freesound.org/people/mbezzola/sounds/105283/
+
+"mining.wav" by TravisNeedham licensed under CC0 1.0
+Downloaded from https://freesound.org/people/TravisNeedham/sounds/135121/
+
+"negative.wav" by bolkmar licensed under CC0 1.0
+Downloaded from https://freesound.org/people/bolkmar/sounds/469602/
+
+"small_thud.wav" by kyles licensed under CC0 1.0
+Downloaded from https://freesound.org/people/kyles/sounds/451327/
+
+"wood-cut.wav" by Albert Diserholt licensed under Creative Common BY-NC-SA 4.0

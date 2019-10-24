@@ -24,8 +24,33 @@ local SoundManager = class("SoundManager")
 SoundManager.static.NUM_SOURCES = 10
 
 SoundManager.static.SFX = {
+	-- GUI
+	button_down = "select.wav",
+	button_up = "deselect.wav",
+	drawer_opened = "drawer_open.wav",
+	drawer_closed = "drawer_close.wav",
+	drawer_selected = "select.wav",
+	main_menu_opened = "drawer_open.wav",
+	main_menu_closed = "drawer_close.wav",
+	new_event = "event.wav",
+	-- In-world things
+	door_opened = "door_open.wav",
+	door_closed = "door_close.wav",
+	selecting = "select.wav",
+	clear_selection = "deselect.wav",
+	successful_assignment = "affirmative.wav",
+	failed_assignment = "negative.wav",
+	tile_placed = "big_thud.wav",
+	building_placed = "small_thud.wav",
+	building_razed = "collapse.wav",
+	placing_cleared = "deselect.wav",
+	villager_death = "death.wav",
+	-- Workers
 	building = "building.wav",
-	woodcutter_working = "wood-cut.wav"
+	miner_working = "mining.wav",
+	woodcutter_working = "wood-cut.wav",
+	iron_gathered = "gathering_stones.wav",
+	wood_gathered = "gathering_logs.wav"
 }
 
 function SoundManager:initialize()
@@ -44,7 +69,11 @@ function SoundManager:setPositionFunction(func)
 	self.positionFunc = func
 end
 
-function SoundManager:playEffect(effect, grid)
+function SoundManager:playEffect(effect, gi, gj)
+	if not gj and type(gi) == "table" then
+		gi, gj = gi.gi, gi.gj
+	end
+
 	local source = self:_getFreeSource()
 	if not source then
 		print("Sound effect '"..tostring(effect).."' dropped.")
@@ -52,9 +81,9 @@ function SoundManager:playEffect(effect, grid)
 	end
 
 	local x, y
-	if grid then
+	if gi and gj then
 		local inRange
-		inRange, x, y = self.positionFunc(grid)
+		inRange, x, y = self.positionFunc(gi, gj)
 
 		if not inRange then
 			--print("Sound effect '"..tostring(effect).."' out of range.")
@@ -69,7 +98,7 @@ function SoundManager:playEffect(effect, grid)
 	end
 
 	source:queue(sfx)
-	source:setPitch(1.125 - love.math.random() / 4)
+	source:setPitch(1.166 - love.math.random() / 3)
 	if x and y then
 		source:setPosition(x, y, 0)
 		source:setRelative(false)

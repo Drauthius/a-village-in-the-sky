@@ -67,4 +67,12 @@ function EntranceComponent:setOpen(open)
 	self.open = open
 end
 
+function EntranceComponent:getAbsoluteGridCoordinate(owner)
+	-- The entrance is an offset, so translate it to a real grid coordinate.
+	local grid = owner:get("PositionComponent"):getGrid()
+	local entrance = self:getEntranceGrid()
+
+	return grid.gi + entrance.ogi, grid.gj + entrance.ogj
+end
+
 return EntranceComponent

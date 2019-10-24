@@ -434,7 +434,7 @@ function GUI:handlePress(x, y, released)
 				if self.infoPanel:isShown() and self.infoPanel:getContentType() == type then
 					self:_closeInfoPanel()
 				else
-					soundManager:playEffect("drawerOpened")
+					soundManager:playEffect("drawer_opened")
 					self.infoPanel:setContent(type)
 					self.infoPanel:show()
 
@@ -450,7 +450,7 @@ function GUI:handlePress(x, y, released)
 
 	if self.infoPanel:isShown() and self.infoPanel:isWithin(x, y) then
 		if released then
-			soundManager:playEffect("drawerSelected")
+			soundManager:playEffect("drawer_selected")
 		end
 		self.infoPanel:handlePress(x, y, released)
 
@@ -587,6 +587,8 @@ end
 --
 
 function GUI:onEventsChanged()
+	soundManager:playEffect("new_event")
+
 	if self.infoPanel:getContentType() == InfoPanel.CONTENT.LIST_EVENTS then
 		self.infoPanel:refresh()
 	end
@@ -597,7 +599,7 @@ end
 --
 
 function GUI:_closeInfoPanel()
-	soundManager:playEffect("drawerClosed")
+	soundManager:playEffect("drawer_closed")
 	self.infoPanel:hide()
 
 	self:updateHint()

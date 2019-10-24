@@ -19,6 +19,7 @@ along with A Village in the Sky. If not, see <http://www.gnu.org/licenses/>.
 
 local Widget = require "src.game.gui.widget"
 
+local soundManager = require "src.soundmanager"
 local spriteSheet = require "src.game.spritesheet"
 
 local Button = Widget:subclass("Button")
@@ -46,12 +47,14 @@ function Button:isDisabled()
 end
 
 function Button:setPressed(pressed)
-	if pressed then
+	if pressed and not self.isDown then
 		self.sprite = self.spriteDown
 		self.isDown = true
-	else
+		soundManager:playEffect("button_down")
+	elseif self.isDown then
 		self.sprite = self.spriteUp
 		self.isDown = false
+		soundManager:playEffect("button_up")
 	end
 end
 

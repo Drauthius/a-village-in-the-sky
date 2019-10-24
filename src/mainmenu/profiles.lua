@@ -31,6 +31,7 @@ local Button = require "src.game.gui.button"
 local ScaledSprite = require "src.game.scaledsprite"
 
 local screen = require "src.screen"
+local soundManager = require "src.soundmanager"
 local spriteSheet = require "src.game.spritesheet"
 
 local Profiles = {}
@@ -226,6 +227,7 @@ function Profiles:mousereleased(x, y)
 	x, y = screen:getCoordinate(x, y)
 	for i,panel in ipairs(self.panels) do
 		if panel:isWithin(x, y) and not panel:isDisabled() then
+			soundManager:playEffect("button_down")
 			return GameState.switch(Game, tostring(i))
 		end
 	end

@@ -68,11 +68,11 @@ end
 
 function InGameMenu:enter(from)
 	self.oldState = from
-	soundManager:playEffect("toggleMainMenu")
+	soundManager:playEffect("main_menu_opened")
 end
 
 function InGameMenu:leave()
-	soundManager:playEffect("toggleMainMenu")
+	soundManager:playEffect("main_menu_closed")
 end
 
 function InGameMenu:update(dt)

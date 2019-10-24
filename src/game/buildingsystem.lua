@@ -218,15 +218,17 @@ function BuildingSystem:buildingLeftEvent(event)
 end
 
 function BuildingSystem:_openDoor(entity)
-	soundManager:playEffect("doorOpened")
+	local gi, gj = entity:get("EntranceComponent"):getAbsoluteGridCoordinate(entity)
+	soundManager:playEffect("door_opened", gi, gj)
+
 	entity:get("EntranceComponent"):setOpen(true)
 	entity:get("SpriteComponent"):setNeedsRefresh(true)
 
-	entity:set(TimerComponent(BuildingSystem.DOOR_OPEN_TIME, { entity }, function(data)
+	entity:set(TimerComponent(BuildingSystem.DOOR_OPEN_TIME, { entity, gi, gj }, function(data)
 		local ent = data[1]
 		ent:get("EntranceComponent"):setOpen(false)
 		ent:get("SpriteComponent"):setNeedsRefresh(true)
-		require("src.soundmanager"):playEffect("doorClosed")
+		require("src.soundmanager"):playEffect("door_closed", data[2], data[3])
 	end))
 end
 

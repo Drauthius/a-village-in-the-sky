@@ -3,12 +3,12 @@ A Village in the Sky (c) by Albert Diserholt (@Drauthius)
 A Village in the Sky is licensed under different licenses. You can
 find the license that applies to each file in the comment at the top of that
 file, or in the directory it resides in. For simplicity, they are also listed
-here:
+below.
 
 Component                    Directory            License
 ------------------------------------------------------------------------------
 A Village in the Sky source  src/  lib/           GPLv3+
-A Village in the Sky art     gfx/  dev/           Creative Common BY-NC-SA 4.0
+A Village in the Sky art     asset/gfx/  dev/     Creative Common BY-NC-SA 4.0
 
 babel                        lib/babel.lua        MIT
 FPSGraph                     lib/FPSGraph.lua     MIT
@@ -17,4 +17,5 @@ json                         lib/json.lua         MIT
 lovetoys                     lib/lovetoys/        MIT
 middleclass                  lib/middleclass.lua  MIT
 serpent                      lib/serpent.lua      MIT
-Fonts                        assets/ttf/          See assets/ttf/LICENSE.txt
+Fonts                        asset/ttf/           See asset/ttf/LICENSE.txt
+Sounds                       asset/sfx/           See asset/sfx/LICENSE.txt

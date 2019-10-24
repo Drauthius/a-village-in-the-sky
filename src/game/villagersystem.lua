@@ -46,6 +46,7 @@ local WorkComponent = require "src.game.workcomponent"
 local WorkingComponent = require "src.game.workingcomponent"
 
 local blueprint = require "src.game.blueprint"
+local soundManager = require "src.soundmanager"
 local state = require "src.game.state"
 
 local VillagerSystem = lovetoys.System:subclass("VillagerSystem")
@@ -706,10 +707,7 @@ end
 function VillagerSystem:_goToBuilding(entity, building, instructions)
 	-- Assumes that _prepare() and everything else has been called.
 
-	-- The entrance is an offset, so translate it to a real grid coordinate.
-	local entrance = building:get("EntranceComponent"):getEntranceGrid()
-	local grid = building:get("PositionComponent"):getGrid()
-	local entranceGrid = self.map:getGrid(grid.gi + entrance.ogi, grid.gj + entrance.ogj)
+	local entranceGrid = self.map:getGrid(building:get("EntranceComponent"):getAbsoluteGridCoordinate(building))
 	local ti, tj = building:get("PositionComponent"):getTile()
 
 	-- XXX: That double array inconsistency...
@@ -1134,12 +1132,8 @@ function VillagerSystem:buildingLeftEvent(event)
 	local entity = event:getVillager()
 	local building = event:getBuilding()
 
-	-- The entrance is an offset, so translate it to a real grid coordinate.
-	-- TODO: DRY?
-	local entrance = building:get("EntranceComponent"):getEntranceGrid()
-	local grid = building:get("PositionComponent"):getGrid()
-	local entranceGrid = self.map:getGrid(grid.gi + entrance.ogi, grid.gj + entrance.ogj)
-
+	local entrance = building:get("EntranceComponent")
+	local entranceGrid = self.map:getGrid(entrance:getAbsoluteGridCoordinate(building))
 	local villager = entity:get("VillagerComponent")
 
 	if villager:getAge() >= VillagerSystem.ADULTHOOD and not entity:has("AdultComponent") then
@@ -1157,7 +1151,7 @@ function VillagerSystem:buildingLeftEvent(event)
 	end
 
 	-- The villager's direction should be away from the door.
-	villager:setDirection(((entrance.rotation + love.math.random(-2, 2) * 45) + 360) % 360)
+	villager:setDirection(((entrance:getEntranceGrid().rotation + love.math.random(-2, 2) * 45) + 360) % 360)
 
 	villager:setIsHome(false)
 	villager:setGoal(VillagerComponent.GOALS.NONE)
@@ -1217,11 +1211,7 @@ function VillagerSystem:childbirthEndedEvent(event)
 		home:get("DwellingComponent"):addChild(child)
 		home:get("BuildingComponent"):addInside(child)
 
-		-- The entrance is an offset, so translate it to a real grid coordinate.
-		-- TODO: DRY
-		local entrance = home:get("EntranceComponent"):getEntranceGrid()
-		local grid = home:get("PositionComponent"):getGrid()
-		local entranceGrid = self.map:getGrid(grid.gi + entrance.ogi, grid.gj + entrance.ogj)
+		local entranceGrid = self.map:getGrid(home:get("EntranceComponent"):getAbsoluteGridCoordinate(home))
 		child:set(GroundComponent(self.map:gridToGroundCoords(entranceGrid.gi + 0.5, entranceGrid.gj + 0.5)))
 	else
 		assert(not event:didChildSurvive(), "Don't know where to place the child.")
@@ -1282,6 +1272,8 @@ function VillagerSystem:onRemoveEntity(entity)
 	particle:set(PositionComponent(grid, nil, ti, tj))
 	particle:get("SpriteComponent"):setDrawPosition(self.map:gridToWorldCoords(grid.gi, grid.gj))
 	self.engine:addEntity(particle)
+
+	soundManager:playEffect("villager_death", grid)
 
 	-- Free home assignments.
 	if villager:getHome() then

@@ -255,8 +255,8 @@ function Game:enter(_, profile)
 	self:_updateCameraBoundingBox()
 	self.numTouches = 0
 
-	soundManager:setPositionFunction(function(grid)
-		local x, y = self.map:gridToWorldCoords(grid.gi + 0.5, grid.gj + 0.5)
+	soundManager:setPositionFunction(function(gi, gj)
+		local x, y = self.map:gridToWorldCoords(gi + 0.5, gj + 0.5)
 		local vpsx, vpsy, vpex, vpey = state:getViewport()
 		local ox = Game.SOUND_CUTOFF_OFFSET_X * self.camera.scale
 		local oy = Game.SOUND_CUTOFF_OFFSET_Y * self.camera.scale
@@ -650,10 +650,10 @@ function Game:_handleClick(x, y)
 				self.eventManager:fireEvent(AssignedEvent(clicked, selected))
 			end
 
-			soundManager:playEffect("successfulAssignment") -- TODO: Different sounds per assigned occupation?
+			soundManager:playEffect("successful_assignment") -- TODO: Different sounds per assigned occupation?
 			BlinkComponent:makeBlinking(clicked, { 0.15, 0.70, 0.15, 1.0 }) -- TODO: Colour value
 		else
-			soundManager:playEffect("failedAssignment")
+			soundManager:playEffect("failed_assignment")
 			BlinkComponent:makeBlinking(clicked, { 0.70, 0.15, 0.15, 1.0 }) -- TODO: Colour value
 		end
 	else
@@ -700,8 +700,6 @@ function Game:_zoom(dz, mx, my)
 end
 
 function Game:_placeTile(placing)
-	soundManager:playEffect("tilePlaced") -- TODO: Type?
-
 	placing:remove("PlacingComponent")
 	local ti, tj = placing:get("TileComponent"):getPosition()
 	self.map:addTile(placing:get("TileComponent"):getType(), ti, tj)
@@ -712,6 +710,8 @@ function Game:_placeTile(placing)
 
 	local sgi, sgj = ti * self.map.gridsPerTile, tj * self.map.gridsPerTile
 	local egi, egj = sgi + self.map.gridsPerTile, sgj + self.map.gridsPerTile
+
+	soundManager:playEffect("tile_placed", sgi + self.map.gridsPerTile / 2, sgj + self.map.gridsPerTile / 2)
 
 	local resources = {}
 
@@ -818,10 +818,14 @@ function Game:_placeTile(placing)
 end
 
 function Game:_placeBuilding(placing)
-	soundManager:playEffect("buildingPlaced") -- TODO: Type?
-
 	local ax, ay, minGrid, maxGrid = self.map:addObject(placing, placing:get("BuildingComponent"):getPosition())
 	assert(ax and ay and minGrid and maxGrid, "Could not add building with building component.")
+
+	soundManager:playEffect(
+		"building_placed",
+		minGrid.gi + (maxGrid.gi - minGrid.gi) / 2,
+		minGrid.gj + (maxGrid.gj - minGrid.gj) / 2)
+
 	local ti, tj = self.map:gridToTileCoords(minGrid.gi, minGrid.gj)
 	placing:get("SpriteComponent"):setDrawPosition(ax, ay)
 	placing:get("SpriteComponent"):resetColor()
@@ -988,6 +992,12 @@ function Game:_removeBuilding(building)
 		end
 	end
 
+	local from, to = building:get("PositionComponent"):getFromGrid(), building:get("PositionComponent"):getToGrid()
+	soundManager:playEffect(
+		"building_razed",
+		from.gi + (to.gi - from.gi) / 2,
+		from.gj + (to.gj - from.gj) / 2)
+
 	if isRunestone then
 		building:remove("ConstructionComponent")
 		building:remove("AssignmentComponent")
@@ -995,8 +1005,6 @@ function Game:_removeBuilding(building)
 	else
 		self.engine:removeEntity(building, true)
 	end
-
-	soundManager:playEffect("buildingRazed")
 end
 
 function Game:_save()
@@ -1108,7 +1116,7 @@ function Game:onSelectionChanged(event)
 
 	-- Make sure that to clear any potential placing piece before adding another one, or selecting something else.
 	if state:isPlacing() then
-		soundManager:playEffect("placingCleared")
+		soundManager:playEffect("placing_cleared")
 		self.engine:removeEntity(state:getPlacing(), true)
 		state:clearPlacing()
 	end
@@ -1123,7 +1131,7 @@ function Game:onSelectionChanged(event)
 			state:setSelection(selection)
 		end
 	elseif state:hasSelection() then
-		soundManager:playEffect("clearSelection")
+		soundManager:playEffect("clear_selection")
 		state:clearSelection()
 	end
 end
