@@ -1,3 +1,5 @@
+"avits.ogg" by Albert Diserholt (@Drauthius) licensed under Creative Common BY-NC-SA 4.0
+
 "affirmative.wav" by DrFortyseven licensed under CC0 1.0
 Downloaded from https://freesound.org/people/DrFortyseven/sounds/436109/
 
@@ -40,4 +42,4 @@ Downloaded from https://freesound.org/people/bolkmar/sounds/469602/
 "small_thud.wav" by kyles licensed under CC0 1.0
 Downloaded from https://freesound.org/people/kyles/sounds/451327/
 
-"wood-cut.wav" by Albert Diserholt licensed under Creative Common BY-NC-SA 4.0
+"wood-cut.wav" by Albert Diserholt (@Drauthius) licensed under Creative Common BY-NC-SA 4.0

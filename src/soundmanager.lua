@@ -23,6 +23,8 @@ local SoundManager = class("SoundManager")
 
 SoundManager.static.NUM_SOURCES = 10
 
+SoundManager.static.MUSIC = "avits.ogg"
+
 SoundManager.static.SFX = {
 	-- GUI
 	button_down = "select.wav",
@@ -53,6 +55,26 @@ SoundManager.static.SFX = {
 	wood_gathered = "gathering_logs.wav"
 }
 
+local function _getVolume(type)
+	local volume = 0.5
+
+	local file = type .. "_volume"
+	if love.filesystem.getInfo(file, "file") then
+		volume = tonumber((love.filesystem.read(file))) or volume
+	end
+
+	return volume
+end
+
+local function _saveVolume(type, volume)
+	volume = math.min(1.0, math.max(0.0, volume))
+	local file = type .. "_volume"
+
+	love.filesystem.write(file, tostring(volume))
+
+	return volume
+end
+
 function SoundManager:initialize()
 	self.sources = {}
 
@@ -63,6 +85,33 @@ function SoundManager:initialize()
 	for key,file in pairs(SoundManager.SFX) do
 		SoundManager.SFX[key] = love.sound.newSoundData("asset/sfx/"..file)
 	end
+
+	self.music = love.audio.newSource("asset/sfx/"..SoundManager.MUSIC, "stream")
+	self.music:setLooping(true)
+	self.music:play()
+
+	self:setEffectVolume(self:getEffectVolume())
+	self:setMusicVolume(self:getMusicVolume())
+end
+
+function SoundManager:getEffectVolume()
+	return _getVolume("sfx")
+end
+
+function SoundManager:setEffectVolume(volume)
+	volume = _saveVolume("sfx", volume)
+	for _,source in ipairs(self.sources) do
+		source:setVolume(volume)
+	end
+end
+
+function SoundManager:getMusicVolume()
+	return _getVolume("music")
+end
+
+function SoundManager:setMusicVolume(volume)
+	volume = _saveVolume("music", volume)
+	self.music:setVolume(volume)
 end
 
 function SoundManager:setPositionFunction(func)

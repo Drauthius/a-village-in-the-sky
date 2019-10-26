@@ -80,6 +80,7 @@ objectives-panel2.aseprite
 resource-panel.aseprite
 smoke.aseprite
 spark.aseprite
+text-background.aseprite
 text-background-centre.aseprite
 text-background-left.aseprite
 thumbnail-clouds.aseprite

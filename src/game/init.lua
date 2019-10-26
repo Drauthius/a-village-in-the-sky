@@ -711,8 +711,6 @@ function Game:_placeTile(placing)
 	local sgi, sgj = ti * self.map.gridsPerTile, tj * self.map.gridsPerTile
 	local egi, egj = sgi + self.map.gridsPerTile, sgj + self.map.gridsPerTile
 
-	soundManager:playEffect("tile_placed", sgi + self.map.gridsPerTile / 2, sgj + self.map.gridsPerTile / 2)
-
 	local resources = {}
 
 	if self.level:shouldPlaceRunestone(ti, tj) then
@@ -794,6 +792,7 @@ function Game:_placeTile(placing)
 
 	Timer.tween(0.15, sprite, { y = dest }, "in-bounce", function()
 		-- Tile has come to rest.
+		soundManager:playEffect("tile_placed", sgi + self.map.gridsPerTile / 2, sgj + self.map.gridsPerTile / 2)
 		self.eventManager:fireEvent(TilePlacedEvent(placing))
 
 		-- Screen shake
@@ -821,11 +820,6 @@ function Game:_placeBuilding(placing)
 	local ax, ay, minGrid, maxGrid = self.map:addObject(placing, placing:get("BuildingComponent"):getPosition())
 	assert(ax and ay and minGrid and maxGrid, "Could not add building with building component.")
 
-	soundManager:playEffect(
-		"building_placed",
-		minGrid.gi + (maxGrid.gi - minGrid.gi) / 2,
-		minGrid.gj + (maxGrid.gj - minGrid.gj) / 2)
-
 	local ti, tj = self.map:gridToTileCoords(minGrid.gi, minGrid.gj)
 	placing:get("SpriteComponent"):setDrawPosition(ax, ay)
 	placing:get("SpriteComponent"):resetColor()
@@ -841,7 +835,13 @@ function Game:_placeBuilding(placing)
 	sprite:resetColor()
 	local dest = sprite.y
 	sprite.y = sprite.y - 4
-	Timer.tween(0.11, sprite, { y = dest }, "in-back")
+	Timer.tween(0.11, sprite, { y = dest }, "in-back", function()
+		-- Building has come to rest.
+		soundManager:playEffect(
+			"building_placed",
+			minGrid.gi + (maxGrid.gi - minGrid.gi) / 2,
+			minGrid.gj + (maxGrid.gj - minGrid.gj) / 2)
+	end)
 
 	-- DUST
 	local halfgi = minGrid.gi + math.floor((maxGrid.gi - minGrid.gi)/2)
