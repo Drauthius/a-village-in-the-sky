@@ -109,6 +109,10 @@ function WorkComponent:increaseCompletion(value)
 	self.completion = self.completion + value
 end
 
+function WorkComponent:getCompletion()
+	return self.completion
+end
+
 function WorkComponent:isComplete()
 	return self.completion >= 100.0
 end

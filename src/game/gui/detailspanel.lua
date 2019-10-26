@@ -268,6 +268,22 @@ function DetailsPanel:draw()
 			love.graphics.setColor(1, 1, 1)
 			self.button:draw()
 		end
+	elseif selection:has("ResourceComponent") then
+		local resource = selection:get("ResourceComponent")
+
+		y = y + self:_drawMaterialList("Resource", { [resource:getResource()] = resource:getResourceAmount() }, x, y)
+
+		if selection:has("WorkComponent") then
+			local work = selection:get("WorkComponent")
+
+			local key = babel.translate("Complete") .. ": "
+			love.graphics.setFont(self.fontBold)
+			love.graphics.setColor(spriteSheet:getOutlineColor())
+			love.graphics.print(key, x, y)
+
+			love.graphics.setFont(self.font)
+			love.graphics.print(string.format("%d%%", work:getCompletion()), x + self.fontBold:getWidth(key), y)
+		end
 	else
 		return
 	end
@@ -305,6 +321,7 @@ function DetailsPanel:_drawMaterialList(label, materials, x, y)
 	label = babel.translate(label) .. ": "
 
 	love.graphics.setFont(self.fontBold)
+	love.graphics.setColor(spriteSheet:getOutlineColor())
 	love.graphics.print(label, x, y)
 
 	local ox = self.fontBold:getWidth(label)
