@@ -9,6 +9,9 @@ Downloaded from https://freesound.org/people/Reitanna/sounds/332661/
 "building.wav" by blukotek licensed under CC0 1.0
 Downloaded from https://freesound.org/people/blukotek/sounds/337814/
 
+"building_complete.wav" by kyles licensed under CC0 1.0
+Downloaded from https://freesound.org/people/kyles/sounds/454222/
+
 "collapse.wav" by RossBell licensed under CC0 1.0
 Downloaded from https://freesound.org/people/RossBell/sounds/389431/
 
