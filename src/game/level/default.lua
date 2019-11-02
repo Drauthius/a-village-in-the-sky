@@ -28,6 +28,7 @@ local PositionComponent = require "src.game.positioncomponent"
 local ResourceComponent = require "src.game.resourcecomponent"
 local SpriteComponent = require "src.game.spritecomponent"
 local TileComponent = require "src.game.tilecomponent"
+local WorkComponent = require "src.game.workcomponent"
 
 local InfoPanel = require "src.game.gui.infopanel"
 
@@ -62,6 +63,7 @@ function DefaultLevel:initialize(...)
 				end
 			end
 		},
+
 		{
 			text = "Place a dwelling",
 			pre = function()
@@ -75,6 +77,7 @@ function DefaultLevel:initialize(...)
 				end
 			end
 		},
+
 		{
 			text = "Assign a villager to build the dwelling",
 			pre = function()
@@ -99,6 +102,7 @@ function DefaultLevel:initialize(...)
 				end
 			end
 		},
+
 		{
 			text = "Once done, assign a villager to the house",
 			pre = function()
@@ -119,18 +123,19 @@ function DefaultLevel:initialize(...)
 						return true
 					end
 				end
+			end,
+			post = function()
+				state:setTimeStopped(false)
+				self.gui:showYearPanel()
+				self.gui:setHint(nil)
 			end
 		},
+
 		{
 			text = "Build a blacksmith",
 			pre = function()
 				state:setAvailableBuildings({ BuildingComponent.DWELLING, BuildingComponent.BLACKSMITH })
 				self.gui:changeAvailibility(InfoPanel.CONTENT.PLACE_BUILDING)
-
-				self.gui:setHint(InfoPanel.CONTENT.PLACE_BUILDING, BuildingComponent.BLACKSMITH)
-
-				state:setTimeStopped(false)
-				self.gui:showYearPanel()
 			end,
 			cond = function()
 				for _,entity in pairs(self.engine:getEntitiesWithComponent("ProductionComponent")) do
@@ -138,6 +143,93 @@ function DefaultLevel:initialize(...)
 						return true
 					end
 				end
+			end
+		},
+		{ withPrevious = true,
+			text = "Upgrade the runestone",
+			cond = function()
+				for _,entity in pairs(self.engine:getEntitiesWithComponent("RunestoneComponent")) do
+					if entity:get("RunestoneComponent"):getLevel() > 1 then
+						return true
+					end
+				end
+			end,
+			post = function()
+				state:setAvailableTerrain({ TileComponent.GRASS, TileComponent.FOREST, TileComponent.MOUNTAIN })
+				self.gui:changeAvailibility(InfoPanel.CONTENT.PLACE_TERRAIN)
+			end
+		},
+
+		{
+			text = "Place a forest, and assign a woodcutter",
+			cond = function()
+				for _,entity in pairs(self.engine:getEntitiesWithComponent("AdultComponent")) do
+					if entity:get("AdultComponent"):getOccupation() == WorkComponent.WOODCUTTER then
+						return true
+					end
+				end
+			end
+		},
+		{ withPrevious = true,
+			text = "Build a field",
+			pre = function()
+				state:setAvailableBuildings({ BuildingComponent.DWELLING, BuildingComponent.BLACKSMITH, BuildingComponent.FIELD })
+				self.gui:changeAvailibility(InfoPanel.CONTENT.PLACE_BUILDING)
+			end,
+			cond = function()
+				return next(self.engine:getEntitiesWithComponent("FieldEnclosureComponent")) ~= nil
+			end
+		},
+
+		{
+			text = "Place a mountain, and assign a miner",
+			cond = function()
+				for _,entity in pairs(self.engine:getEntitiesWithComponent("AdultComponent")) do
+					if entity:get("AdultComponent"):getOccupation() == WorkComponent.MINER then
+						return true
+					end
+				end
+			end
+		},
+		{ withPrevious = true,
+			text = "Build a bakery",
+			pre = function()
+				state:setAvailableBuildings({
+					BuildingComponent.DWELLING,
+					BuildingComponent.BLACKSMITH,
+					BuildingComponent.FIELD,
+					BuildingComponent.BAKERY
+				})
+				self.gui:changeAvailibility(InfoPanel.CONTENT.PLACE_BUILDING)
+			end,
+			cond = function()
+				for _,entity in pairs(self.engine:getEntitiesWithComponent("ProductionComponent")) do
+					if entity:get("BuildingComponent"):getType() == BuildingComponent.BAKERY then
+						return true
+					end
+				end
+			end
+		},
+
+		{
+			text = "Reach 25 villagers",
+			cond = function()
+				local num = 0
+				for _ in pairs(self.engine:getEntitiesWithComponent("VillagerComponent")) do
+					num = num + 1
+				end
+				return num >= 25
+			end
+		},
+
+		{
+			text = "Reach 100 villagers",
+			cond = function()
+				local num = 0
+				for _ in pairs(self.engine:getEntitiesWithComponent("VillagerComponent")) do
+					num = num + 1
+				end
+				return num >= 100
 			end
 		}
 	}

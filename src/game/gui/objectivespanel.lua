@@ -78,16 +78,14 @@ function ObjectivesPanel:addObjective(text, skipTween)
 	if not skipTween then
 		-- Create a nice tween effect (reverse of the remove one).
 		local panelNum = numPanels + 1
-		self.panels[panelNum].sx, self.panels[panelNum].sy = 1, 0
-		local oldOy = self.panels[panelNum].text.oy
-		self.panels[panelNum].text.oy = 0
+		local oldX = self.panels[panelNum].x
+		self.panels[panelNum].x = -panel:getWidth()
 
-		local time = 2.5
-		local tween = "in-bounce"
+		local time = 2.0
+		local tween = "out-elastic"
 
 		self.panels[panelNum].timers = {
-			Timer.tween(time, self.panels[panelNum].text, { oy = oldOy }, tween),
-			Timer.tween(time, self.panels[panelNum], { sy = 1 }, tween)
+			Timer.tween(time, self.panels[panelNum], { x = oldX }, tween)
 		}
 	end
 
@@ -109,12 +107,10 @@ function ObjectivesPanel:removeObjective(uniqueID)
 		Timer.cancel(timer)
 	end
 
-	local time = 2.5
-	local tween = "in-bounce"
+	local time = 2.0
+	local tween = "out-sine"
 
-	Timer.tween(time, self.panels[panelNum].text, { oy = 0 }, tween)
-	Timer.tween(time, self.panels[panelNum], { y = self.panels[panelNum].y + self.panels[panelNum].h }, tween)
-	Timer.tween(time, self.panels[panelNum], { sy = 0 }, tween, function()
+	Timer.tween(time, self.panels[panelNum], { x = -self.panels[panelNum]:getWidth() }, tween, function()
 		-- Another objective might have been removed since last time, so calculate the panel number again
 		local newPanelNum
 		for i,panel in ipairs(self.panels) do
