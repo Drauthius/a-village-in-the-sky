@@ -34,6 +34,8 @@ local Widget = require "src.game.gui.widget"
 
 local WorkComponent = require "src.game.workcomponent"
 
+local SelectionChangedEvent = require "src.game.selectionchangedevent"
+
 local hint = require "src.game.hint"
 local screen = require "src.screen"
 local soundManager = require "src.soundmanager"
@@ -438,6 +440,10 @@ function GUI:handlePress(x, y, released)
 				if self.infoPanel:isShown() and self.infoPanel:getContentType() == type then
 					self:_closeInfoPanel()
 				else
+					if state:isPlacing() then
+						self.eventManager:fireEvent(SelectionChangedEvent(nil))
+					end
+
 					soundManager:playEffect("drawer_opened")
 					self.infoPanel:setContent(type)
 					self.infoPanel:show()
@@ -453,10 +459,9 @@ function GUI:handlePress(x, y, released)
 	end
 
 	if self.infoPanel:isShown() and self.infoPanel:isWithin(x, y) then
-		if released then
+		if self.infoPanel:handlePress(x, y, released) and released then
 			soundManager:playEffect("drawer_selected")
 		end
-		self.infoPanel:handlePress(x, y, released)
 
 		-- Check whether the panel was closed by the click.
 		if not self.infoPanel:isShown() then
@@ -624,6 +629,20 @@ function GUI:onSelectionChanged(event)
 	self:updateHint()
 end
 
+function GUI:onBuildingListChanged()
+	if self.infoPanel:getContentType() == InfoPanel.CONTENT.LIST_BUILDINGS then
+		self.infoPanel:refresh()
+	end
+end
+
+function GUI:onVillageListChanged()
+	if self.infoPanel:getContentType() == InfoPanel.CONTENT.LIST_VILLAGERS then
+		self.infoPanel:refresh()
+	end
+
+	self:updateHint()
+end
+
 --
 -- Pseudo events, eh
 --
@@ -643,6 +662,10 @@ end
 function GUI:_closeInfoPanel()
 	soundManager:playEffect("drawer_closed")
 	self.infoPanel:hide()
+
+	if state:isPlacing() then
+		self.eventManager:fireEvent(SelectionChangedEvent(nil))
+	end
 
 	self:updateHint()
 

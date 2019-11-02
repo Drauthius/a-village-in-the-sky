@@ -284,8 +284,8 @@ end
 function InfoPanel:setContent(type, refresh)
 	self.type = type
 
-	if self.selected ~= nil then
-		self.eventManager:fireEvent(SelectionChangedEvent(nil))
+	if not refresh then
+		self.selected = nil
 	end
 
 	local content = {}
@@ -416,10 +416,6 @@ end
 function InfoPanel:hide()
 	self.hidden = true
 	self.type = nil
-
-	if self.selected ~= nil then
-		self.eventManager:fireEvent(SelectionChangedEvent(nil))
-	end
 end
 
 function InfoPanel:isShown()
@@ -472,12 +468,13 @@ function InfoPanel:handlePress(x, y, released)
 	for _,button in ipairs(self.buttons) do
 		if button:isWithin(x, y) then
 			if button:isDisabled() then
-				return
+				return false
 			end
 			if released and button:isPressed() then
 				button:getAction()()
 			end
-			return button:setPressed(not released)
+			button:setPressed(not released)
+			return true
 		end
 	end
 
@@ -503,10 +500,18 @@ function InfoPanel:handlePress(x, y, released)
 					isPlacing = false
 				end
 
-				return self.eventManager:fireEvent(SelectionChangedEvent(selection, isPlacing))
+				self.eventManager:fireEvent(SelectionChangedEvent(selection, isPlacing))
+				return true
 			end
 		end
+
+		-- Clicking outside should deselect.
+		if self.selected then
+			self.eventManager:fireEvent(SelectionChangedEvent(nil))
+		end
 	end
+
+	return false
 end
 
 function InfoPanel:onSelectionChanged(event)

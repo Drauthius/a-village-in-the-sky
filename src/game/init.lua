@@ -227,12 +227,16 @@ function Game:enter(_, profile)
 
 	-- Event handling by the GUI (after other processing has completed).
 	self.eventManager:addListener("AssignedEvent", self.gui, self.gui.onAssigned)
+	self.eventManager:addListener("BuildingRazedEvent", self.gui, self.gui.onBuildingListChanged)
+	self.eventManager:addListener("ChildbirthEndedEvent", self.gui, self.gui.onVillageListChanged)
+	self.eventManager:addListener("ConstructionCancelledEvent", self.gui, self.gui.onBuildingListChanged)
 	self.eventManager:addListener("SelectionChangedEvent", self.gui, self.gui.onSelectionChanged)
 	self.eventManager:addListener("UnassignedEvent", self.gui, self.gui.onUnassigned)
+	self.eventManager:addListener("VillagerDeathEvent", self.gui, self.gui.onVillageListChanged)
 	-- Other events that can influence/move the tutorial hints
 	self.eventManager:addListener("BuildingCompletedEvent", self.gui, self.gui.updateHint)
 	--self.eventManager:addListener("SelectionChangedEvent", self.gui, self.gui.updateHint)
-	self.eventManager:addListener("VillagerDeathEvent", self.gui, self.gui.updateHint)
+	--self.eventManager:addListener("VillagerDeathEvent", self.gui, self.gui.updateHint)
 
 	-- This "event" has been hacked in.
 	self.engine.onRemoveEntity = function(_, entity)
