@@ -488,15 +488,19 @@ function InfoPanel:handlePress(x, y, released)
 					self.content[self.selected]:unselect()
 				end
 
-				local selection, isPlacing = nil, false
+				local selection = nil
+				local isPlacing = self.type == InfoPanel.CONTENT.PLACE_TERRAIN or self.type == InfoPanel.CONTENT.PLACE_BUILDING
 
 				if self.selected ~= i then
 					selection = item:select()
 					self.selected = i
-					isPlacing = self.type == InfoPanel.CONTENT.PLACE_TERRAIN or self.type == InfoPanel.CONTENT.PLACE_BUILDING
+				elseif not isPlacing then
+					-- Keep on selecting it if it's not something that's being placed.
+					selection = item:select()
 				else
 					-- Clear the selection when clicking the same thing again.
 					self.selected = nil
+					isPlacing = false
 				end
 
 				return self.eventManager:fireEvent(SelectionChangedEvent(selection, isPlacing))

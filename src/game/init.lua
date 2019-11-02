@@ -1108,19 +1108,37 @@ function Game:onSelectionChanged(event)
 	local selection = event:getSelection()
 	local isPlacing = event:isPlacing()
 
-	-- If selecting an event, move the camera there.
-	if selection and selection:isInstanceOf(GameEvent) then
-		local ti, tj = selection:getTile()
-		if ti and tj then
-			local x, y = self.map:tileToWorldCoords(ti + 0.5, tj + 0.5)
-			-- Mimic a drag event, so that the camera moves to the desired position smoothly.
-			self.dragging = {
-				cx = x,
-				cy = y,
-				released = true,
-				dragged = true
-			}
+	-- If selecting an event, or reselecting something, move the camera there.
+	if selection and (state:getSelection() == selection or selection:isInstanceOf(GameEvent)) then
+		local x, y
+		if selection:isInstanceOf(GameEvent) then
+			local ti, tj = selection:getTile()
+			if ti and tj then
+				x, y = self.map:tileToWorldCoords(ti + 0.5, tj + 0.5)
+			else
+				return -- When can this happen??
+			end
+		else
+			if selection:has("PositionComponent") then
+				local fromGrid = selection:get("PositionComponent"):getFromGrid()
+				local toGrid = selection:get("PositionComponent"):getToGrid()
+				x, y = self.map:gridToWorldCoords(
+					fromGrid.gi + (toGrid.gi - fromGrid.gi) / 2,
+					fromGrid.gj + (toGrid.gj - fromGrid.gj) / 2)
+			elseif selection:has("GroundComponent") then
+				x, y = selection:get("GroundComponent"):getIsometricPosition()
+			else
+				print("Don't know how to find "..tostring(selection))
+			end
 		end
+
+		-- Mimic a drag event, so that the camera moves to the desired position smoothly.
+		self.dragging = {
+			cx = x,
+			cy = y,
+			released = true,
+			dragged = true
+		}
 		return
 	end
 
