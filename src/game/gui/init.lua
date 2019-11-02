@@ -272,6 +272,10 @@ function GUI:update(dt)
 	else
 		self.arrows = nil
 	end
+
+	if self.hintTimer then
+		self.hintTimer:update(dt)
+	end
 end
 
 function GUI:draw(camera)
@@ -498,26 +502,58 @@ function GUI:setHint(place, subplace)
 		hint:hide()
 		self.hint = nil
 		self.infoPanel:setHint(nil)
-		return
+	else
+		if type(place) == "function" then
+			self.hint = { update = place }
+		else
+			self.hint = { place, subplace }
+		end
 	end
 
-	self.hint = { place, subplace }
 	self:updateHint()
 end
 
 function GUI:updateHint()
+	if self.hintTimer then
+		self.hintTimer:clear()
+		self.hintTimer = nil
+	end
+
 	if not self.hint then
 		return
 	end
 
-	if self.infoPanel:isShown() and self.infoPanel:getContentType() == self.hint[1] then
-		self.infoPanel:setHint(self.hint[2])
-	else
-		local button = assert(self.buttons[self.hint[1]], tostring(self.hint[1]).." is unknown")
-		local x, y = button:getPosition()
+	local place, subplace = self.hint[1], self.hint[2]
+	if self.hint.update then
+		place, subplace = self.hint.update()
+	end
 
-		hint:rotateAround(x + button:getWidth() / 2, y + button:getHeight() / 2 + 5, button:getWidth() * 0.4)
-		self.infoPanel:setHint(nil)
+	if not place then
+		return
+	elseif type(place) == "number" then
+		if self.infoPanel:isShown() and self.infoPanel:getContentType() == place then
+			self.infoPanel:setHint(subplace)
+		else
+			local button = assert(self.buttons[place], tostring(place).." is unknown")
+			local x, y = button:getPosition()
+
+			hint:rotateAround(x + button:getWidth() / 2, y + button:getHeight() / 2 + 5, button:getWidth() * 0.4)
+			self.infoPanel:setHint(nil)
+		end
+	else
+		self.hintTimer = Timer.new()
+		self.hintTimer:every(0.5, function()
+			local sprite = place:get("SpriteComponent")
+			local x, y = sprite:getDrawPosition()
+			local ox, oy, w, h = sprite:getSprite():getTrimmedDimensions()
+			x = x + ox + w / 2
+			y = y + oy + h / 2
+			local r = math.max(w / 2, h / 2)
+			hint:rotateAround(x, y, r * 0.9, true)
+
+			return true
+		end)
+		self.hintTimer:update(0.5)
 	end
 end
 
@@ -572,14 +608,20 @@ function GUI:onAssigned(event)
 	for resource,numWorkers in pairs(workers) do
 		self.resourcePanel:setWorkers(resource, numWorkers)
 	end
+
+	self:updateHint()
 end
 
 function GUI:onUnassigned(event)
 	self:onAssigned(event)
+
+	self:updateHint()
 end
 
 function GUI:onSelectionChanged(event)
 	self.infoPanel:onSelectionChanged(event)
+
+	self:updateHint()
 end
 
 --

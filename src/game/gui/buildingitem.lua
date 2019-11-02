@@ -90,4 +90,8 @@ function BuildingItem:getEntity()
 	return self.entity
 end
 
+function BuildingItem:getType()
+	return self.entity:get("BuildingComponent"):getType()
+end
+
 return BuildingItem

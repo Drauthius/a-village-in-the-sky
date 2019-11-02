@@ -78,11 +78,22 @@ function DefaultLevel:initialize(...)
 		{
 			text = "Assign a villager to build the dwelling",
 			pre = function()
-				self.gui:setHint(nil)
+				self.gui:setHint(function()
+					if state:getSelection() and state:getSelection():has("AdultComponent") then
+						for _,entity in pairs(self.engine:getEntitiesWithComponent("ConstructionComponent")) do
+							if entity:get("ConstructionComponent"):getType() == BuildingComponent.DWELLING then
+								return entity
+							end
+						end
+					else
+						return select(2, next(self.engine:getEntitiesWithComponent("AdultComponent")))
+					end
+				end)
 			end,
 			cond = function()
 				for _,entity in pairs(self.engine:getEntitiesWithComponent("ConstructionComponent")) do
-					if entity:get("AssignmentComponent"):getNumAssignees() > 0 then
+					if entity:get("ConstructionComponent"):getType() == BuildingComponent.DWELLING and
+					   entity:get("AssignmentComponent"):getNumAssignees() > 0 then
 						return true
 					end
 				end
@@ -90,6 +101,18 @@ function DefaultLevel:initialize(...)
 		},
 		{
 			text = "Once done, assign a villager to the house",
+			pre = function()
+				self.gui:setHint(function()
+					local dwelling = select(2, next(self.engine:getEntitiesWithComponent("DwellingComponent")))
+					if not dwelling then
+						return nil
+					elseif state:getSelection() and state:getSelection():has("AdultComponent") then
+						return dwelling
+					else
+						return select(2, next(self.engine:getEntitiesWithComponent("AdultComponent")))
+					end
+				end)
+			end,
 			cond = function()
 				for _,entity in pairs(self.engine:getEntitiesWithComponent("DwellingComponent")) do
 					if entity:get("AssignmentComponent"):getNumAssignees() > 0 then

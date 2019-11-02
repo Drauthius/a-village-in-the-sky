@@ -229,6 +229,10 @@ function Game:enter(_, profile)
 	self.eventManager:addListener("AssignedEvent", self.gui, self.gui.onAssigned)
 	self.eventManager:addListener("SelectionChangedEvent", self.gui, self.gui.onSelectionChanged)
 	self.eventManager:addListener("UnassignedEvent", self.gui, self.gui.onUnassigned)
+	-- Other events that can influence/move the tutorial hints
+	self.eventManager:addListener("BuildingCompletedEvent", self.gui, self.gui.updateHint)
+	--self.eventManager:addListener("SelectionChangedEvent", self.gui, self.gui.updateHint)
+	self.eventManager:addListener("VillagerDeathEvent", self.gui, self.gui.updateHint)
 
 	-- This "event" has been hacked in.
 	self.engine.onRemoveEntity = function(_, entity)
@@ -352,6 +356,10 @@ function Game:draw()
 	self.camera:draw(dx, dy, dw, dh, true, function()
 		self.engine:draw()
 
+		if hint:isInWorld() then
+			hint:draw()
+		end
+
 		if self.debug then
 			self.map:drawDebug()
 
@@ -371,7 +379,9 @@ function Game:draw()
 	self.foreground:draw()
 
 	self.gui:draw(self.camera)
-	hint:draw()
+	if not hint:isInWorld() then
+		hint:draw()
+	end
 
 	if self.debug then
 		love.graphics.setLineWidth(1)

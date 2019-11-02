@@ -71,10 +71,17 @@ function Hint:draw(forceDraw, ...)
 	end
 end
 
-function Hint:rotateAround(x, y, radius)
+function Hint:rotateAround(x, y, radius, inWorld)
 	self.x, self.y = x, y
 	self.radius = radius
 	self.shown = true
+	self.inWorld = inWorld
+
+	if inWorld then
+		self.particleSystem:setSizes(1.5, 1.0)
+	else
+		self.particleSystem:setSizes(2.5, 1.5)
+	end
 end
 
 function Hint:hide()
@@ -83,6 +90,10 @@ end
 
 function Hint:setPreventDraw(prevent)
 	self.preventDraw = prevent
+end
+
+function Hint:isInWorld()
+	return self.inWorld
 end
 
 return Hint()
