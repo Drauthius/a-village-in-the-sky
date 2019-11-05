@@ -145,7 +145,10 @@ function Blueprint:createVillager(mother, father, gender, age)
 				  { palette:getPixel(5, 0) } },
 				-- Fairer:
 				{ { 0.761, 0.584, 0.510, 1 },
-				  { 0.812, 0.663, 0.569, 1 } }
+				  { 0.812, 0.663, 0.569, 1 } },
+				-- Browner:
+				{ { 0.67, 0.45, 0.33, 1 },
+				  { 0.77, 0.62, 0.47, 1 } }
 			},
 			hair = {
 				-- Default:
@@ -161,7 +164,13 @@ function Blueprint:createVillager(mother, father, gender, age)
 				  { palette:getPixel(9, 0) } },
 				-- Lighter:
 				{ { 0.506, 0.565, 0.600, 1 },
-				  { 0.753, 0.812, 0.808, 1 } }
+				  { 0.753, 0.812, 0.808, 1 } },
+				-- Bluer:
+				{ { 0.239, 0.310, 0.400, 1 },
+				  { 0.349, 0.443, 0.502, 1 } },
+				-- Redder:
+				{ { 0.4, 0.125, 0.180, 1 },
+				  { 0.502, 0.176, 0.176, 1 } }
 			},
 			pants = {
 				-- Default:

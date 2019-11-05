@@ -122,7 +122,7 @@ function Game:init()
 end
 
 function Game:enter(_, profile)
-	love.graphics.setBackgroundColor(0.1, 0.5, 1)
+	love.graphics.setBackgroundColor(0.457, 0.675, 0.969)
 	love.filesystem.write("latest", profile)
 
 	self.speed = 1
