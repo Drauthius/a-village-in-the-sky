@@ -94,7 +94,7 @@ function BuildItem:drawOverlay(offset)
 
 	-- Print the label
 	love.graphics.setColor(spriteSheet:getOutlineColor())
-	love.graphics.print(name, sx, sy)
+	love.graphics.print(name, sx + math.floor(self.font:getDPIScale() / 2), sy + self.font:getDPIScale())
 
 	if self.icon then
 		love.graphics.setColor(1, 1, 1, 1)
@@ -134,7 +134,11 @@ function BuildItem:drawOverlay(offset)
 				spriteSheet:draw(icon, sx + w - icon:getWidth(), sy + oy + 1)
 
 				love.graphics.setColor(spriteSheet:getOutlineColor())
-				love.graphics.printf(amount.."x", sx + 1, sy + oy, w - icon:getWidth() - 2, "right")
+				love.graphics.printf(amount.."x",
+				                     sx + self.font:getDPIScale(),
+				                     sy + oy + self.font:getDPIScale() - 1,
+				                     w - icon:getWidth() - 2,
+				                     "right")
 
 				oy = oy + math.max(self.font:getHeight() + 1, icon:getHeight()) + 1
 			end

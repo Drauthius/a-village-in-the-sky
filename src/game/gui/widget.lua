@@ -57,8 +57,8 @@ function Widget:addText(text, font, color, ox, oy, limit, align)
 		text = text,
 		font = font,
 		color = color,
-		ox = ox or 0,
-		oy = oy or 0,
+		ox = (ox or 0) + (font:getDPIScale() == 1 and 0 or font:getDPIScale()),
+		oy = (oy or 0) + (font:getDPIScale() == 1 and 0 or font:getDPIScale()),
 		limit = limit or -1,
 		align = align
 	}

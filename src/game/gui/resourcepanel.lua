@@ -89,26 +89,28 @@ end
 function ResourcePanel:draw()
 	love.graphics.draw(self.spriteBatch, self.x)
 
+	local offset = self.font:getDPIScale() == 1 and 0 or math.floor(self.font:getDPIScale())
+
 	for _,resource in ipairs(self.resources) do
 		local res = ResourceComponent.RESOURCE_NAME[resource]
 		local work = WorkComponent.WORK_NAME[WorkComponent.RESOURCE_TO_WORK[resource]]
 
 		self:_drawText(tostring(state:getNumResources(resource)),
-			self.x + self[res].text.bounds.x,
-			self[res].text.bounds.y + math.floor((self[res].text.bounds.h - self.font:getHeight()) / 2))
+			self.x + self[res].text.bounds.x + offset,
+			self[res].text.bounds.y + math.floor((self[res].text.bounds.h - self.font:getHeight()) / 2 + offset))
 
 		self:_drawText(tostring(self.workers[resource]),
-			self.x + self[work].text.bounds.x,
-			self[work].text.bounds.y + math.floor((self[work].text.bounds.h - self.font:getHeight()) / 2))
+			self.x + self[work].text.bounds.x + offset,
+			self[work].text.bounds.y + math.floor((self[work].text.bounds.h - self.font:getHeight()) / 2 + offset))
 	end
 
 	self:_drawText(tostring(state:getNumMaleVillagers() + state:getNumFemaleVillagers()),
-		self.x + self.villagers.text.bounds.x,
-		self.villagers.text.bounds.y + math.floor((self.villagers.text.bounds.h - self.font:getHeight()) / 2))
+		self.x + self.villagers.text.bounds.x + offset,
+		self.villagers.text.bounds.y + math.floor((self.villagers.text.bounds.h - self.font:getHeight()) / 2 + offset))
 
 	self:_drawText(tostring(state:getNumMaleChildren() + state:getNumFemaleChildren()),
-		self.x + self.children.text.bounds.x,
-		self.children.text.bounds.y + math.floor((self.children.text.bounds.h - self.font:getHeight()) / 2))
+		self.x + self.children.text.bounds.x + offset,
+		self.children.text.bounds.y + math.floor((self.children.text.bounds.h - self.font:getHeight()) / 2 + offset))
 
 	love.graphics.setColor(1, 1, 1)
 end
