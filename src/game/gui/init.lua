@@ -506,7 +506,6 @@ function GUI:setHint(place, subplace)
 	if not place then
 		hint:hide()
 		self.hint = nil
-		self.infoPanel:setHint(nil)
 	else
 		if type(place) == "function" then
 			self.hint = { update = place }
@@ -543,7 +542,6 @@ function GUI:updateHint()
 			local x, y = button:getPosition()
 
 			hint:rotateAround(x + button:getWidth() / 2, y + button:getHeight() / 2 + 5, button:getWidth() * 0.4)
-			self.infoPanel:setHint(nil)
 		end
 	else
 		self.hintTimer = Timer.new()

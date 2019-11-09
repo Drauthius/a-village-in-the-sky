@@ -390,16 +390,11 @@ function InfoPanel:setContent(type, refresh)
 end
 
 function InfoPanel:setHint(place)
-	if not place then
-		hint:setPreventDraw(false)
-		return
-	end
-
 	for _,content in ipairs(self.content) do
 		if content:getType() == place then
 			hint:rotateAround(content:getPosition() + content:getWidth() / 2,
-			                  self.contentBounds.y + self.contentBounds.h / 2, content:getWidth() / 2.1)
-			hint:setPreventDraw(true)
+			                  self.contentBounds.y + self.contentBounds.h / 2,
+			                  content:getWidth() / 2.1, false, true)
 			return
 		end
 	end
