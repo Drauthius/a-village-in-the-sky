@@ -121,9 +121,10 @@ function ObjectivesPanel:removeObjective(uniqueID)
 		end
 		self.h = self.h - self.panels[newPanelNum]:getHeight()
 		table.remove(self.panels, newPanelNum)
+		local nextY = self.y
 		for i=newPanelNum,#self.panels do
-			local y = i == 1 and self.y or (self.panels[i].y - self.panels[i-1].h)
-			Timer.tween(0.5, self.panels[i], { y = y }, tween)
+			Timer.tween(0.5, self.panels[i], { y = nextY }, tween)
+			nextY = nextY + self.panels[i].h
 		end
 	end)
 
