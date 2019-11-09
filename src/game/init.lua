@@ -1055,7 +1055,7 @@ function Game:childbirthEndedEvent(event)
 		state:addEvent(GameEvent(GameEvent.TYPES.CHILD_BORN, ti, tj, ("%s%s has had a child."):format(
 			father and (father.." and ") or "", mother)))
 
-		local numVillagers = state:getNumMaleVillagers() + state:getNumFemaleVillager() +
+		local numVillagers = state:getNumMaleVillagers() + state:getNumFemaleVillagers() +
 		                     state:getNumMaleChildren() + state:getNumFemaleChildren()
 		if numVillagers % 50 == 0 and state:getLastPopulationEvent() < numVillagers then
 			state:setLastPopulationEvent(numVillagers)
