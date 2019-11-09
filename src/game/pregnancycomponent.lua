@@ -44,7 +44,7 @@ end
 function PregnancyComponent:initialize(expected, father)
 	self.expected = expected
 	self.father = father
-	self.fatherUnique = father:get("VillagerComponent"):getUnqiue()
+	self.fatherUnique = father:get("VillagerComponent"):getUnique()
 	self.inLabour = false
 end
 

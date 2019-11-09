@@ -24,7 +24,7 @@ local ChildbirthEndedEvent = class("ChildbirthEndedEvent")
 function ChildbirthEndedEvent:initialize(mother, father, fatherUnique, motherDied, childDied, isIndoors)
 	self.mother = mother
 	self.father = father
-	self.fatherUnqiue = fatherUnique
+	self.fatherUnique = fatherUnique
 	self.motherDied = motherDied
 	self.childDied = childDied
 	self.isIndoors = isIndoors
