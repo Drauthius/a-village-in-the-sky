@@ -337,9 +337,6 @@ function DefaultLevel:load(...)
 	if self.currentObjective and self.currentObjective > 4 then
 		state:setTimeStopped(false)
 		self.gui:showYearPanel(true)
-
-		state:setAvailableTerrain({ TileComponent.GRASS })
-		state:setAvailableBuildings({ BuildingComponent.DWELLING, BuildingComponent.BLACKSMITH })
 	end
 end
 
