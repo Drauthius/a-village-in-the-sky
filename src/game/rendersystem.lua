@@ -197,8 +197,10 @@ function RenderSystem:onRemoveEntity(entity)
 end
 
 function RenderSystem:onEntityMoved(entity)
-	-- FIXME: Ideally we would only move around/sort the entity that actually moved, instead of all of them.
-	self.recalculateObjects = "keep"
+	if self.recalculateObjects == false then
+		-- FIXME: Ideally we would only move around/sort the entity that actually moved, instead of all of them.
+		self.recalculateObjects = "keep"
+	end
 end
 
 function RenderSystem:onTileDropped()
