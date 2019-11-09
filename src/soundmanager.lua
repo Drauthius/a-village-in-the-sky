@@ -57,7 +57,7 @@ SoundManager.static.SFX = {
 }
 
 local function _getVolume(type)
-	local volume = 0.5
+	local volume = type == "sfx" and 0.75 or 0.25
 
 	local file = type .. "_volume"
 	if love.filesystem.getInfo(file, "file") then
