@@ -24,6 +24,9 @@ local Sprite = require "src.game.sprite"
 
 local SpriteSheet = class("SpriteSheet")
 
+SpriteSheet.static.NAME_SEPARATOR = "\30"
+SpriteSheet.static.SLICE_SEPARATOR = "\29"
+
 function SpriteSheet:initialize()
 	self.innerMargin = 1
 	self:load()
@@ -46,19 +49,21 @@ function SpriteSheet:getSprite(name, slice, frame)
 
 	local cacheName = ""
 	if type(name) == "table" then
-		if #name == 1 then
-			name = name[1]
-			cacheName = name
-		else
-			for _,v in ipairs(name) do
-				cacheName = cacheName .. v .. "¦"
+		for i,v in ipairs(name) do
+			if i ~= 1 then
+				cacheName = cacheName .. SpriteSheet.NAME_SEPARATOR
 			end
+			cacheName = cacheName .. v
 		end
 	else
 		cacheName = name
 	end
 
-	cacheName = cacheName .. (slice and ("|" .. slice) or "")
+	if slice and slice:len() < 1 then
+		slice = nil
+	end
+
+	cacheName = cacheName .. (slice and (SpriteSheet.SLICE_SEPARATOR .. slice) or "")
 
 	if not self.spriteCache[cacheName] then
 		if type(name) ~= "table" then

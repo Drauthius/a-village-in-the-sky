@@ -20,9 +20,10 @@ along with A Village in the Sky. If not, see <http://www.gnu.org/licenses/>.
 local class = require "lib.middleclass"
 local lovetoys = require "lib.lovetoys.lovetoys"
 local serpent = require "lib.serpent"
+local string = require "lib.string"
 
-local state = require "src.game.state"
 local GameEvent = require "src.game.gameevent"
+local state = require "src.game.state"
 
 local Cassette = class("Cassette")
 
@@ -273,15 +274,20 @@ function Cassette:saveSprite(sprite)
 	return sprite:getName()
 end
 
-function Cassette:loadSprite(sprite)
+function Cassette:loadSprite(name)
 	local spriteSheet = require "src.game.spritesheet"
 
-	local divider = sprite:find("|")
+	local slice
+	local divider = name:find(spriteSheet.class.SLICE_SEPARATOR)
 	if divider then
-		return spriteSheet:getSprite(sprite:sub(1, divider - 1), sprite:sub(divider + 1, -1))
-	else
-		return spriteSheet:getSprite(sprite)
+		name = name:sub(1, divider - 1)
+		slice = name:sub(divider + 1, -1)
 	end
+
+	local sprite = spriteSheet:getSprite(string.split(name, spriteSheet.class.NAME_SEPARATOR), slice)
+	assert(sprite:isValid(), "Failed to load sprite "..name)
+
+	return sprite
 end
 
 function Cassette:saveGrid(grid)

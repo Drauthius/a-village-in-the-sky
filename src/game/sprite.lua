@@ -55,6 +55,10 @@ function Sprite:draw(image, x, y)
 	end
 end
 
+function Sprite:isValid()
+	return self.spriteBatch ~= nil or self.quad ~= nil
+end
+
 function Sprite:getName()
 	return self.name
 end
