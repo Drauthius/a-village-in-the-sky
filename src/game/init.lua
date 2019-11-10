@@ -842,6 +842,10 @@ function Game:_placeBuilding(placing)
 	placing:add(AssignmentComponent(4))
 	InteractiveComponent:makeInteractive(placing, ax, ay)
 
+	if not placing:has("RunestoneComponent") then
+		placing:get("BuildingComponent"):setYearBuilt(state:getYear())
+	end
+
 	placing:remove("PlacingComponent")
 
 	-- DROP

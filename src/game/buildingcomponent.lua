@@ -42,7 +42,8 @@ function BuildingComponent.static:save(cassette)
 		tj = self.tj,
 		villagersInside = cassette:saveEntityList(self.villagersInside),
 		chimneys = cassette:saveEntityList(self.chimneys),
-		children = cassette:saveEntityList(self.children)
+		children = cassette:saveEntityList(self.children),
+		year = self.year
 	}
 end
 
@@ -52,6 +53,7 @@ function BuildingComponent.static.load(cassette, data)
 	component.villagersInside = cassette:loadEntityList(data.villagersInside)
 	component.chimneys = cassette:loadEntityList(data.chimneys)
 	component.children = cassette:loadEntityList(data.children)
+	component:setYearBuilt(data.year)
 
 	return component
 end
@@ -62,6 +64,7 @@ function BuildingComponent:initialize(type, ti, tj)
 	self.villagersInside = {}
 	self.chimneys = {}
 	self.children = {}
+	self.year = 0
 end
 
 function BuildingComponent:setType(type)
@@ -113,6 +116,14 @@ end
 
 function BuildingComponent:getChildEntities()
 	return self.children
+end
+
+function BuildingComponent:getYearBuilt()
+	return self.year
+end
+
+function BuildingComponent:setYearBuilt(year)
+	self.year = year
 end
 
 return BuildingComponent

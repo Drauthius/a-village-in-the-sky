@@ -290,8 +290,6 @@ function InfoPanel:setContent(type, refresh)
 
 	local content = {}
 	local margin = 10
-	local mysteryOffset = 3 -- Probably something to do with the line thickness of items??
-	local x = self.contentBounds.x + mysteryOffset
 
 	if type == InfoPanel.CONTENT.PLACE_TERRAIN then
 		local terrains = state:getAvailableTerrain() or { TileComponent.GRASS, TileComponent.FOREST, TileComponent.MOUNTAIN }
@@ -299,11 +297,10 @@ function InfoPanel:setContent(type, refresh)
 			local sprite = spriteSheet:getSprite(TileComponent.TILE_NAME[terrain] .. "-tile")
 			local w, h = sprite:getWidth() + margin, self.contentBounds.h -- We assume that all sprites are the same width.
 
-			local item = BuildItem(x, self.contentBounds.y, w, h, sprite, self.itemFont, terrain, false, function(it)
+			local item = BuildItem(0, self.contentBounds.y, w, h, sprite, self.itemFont, terrain, false, function(it)
 				return blueprint:createPlacingTile(it:getType())
 			end)
 
-			x = x + item:getDimensions() + margin
 			table.insert(content, item)
 		end
 	elseif type == InfoPanel.CONTENT.PLACE_BUILDING then
@@ -314,19 +311,17 @@ function InfoPanel:setContent(type, refresh)
 			                                     (building == BuildingComponent.FIELD and "" or " 0"))
 			local w, h = sprite:getWidth() + margin, self.contentBounds.h -- We assume that all sprites are the same width.
 
-			local item = BuildItem(x, self.contentBounds.y, w, h, sprite, self.itemFont, building, true, function(it)
+			local item = BuildItem(0, self.contentBounds.y, w, h, sprite, self.itemFont, building, true, function(it)
 				return blueprint:createPlacingBuilding(it:getType())
 			end)
 
-			x = x + item:getDimensions() + margin
 			table.insert(content, item)
 		end
 	elseif type == InfoPanel.CONTENT.LIST_BUILDINGS then
 		margin = 5 -- ?
 		for _,entity in pairs(self.engine:getEntitiesWithComponent("BuildingComponent")) do
-			local item = BuildingItem(x, self.contentBounds.y, self.contentBounds.h, self.itemFont, self.itemFontBold, entity)
+			local item = BuildingItem(0, self.contentBounds.y, self.contentBounds.h, self.itemFont, self.itemFontBold, entity)
 
-			x = x + item:getDimensions() + margin
 			table.insert(content, item)
 
 			if state:getSelection() == entity then
@@ -334,12 +329,23 @@ function InfoPanel:setContent(type, refresh)
 				item:select()
 			end
 		end
+
+		table.sort(content, function(a, b)
+			local ay = a:getEntity():get("BuildingComponent"):getYearBuilt()
+			local by = b:getEntity():get("BuildingComponent"):getYearBuilt()
+			if ay < by then
+				return true
+			elseif ay > by then
+				return false
+			else
+				return a:getEntity().id > b:getEntity().id
+			end
+		end)
 	elseif type == InfoPanel.CONTENT.LIST_VILLAGERS then
 		margin = 5 -- ?
 		for _,entity in pairs(self.engine:getEntitiesWithComponent("VillagerComponent")) do
-			local item = VillagerItem(x, self.contentBounds.y, self.contentBounds.h, self.itemFont, self.itemFontBold, entity)
+			local item = VillagerItem(0, self.contentBounds.y, self.contentBounds.h, self.itemFont, self.itemFontBold, entity)
 
-			x = x + item:getDimensions() + margin
 			table.insert(content, item)
 
 			if state:getSelection() == entity then
@@ -347,15 +353,25 @@ function InfoPanel:setContent(type, refresh)
 				item:select()
 			end
 		end
+
+		table.sort(content, function(a, b)
+			local ag, bg = a:getEntity():get("VillagerComponent"):getAge(), b:getEntity():get("VillagerComponent"):getAge()
+			if ag > bg then
+				return true
+			elseif ag < bg then
+				return false
+			else
+				return a:getEntity().id > b:getEntity().id
+			end
+		end)
 	elseif type == InfoPanel.CONTENT.LIST_EVENTS then
 		margin = 5 -- ?
 		local events = state:getEvents()
 
 		for i=#events,1,-1 do -- Latest first
 			local event = events[i]
-			local item = EventItem(x, self.contentBounds.y, self.contentBounds.h, self.itemFont, self.itemFontBold, event)
+			local item = EventItem(0, self.contentBounds.y, self.contentBounds.h, self.itemFont, self.itemFontBold, event)
 
-			x = x + item:getDimensions() + margin
 			table.insert(content, item)
 
 			if i > state:getLastEventSeen() then
@@ -366,6 +382,13 @@ function InfoPanel:setContent(type, refresh)
 		if not refresh then
 			state:setLastEventSeen(#events)
 		end
+	end
+
+	local mysteryOffset = 3 -- Probably something to do with the line thickness of items??
+	local x = self.contentBounds.x + mysteryOffset
+	for _,item in ipairs(content) do
+		item.x = x
+		x = x + item:getDimensions() + margin
 	end
 
 	if refresh and self.ox ~= 0 and next(content) then
