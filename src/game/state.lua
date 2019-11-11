@@ -23,6 +23,8 @@ local ResourceComponent = require "src.game.resourcecomponent"
 
 local State = class("State")
 
+local numEventCache
+
 function State:initialize()
 	self.mouseCoords = {
 		x = 0,
@@ -48,6 +50,7 @@ function State:initialize()
 		buildings = nil
 	}
 	self.events = {}
+	numEventCache = nil
 	self.lastPopulationEvent = 0
 	self.lastEventSeen = 0
 	self.resources = {
@@ -202,8 +205,6 @@ end
 --
 -- Events
 --
-
-local numEventCache
 
 function State:getEvents()
 	return self.events

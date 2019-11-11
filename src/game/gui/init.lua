@@ -99,7 +99,7 @@ function GUI:initialize(engine, eventManager, map)
 		left = spriteSheet:getSprite("text-background-left"),
 		centre = spriteSheet:getSprite("text-background-centre")
 	}
-	self.eventPanel.font = love.graphics.newFont("asset/font/Norse.otf", self.eventPanel.left:getHeight() - 1)
+	self.eventPanel.font = love.graphics.newFont("asset/font/Norse-Bold.otf", self.eventPanel.left:getHeight() - 1)
 
 	self:resize(screen:getDrawDimensions())
 	self:setHint(nil)
