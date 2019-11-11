@@ -164,7 +164,7 @@ end
 
 -- TODO: Only needed because the current font isn't a pixel font.
 function SpriteSheet:getOutlineColor()
-	return { 0.10, 0.10, 0.10, 1.0 }
+	return { 0.13, 0.13, 0.13, 1.0 }
 end
 
 function SpriteSheet:draw(sprite, x, y)
