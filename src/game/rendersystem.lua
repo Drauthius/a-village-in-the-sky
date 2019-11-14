@@ -440,13 +440,16 @@ function RenderSystem:_drawHeader(entity)
 		end
 
 		local villager = entity:get("VillagerComponent")
+		local adult = entity:has("AdultComponent") and entity:get("AdultComponent") or nil
 
 		-- Multiple icons are chained together beautifully.
 		local icons = {}
 
-		-- Homeless icon.
+		-- Homeless or unemployed icon.
 		if not villager:getHome() then
 			table.insert(icons, (spriteSheet:getSprite("headers", "no-home-icon")))
+		elseif adult and adult:getOccupation() == WorkComponent.UNEMPLOYED then
+			table.insert(icons, (spriteSheet:getSprite("headers", "unemployed-icon")))
 		end
 		if villager:getSleepiness() > require("src.game.villagersystem").SLEEP.SLEEPINESS_THRESHOLD then -- XXX
 			table.insert(icons, (spriteSheet:getSprite("headers", "sleepy-icon")))
@@ -454,8 +457,9 @@ function RenderSystem:_drawHeader(entity)
 		if villager:getStarvation() > 0.0 then
 			table.insert(icons, (spriteSheet:getSprite("headers", "hungry-icon")))
 		end
-		if villager:getHome() and entity:has("AdultComponent") and not entity:get("AdultComponent"):getWorkArea() then
-			local occupation = entity:get("AdultComponent"):getOccupation()
+		-- Out-of-resources icon
+		if villager:getHome() and adult and not adult:getWorkArea() then
+			local occupation = adult:getOccupation()
 			if occupation == WorkComponent.WOODCUTTER then
 				table.insert(icons, (spriteSheet:getSprite("headers", "missing-woodcutter-icon")))
 			elseif occupation == WorkComponent.MINER then
