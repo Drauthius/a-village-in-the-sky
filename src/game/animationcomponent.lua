@@ -30,7 +30,7 @@ function AnimationComponent.static:save(cassette)
 	}
 
 	for _,frame in ipairs(self.frames) do
-		table.insert(data.frames, cassette:saveSprite(frame))
+		table.insert(data.frames, { cassette:saveSprite(frame[1]), frame[2] })
 	end
 
 	return data
@@ -44,7 +44,7 @@ function AnimationComponent.static.load(cassette, data)
 	component.currentFrame = data.currentFrame
 
 	for _,frame in ipairs(data.frames) do
-		table.insert(component.frames, cassette:loadSprite(frame))
+		table.insert(component.frames, { cassette:loadSprite(frame[1]), frame[2] })
 	end
 
 	return component
