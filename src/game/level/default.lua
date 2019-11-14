@@ -268,10 +268,10 @@ function DefaultLevel:initial()
 	end
 
 	local startingResources = {
-		[ResourceComponent.WOOD] = 30,
-		[ResourceComponent.IRON] = 6,
-		[ResourceComponent.TOOL] = 12,
-		[ResourceComponent.BREAD] = 6
+		[ResourceComponent.WOOD] = 33,
+		[ResourceComponent.IRON] = 9,
+		[ResourceComponent.TOOL] = 15,
+		[ResourceComponent.BREAD] = 12
 	}
 
 	-- Split so that we can assign the children to the adults.
@@ -320,7 +320,7 @@ function DefaultLevel:initial()
 
 				local villager = blueprint:createVillager(mother, nil,
 				                                          isMale and "male" or "female",
-				                                          isChild and 5 or 20)
+				                                          isChild and 10 or 20)
 
 				if not isMale and not isChild then
 					table.insert(females, villager)
