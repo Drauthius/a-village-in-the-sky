@@ -197,7 +197,11 @@ function Cassette:load(engine, map, gui)
 		end
 	end
 
-	-- Fourth pass: Restore the state.
+	-- Fourth pass: The level and anything it felt worth saving.
+	local level = require("src.game.level." .. data.level.source)(engine, map, gui)
+	level:load(self, data.level)
+
+	-- Last pass: Restore the state.
 	state.viewport = data.state.viewport
 	state.year = data.state.year
 	state.yearModifier = data.state.yearModifier
@@ -210,10 +214,6 @@ function Cassette:load(engine, map, gui)
 	end
 	state.lastPopulationEvent = data.state.lastPopulationEvent
 	state.lastEventSeen = data.state.lastEventSeen
-
-	-- Fifth pass: The level and anything it felt worth saving.
-	local level = require("src.game.level." .. data.level.source)(engine, map, gui)
-	level:load(self, data.level)
 
 	-- Remove the caches
 	self.entities = nil

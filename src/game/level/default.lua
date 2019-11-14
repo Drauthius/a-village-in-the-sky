@@ -41,18 +41,18 @@ local DefaultLevel = Level:subclass("DefaultLevel")
 function DefaultLevel:initialize(...)
 	Level.initialize(self, ...)
 
-	state:setTimeStopped(true)
-	self.gui:hideYearPanel(true)
-
-	state:setAvailableTerrain({ TileComponent.GRASS })
-	state:setAvailableBuildings({ BuildingComponent.DWELLING })
-	self.gui:changeAvailibility(InfoPanel.CONTENT.PLACE_TERRAIN)
-	self.gui:changeAvailibility(InfoPanel.CONTENT.PLACE_BUILDING)
-
 	self.objectives = {
 		{
 			text = "Place a grass tile",
 			pre = function()
+				state:setTimeStopped(true)
+
+				state:setAvailableTerrain({ TileComponent.GRASS })
+				state:setAvailableBuildings({ BuildingComponent.DWELLING })
+				self.gui:changeAvailibility(InfoPanel.CONTENT.PLACE_TERRAIN)
+				self.gui:changeAvailibility(InfoPanel.CONTENT.PLACE_BUILDING)
+
+				self.gui:hideYearPanel(true)
 				self.gui:setHint(InfoPanel.CONTENT.PLACE_TERRAIN, TileComponent.GRASS)
 			end,
 			cond = function()
@@ -67,6 +67,7 @@ function DefaultLevel:initialize(...)
 		{
 			text = "Place a dwelling",
 			pre = function()
+				self.gui:hideYearPanel(true)
 				self.gui:setHint(InfoPanel.CONTENT.PLACE_BUILDING, BuildingComponent.DWELLING)
 			end,
 			cond = function()
@@ -81,6 +82,7 @@ function DefaultLevel:initialize(...)
 		{
 			text = "Assign a villager to build the dwelling",
 			pre = function()
+				self.gui:hideYearPanel(true)
 				self.gui:setHint(function()
 					if state:getSelection() and state:getSelection():has("AdultComponent") then
 						for _,entity in pairs(self.engine:getEntitiesWithComponent("ConstructionComponent")) do
@@ -106,6 +108,7 @@ function DefaultLevel:initialize(...)
 		{
 			text = "Once done, assign a villager to the house",
 			pre = function()
+				self.gui:hideYearPanel(true)
 				self.gui:setHint(function()
 					local dwelling = select(2, next(self.engine:getEntitiesWithComponent("DwellingComponent")))
 					if not dwelling then
@@ -132,6 +135,17 @@ function DefaultLevel:initialize(...)
 		},
 
 		{
+			text = "Place man and woman in a house to get children",
+			cond = function()
+				for _,entity in pairs(self.engine:getEntitiesWithComponent("DwellingComponent")) do
+					local assignees = entity:get("AssignmentComponent"):getAssignees()
+					if #assignees >= 2 then
+						return assignees[1]:get("VillagerComponent"):getGender() ~= assignees[2]:get("VillagerComponent"):getGender()
+					end
+				end
+			end,
+		},
+		{ withPrevious = true,
 			text = "Build a blacksmith",
 			pre = function()
 				state:setAvailableBuildings({ BuildingComponent.DWELLING, BuildingComponent.BLACKSMITH })
@@ -328,15 +342,6 @@ function DefaultLevel:initial()
 				self.engine:addEntity(villager)
 			end
 		end
-	end
-end
-
-function DefaultLevel:load(...)
-	Level.load(self, ...)
-
-	if self.currentObjective and self.currentObjective > 4 then
-		state:setTimeStopped(false)
-		self.gui:showYearPanel(true)
 	end
 end
 
