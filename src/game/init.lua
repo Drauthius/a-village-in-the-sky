@@ -200,6 +200,7 @@ function Game:enter(_, profile)
 	self.eventManager:addListener("RunestoneUpgradingEvent", self, self.onRunestoneUpgrading)
 	self.eventManager:addListener("SelectionChangedEvent", self, self.onSelectionChanged)
 	self.eventManager:addListener("VillagerDeathEvent", self, self.onVillagerDeath)
+	self.eventManager:addListener("VillagerMaturedEvent", self, self.onVillagerMatured)
 
 	-- Events between the systems.
 	self.eventManager:addListener("AssignedEvent", villagerSystem, villagerSystem.assignedEvent)
@@ -1198,6 +1199,23 @@ function Game:onVillagerDeath(event)
 		occupation,
 		villager:getAge(),
 		_deathReasons[event:getReason()])))
+
+	self.gui:onEventsChanged()
+end
+
+function Game:onVillagerMatured(event)
+	local entity = event:getVillager()
+	local villager = entity:get("VillagerComponent")
+
+	local ti, tj
+	if villager:getHome() then
+		ti, tj = villager:getHome():get("PositionComponent"):getTile()
+	else
+		ti, tj = entity:get("PositionComponent"):getTile()
+	end
+
+	state:addEvent(GameEvent(GameEvent.TYPES.VILLAGER_MATURED, ti, tj, ("%s has become an adult."):format(
+		villager:getName())))
 
 	self.gui:onEventsChanged()
 end

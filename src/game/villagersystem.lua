@@ -29,6 +29,7 @@ local ResourceDepletedEvent = require "src.game.resourcedepletedevent"
 local UnassignedEvent = require "src.game.unassignedevent"
 local VillagerAgedEvent = require "src.game.villageragedevent"
 local VillagerDeathEvent = require "src.game.villagerdeathevent"
+local VillagerMaturedEvent = require "src.game.villagermaturedevent"
 
 local AdultComponent = require "src.game.adultcomponent"
 local BuildingComponent = require "src.game.buildingcomponent"
@@ -1142,6 +1143,8 @@ function VillagerSystem:buildingLeftEvent(event)
 
 		state:decreaseNumVillagers(villager:getGender(), false)
 		state:increaseNumVillagers(villager:getGender(), true)
+
+		self.eventManager:fireEvent(VillagerMaturedEvent(entity))
 	elseif villager:getAge() >= VillagerSystem.SENIORHOOD and not entity:has("SeniorComponent") then
 		entity:add(SeniorComponent())
 		-- Change the hair.

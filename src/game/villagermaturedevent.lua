@@ -19,39 +19,14 @@ along with A Village in the Sky. If not, see <http://www.gnu.org/licenses/>.
 
 local class = require "lib.middleclass"
 
-local GameEvent = class("GameEvent")
+local VillagerMaturedEvent = class("VillagerMaturedEvent")
 
-GameEvent.static.TYPES = {
-	BUILDING_COMPLETE = 0,
-	WOOD_DEPLETED = 1,
-	IRON_DEPLETED = 2,
-	CHILD_BORN = 3,
-	CHILD_DEATH = 4,
-	VILLAGER_DEATH = 5,
-	VILLAGER_MATURED = 6,
-	POPULATION = 7
-}
-
-function GameEvent:initialize(type, ti, tj, text)
-	self.type = type
-	self.ti, self.tj = ti, tj
-	self.text = text
+function VillagerMaturedEvent:initialize(villager)
+	self.villager = villager
 end
 
-function GameEvent:getType()
-	return self.type
+function VillagerMaturedEvent:getVillager()
+	return self.villager
 end
 
-function GameEvent:getText()
-	return self.text
-end
-
-function GameEvent:getTile()
-	return self.ti, self.tj
-end
-
-function GameEvent:__serialize()
-	return { self.type, self.ti, self.tj, self.text }
-end
-
-return GameEvent
+return VillagerMaturedEvent

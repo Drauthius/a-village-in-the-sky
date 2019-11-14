@@ -35,6 +35,7 @@ EventItem.static.TYPE_TO_ICON = {
 	[GameEvent.TYPES.CHILD_BORN] = "child",
 	[GameEvent.TYPES.CHILD_DEATH] = "death",
 	[GameEvent.TYPES.VILLAGER_DEATH] = "death",
+	[GameEvent.TYPES.VILLAGER_MATURED] = "occupied",
 	[GameEvent.TYPES.POPULATION] = "occupied"
 }
 
