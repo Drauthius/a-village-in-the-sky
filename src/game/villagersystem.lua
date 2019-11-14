@@ -1007,6 +1007,9 @@ function VillagerSystem:assignedEvent(event)
 			return
 		elseif workPlace then
 			self:unassignedEvent(UnassignedEvent(workPlace, entity))
+		else
+			-- Most likely a farmer not currently working a field.
+			self:_unassignWork(entity)
 		end
 
 		adult:setWorkArea(site:get("PositionComponent"):getTile())
