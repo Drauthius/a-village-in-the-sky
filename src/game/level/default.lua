@@ -356,9 +356,9 @@ function DefaultLevel:getResources(tileType)
 		end
 		return 0, 0
 	elseif tileType == TileComponent.FOREST then
-		return love.math.random(2, 6), 0
+		return love.math.random(3, 7), 0
 	elseif tileType == TileComponent.MOUNTAIN then
-		return math.max(0, love.math.random(5) - 4), love.math.random(2, 4)
+		return math.max(0, love.math.random(5) - 4), love.math.random(3, 5)
 	end
 end
 
