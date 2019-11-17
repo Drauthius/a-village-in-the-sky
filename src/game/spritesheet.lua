@@ -153,8 +153,8 @@ function SpriteSheet:getWoodPalette()
 		local woodPalette = self:getSprite("wood-palette")
 		self.woodPalette = {
 			outline = { woodPalette:getPixel(1, 0) },
-			bright = { woodPalette:getPixel(2, 0) },
-			medium = { woodPalette:getPixel(3, 0) },
+			bright = { woodPalette:getPixel(3, 0) },
+			medium = { woodPalette:getPixel(2, 0) },
 			dark = { woodPalette:getPixel(4, 0) }
 		}
 	end
