@@ -184,7 +184,9 @@ function BuildingSystem:buildingLeftEvent(event)
 	local villager = event:getVillager()
 	local building = entity:get("BuildingComponent")
 
-	self:_openDoor(entity)
+	if villager.alive then
+		self:_openDoor(entity)
+	end
 	self:_unassignChimney(entity, villager)
 
 	building:removeInside(villager)

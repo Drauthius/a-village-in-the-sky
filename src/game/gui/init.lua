@@ -193,7 +193,7 @@ function GUI:update(dt)
 			self._getVillagerPosition = self._getVillagerPosition or function(villager, out)
 				out.x, out.y = villager:get("GroundComponent"):getIsometricPosition()
 
-				if not villager:has("PositionComponent") then -- Inside something
+				if villager:get("VillagerComponent"):getInside() then -- Inside something
 					out.alwaysShow = true
 				end
 			end

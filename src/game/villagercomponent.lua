@@ -63,7 +63,7 @@ function VillagerComponent.static:save(cassette)
 		targetGrid = self.targetGrid and cassette:saveGrid(self.targetGrid) or nil,
 		targetRotation = self.targetRotation,
 		home = self.home and cassette:saveEntity(self.home) or nil,
-		isAtHome = self.isAtHome,
+		inside = self.inside and cassette:saveEntity(self.inside) or nil,
 		mother = self.mother and cassette:saveEntity(self.mother) or nil,
 		motherUnique = self.motherUnique,
 		father = self.father and cassette:saveEntity(self.father) or nil,
@@ -92,7 +92,7 @@ function VillagerComponent.static.load(cassette, data)
 	component.targetGrid = data.targetGrid and cassette:loadGrid(data.targetGrid) or nil
 	component.targetRotation = data.targetRotation
 	component.home = data.home and cassette:loadEntity(data.home) or nil
-	component.isAtHome = data.isAtHome
+	component.inside = data.inside and cassette:loadEntity(data.inside) or nil
 	component.mother = data.mother and cassette:loadEntity(data.mother) or nil
 	component.motherUnique = data.motherUnique
 	component.father = data.father and cassette:loadEntity(data.father) or nil
@@ -128,7 +128,7 @@ function VillagerComponent:initialize(stats, mother, father)
 	self.goal = VillagerComponent.GOALS.NONE
 	self.delay = 0.0
 	self.home = nil
-	self.isAtHome = false
+	self.inside = nil
 
 	self.targetEntity = nil
 	self.targetGrid = nil
@@ -263,11 +263,15 @@ function VillagerComponent:setHome(home)
 end
 
 function VillagerComponent:isHome()
-	return self.isAtHome
+	return self.home ~= nil and self.home == self.inside
 end
 
-function VillagerComponent:setIsHome(isAtHome)
-	self.isAtHome = isAtHome
+function VillagerComponent:getInside()
+	return self.inside
+end
+
+function VillagerComponent:setInside(building)
+	self.inside = building
 end
 
 function VillagerComponent:getTargetEntity()

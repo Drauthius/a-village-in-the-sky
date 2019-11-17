@@ -774,6 +774,8 @@ function VillagerSystem:_dropCarrying(entity, grid)
 end
 
 function VillagerSystem:_prepare(entity, okInside)
+	local villager = entity:get("VillagerComponent")
+
 	-- Remove any lingering timer.
 	if entity:has("TimerComponent") then
 		entity:remove("TimerComponent")
@@ -785,9 +787,9 @@ function VillagerSystem:_prepare(entity, okInside)
 	end
 
 	-- Ensure that the villager is outside.
-	if not okInside and entity:get("VillagerComponent"):isHome() then
-		-- Leave the house.
-		self.eventManager:fireEvent(BuildingLeftEvent(entity:get("VillagerComponent"):getHome(), entity))
+	if not okInside and villager:getInside() then
+		-- Leave the building.
+		self.eventManager:fireEvent(BuildingLeftEvent(villager:getInside(), entity))
 	end
 end
 
@@ -1126,15 +1128,19 @@ function VillagerSystem:buildingEnteredEvent(event)
 		entity:remove("PositionComponent")
 		entity:remove("InteractiveComponent")
 
-		if event:getBuilding():has("DwellingComponent") then
-			villager:setIsHome(true)
-		end
+		villager:setInside(event:getBuilding())
 	end
 end
 
 function VillagerSystem:buildingLeftEvent(event)
 	local entity = event:getVillager()
 	local building = event:getBuilding()
+
+	if not entity.alive then
+		-- This event is triggered when a dead villager physically leaves the building as well,
+		-- but in that case we shouldn't do anything else.
+		return
+	end
 
 	local entrance = building:get("EntranceComponent")
 	local entranceGrid = self.map:getGrid(entrance:getAbsoluteGridCoordinate(building))
@@ -1159,7 +1165,7 @@ function VillagerSystem:buildingLeftEvent(event)
 	-- The villager's direction should be away from the door.
 	villager:setDirection(((entrance:getEntranceGrid().rotation + love.math.random(-2, 2) * 45) + 360) % 360)
 
-	villager:setIsHome(false)
+	villager:setInside(nil)
 	villager:setGoal(VillagerComponent.GOALS.NONE)
 	entity:add(PositionComponent(entranceGrid, nil, building:get("PositionComponent"):getTile()))
 	entity:add(SpriteComponent()) -- XXX: Must be added after the position component.
@@ -1209,11 +1215,12 @@ function VillagerSystem:childbirthEndedEvent(event)
 	end
 
 	if event:wasIndoors() then
-		child:remove("SpriteComponent") -- Don't need that.
-		child:get("VillagerComponent"):setHome(villager:getHome())
-		child:get("VillagerComponent"):setIsHome(true)
-
 		local home = villager:getHome()
+
+		child:remove("SpriteComponent") -- Don't need that.
+		child:get("VillagerComponent"):setHome(home)
+		child:get("VillagerComponent"):setInside(home)
+
 		home:get("DwellingComponent"):addChild(child)
 		home:get("BuildingComponent"):addInside(child)
 
@@ -1248,31 +1255,27 @@ end
 function VillagerSystem:onRemoveEntity(entity)
 	local villager = entity:get("VillagerComponent")
 
+	entity.alive = false -- Set by the engine, but too late for our needs.
+
 	self:_stopAll(entity)
-	self:_prepare(entity, true)
+	self:_prepare(entity)
 	self:_dropCarrying(entity)
 
 	state:decreaseNumVillagers(villager:getGender(), entity:has("AdultComponent"))
 
 	-- Create a particle showing that a villager died.
 	local grid, ti, tj
-	if entity:has("PositionComponent") then
-		-- Villager is outside.
-		grid = entity:get("PositionComponent"):getGrid()
-		ti, tj = entity:get("PositionComponent"):getTile()
-	else
-		-- XXX: Here comes the guessing game.
-		local site
-		if villager:isHome() then
-			site = villager:getHome()
-		else
-			site = villager:getWorkPlace()
-		end
-
+	if villager:getInside() then
+		-- Create a sprite emanating from the building.
+		local site = villager:getInside()
 		local from, to = site:get("PositionComponent"):getFromGrid(), site:get("PositionComponent"):getToGrid()
 		grid = self.map:getGrid(from.gi + math.floor((to.gi - from.gi) / 2),
 		                        from.gj + math.floor((to.gj - from.gj) / 2))
 		ti, tj = site:get("PositionComponent"):getTile()
+	else
+		-- Villager is outside.
+		grid = entity:get("PositionComponent"):getGrid()
+		ti, tj = entity:get("PositionComponent"):getTile()
 	end
 	local particle = blueprint:createDeathParticle(entity)
 	particle:set(PositionComponent(grid, nil, ti, tj))

@@ -986,7 +986,7 @@ function Game:_removeBuilding(building)
 
 		if grid then
 			-- XXX: A bit too much logic here
-			villager:get("VillagerComponent"):setIsHome(false) -- Most likely
+			villager:get("VillagerComponent"):setInside(nil)
 			-- Place the villager on the grid.
 			villager:add(PositionComponent(grid, nil, self.map:gridToTileCoords(grid.gi, grid.gj)))
 			villager:get("GroundComponent"):setPosition(self.map:gridToGroundCoords(grid.gi + 0.5, grid.gj + 0.5))
