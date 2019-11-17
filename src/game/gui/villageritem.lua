@@ -22,6 +22,8 @@ local babel = require "lib.babel"
 local InfoPanelItem = require "src.game.gui.infopanelitem"
 
 local ScaledSprite = require "src.game.scaledsprite"
+local WorkComponent = require "src.game.workcomponent"
+local ProgressBar = require "src.game.gui.progressbar"
 
 local spriteSheet = require "src.game.spritesheet"
 
@@ -55,6 +57,10 @@ function VillagerItem:initialize(x, y, h, fontNormal, fontBold, entity)
 	self.fontNormal = fontNormal
 	self.fontBold = fontBold
 	self.entity = entity
+
+	self.strengthBar = ProgressBar(0, 0, 100, 10, spriteSheet:getSprite("headers", "strength-icon"))
+	self.craftsmanshipBar = ProgressBar(0, 0, 100, 10, spriteSheet:getSprite("headers", "craftsmanship-icon"))
+	self:setPosition(self.x, self.y)
 end
 
 function VillagerItem:drawOverride(offset)
@@ -121,6 +127,16 @@ function VillagerItem:drawOverride(offset)
 			if not adult then
 				break
 			end
+		elseif key == "Occupation" then
+			local icon = ScaledSprite:fromSprite(spriteSheet:getSprite("headers", adult:getOccupationName() .. "-icon"), 2)
+			spriteSheet:draw(icon, self.x + (self.sprite:getWidth() - icon:getWidth()) / 2 + offset + 2,
+			                 self.y + self.sprite:getHeight() + 4)
+		elseif key == "Strength" then
+			self.strengthBar:draw(villager[value](villager), 1.0, offset, oy + 4)
+			oy = oy + self.strengthBar.icon:getHeight() + 1
+		elseif key == "Craftsmanship" then
+			self.craftsmanshipBar:draw(villager[value](villager), 1.0, offset, oy + 4)
+			oy = oy + self.craftsmanshipBar.icon:getHeight() + 1
 		else
 			key = babel.translate(key) .. ":"
 			if adultComp then
@@ -129,7 +145,7 @@ function VillagerItem:drawOverride(offset)
 				value = villager[value](villager)
 			end
 			if type(value) == "number" then
-				value = string.format("%.2f", value)
+				value = string.format("%.1f", value)
 			end
 
 			love.graphics.setColor(spriteSheet:getOutlineColor())
@@ -145,6 +161,63 @@ function VillagerItem:drawOverride(offset)
 		end
 	end
 	love.graphics.setColor(1, 1, 1, 1)
+
+	local icons = {}
+	-- TODO: Some duplications from the RenderSystem:_drawHeader()
+	-- Homeless icon.
+	if not villager:getHome() then
+		table.insert(icons, (spriteSheet:getSprite("headers", "no-home-icon")))
+	end
+	if villager:getSleepiness() > require("src.game.villagersystem").SLEEP.SLEEPINESS_THRESHOLD then -- XXX
+		table.insert(icons, (spriteSheet:getSprite("headers", "sleepy-icon")))
+	end
+	if villager:getStarvation() > 0.0 then
+		table.insert(icons, (spriteSheet:getSprite("headers", "hungry-icon")))
+	end
+	-- Out-of-resources icon
+	if villager:getHome() and adult and not adult:getWorkArea() then
+		local occupation = adult:getOccupation()
+		if occupation == WorkComponent.WOODCUTTER then
+			table.insert(icons, (spriteSheet:getSprite("headers", "missing-woodcutter-icon")))
+		elseif occupation == WorkComponent.MINER then
+			table.insert(icons, (spriteSheet:getSprite("headers", "missing-miner-icon")))
+		end
+	end
+	-- Living with parents
+	if villager:getHome() and adult and not villager:getHome():get("AssignmentComponent"):isAssigned(self.entity) then
+		table.insert(icons, (spriteSheet:getSprite("headers", "living-with-parents-icon")))
+	end
+	-- Infertility
+	if adult and not self.entity:has("FertilityComponent") then
+		table.insert(icons, (spriteSheet:getSprite("headers", "infertility-icon")))
+	end
+
+	-- Scale up
+	for k,icon in ipairs(icons) do
+		icons[k] = ScaledSprite:fromSprite(icon, 2)
+	end
+
+	local numIcons = #icons
+	if numIcons > 0 then
+		local margin = -1
+		-- Assumes that each icon has the same width.
+		local iconWidth = numIcons * icons[1]:getWidth() + margin * (numIcons - 1)
+		sx = self.x + (self.w - iconWidth) / 2
+		sy = self.y + self.h - icons[1]:getHeight() - 2
+		for _,icon in ipairs(icons) do
+			spriteSheet:draw(icon, sx + offset, sy)
+			sx = sx + icon:getWidth() + margin
+		end
+	end
+end
+
+function VillagerItem:setPosition(x, y)
+	InfoPanelItem.setPosition(self, x, y)
+
+	self.strengthBar.x = self.x + self.w - self.strengthBar.w - 4
+	self.strengthBar.y = self.y
+	self.craftsmanshipBar.x = self.x + self.w - self.craftsmanshipBar.w - 4
+	self.craftsmanshipBar.y = self.y
 end
 
 function VillagerItem:select()

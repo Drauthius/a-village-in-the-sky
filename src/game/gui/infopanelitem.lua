@@ -103,6 +103,10 @@ function InfoPanelItem:draw(offset)
 	end
 end
 
+function InfoPanelItem:setPosition(x, y)
+	self.x, self.y = x, y
+end
+
 function InfoPanelItem:select()
 	self.selected = true
 end

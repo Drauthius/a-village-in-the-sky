@@ -387,7 +387,7 @@ function InfoPanel:setContent(type, refresh)
 	local mysteryOffset = 3 -- Probably something to do with the line thickness of items??
 	local x = self.contentBounds.x + mysteryOffset
 	for _,item in ipairs(content) do
-		item.x = x
+		item:setPosition(x, item.y)
 		x = x + item:getDimensions() + margin
 	end
 
