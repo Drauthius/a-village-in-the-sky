@@ -949,7 +949,7 @@ function VillagerSystem:assignedEvent(event)
 				if site:get("AssignmentComponent"):getNumAssignees() == 0 then
 					moveIn = true
 				else
-					local villagerLeft = site:get("AssignmentComponent"):getAssignee()[1]
+					local villagerLeft = site:get("AssignmentComponent"):getAssignees()[1]
 					if child:getMother() == villagerLeft or child:getFather() == villagerLeft then
 						-- Then, check if the new house is crowded (5+ children)
 						if site:get("DwellingComponent"):getNumBoys() + site:get("DwellingComponent"):getNumGirls() >= 5 then
