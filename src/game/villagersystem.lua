@@ -943,36 +943,39 @@ function VillagerSystem:assignedEvent(event)
 		-- Check if we there are any kids we need to bring with us.
 		-- Divide up the children randomly (cause why not).
 		for _,child in ipairs(villager:getChildren()) do
-			local moveIn = false
-			if oldHome then
-				-- First, check to see if there is a parent left in the old home.
-				if site:get("AssignmentComponent"):getNumAssignees() == 0 then
-					moveIn = true
-				else
-					local villagerLeft = site:get("AssignmentComponent"):getAssignees()[1]
-					if child:get("VillagerComponent"):getMother() == villagerLeft or
-					   child:get("VillagerComponent"):getFather() == villagerLeft then
-						-- Then, check if the new house is crowded (5+ children)
-						if site:get("DwellingComponent"):getNumBoys() + site:get("DwellingComponent"):getNumGirls() >= 5 then
-							moveIn = false
-						else
-							-- 50/50
-							moveIn = love.math.random() < 0.5
+			-- Don't move children that don't live with this parent.
+			if child:get("VillagerComponent"):getHome() == oldHome then
+				local moveIn = false
+				if oldHome then
+					-- First, check to see if there is a parent left in the old home.
+					if site:get("AssignmentComponent"):getNumAssignees() == 0 then
+						moveIn = true
+					else
+						local villagerLeft = site:get("AssignmentComponent"):getAssignees()[1]
+						if child:get("VillagerComponent"):getMother() == villagerLeft or
+						   child:get("VillagerComponent"):getFather() == villagerLeft then
+							-- Then, check if the new house is crowded (5+ children)
+							if site:get("DwellingComponent"):getNumBoys() + site:get("DwellingComponent"):getNumGirls() >= 5 then
+								moveIn = false
+							else
+								-- 50/50
+								moveIn = love.math.random() < 0.5
+							end
 						end
 					end
+
+					if moveIn then
+						oldHome:get("DwellingComponent"):removeChild(child)
+					end
+				else
+					-- Take the chance to actually LIVE.
+					moveIn = true
 				end
 
 				if moveIn then
-					oldHome:get("DwellingComponent"):removeChild(child)
+					child:get("VillagerComponent"):setHome(site)
+					site:get("DwellingComponent"):addChild(child)
 				end
-			else
-				-- Take the chance to actually LIVE.
-				moveIn = true
-			end
-
-			if moveIn then
-				child:get("VillagerComponent"):setHome(site)
-				site:get("DwellingComponent"):addChild(child)
 			end
 		end
 
