@@ -44,6 +44,7 @@ InfoPanel.static.panelWidth = 32 -- The width of each panel sprite.
 InfoPanel.static.scrollTime = 0.0030 -- Seconds per pixel??
 InfoPanel.static.scrollMove = 150
 InfoPanel.static.scrollEase = "in-out-sine"
+InfoPanel.static.scrollEaseCatchup = "out-sine"
 
 InfoPanel.static.CONTENT = {
 	PLACE_TERRAIN = 1,
@@ -120,12 +121,14 @@ function InfoPanel:initialize(engine, eventManager, width)
 		self.leftButton = Button(self.bounds.x, self.bounds.y, 0, 0, "info-panel-left", false)
 		self.leftButton:setAction(function()
 			local limit = 0
-			local target = math.min(limit, self.ox + InfoPanel.scrollMove)
+			local easing = InfoPanel.scrollEase
+			self.scrollTarget = math.min(limit, (self.scrollTarget or self.ox) + InfoPanel.scrollMove)
 			if self.scroll then
 				Timer.cancel(self.scroll)
+				easing = InfoPanel.scrollEaseCatchup
 			end
-			self.scroll = Timer.tween(InfoPanel.scrollTime * math.abs(target - self.ox),
-			                          self, {ox = target}, InfoPanel.scrollEase, function()
+			self.scroll = Timer.tween(InfoPanel.scrollTime * math.abs(self.scrollTarget - self.ox),
+			                          self, {ox = self.scrollTarget}, easing, function()
 				if math.ceil(self.ox) >= limit then
 					self.ox = limit
 					self.leftButton:setDisabled(true)
@@ -133,6 +136,7 @@ function InfoPanel:initialize(engine, eventManager, width)
 				end
 				self.rightButton:setDisabled(false)
 				self.rightButton:setPressed(false)
+				self.scrollTarget = nil
 			end)
 		end)
 
@@ -140,12 +144,14 @@ function InfoPanel:initialize(engine, eventManager, width)
 		self.rightButton:setScale(-1, 1) -- Flip
 		self.rightButton:setAction(function()
 			local limit = self.contentBounds.w - self.contentBounds.length
-			local target = math.max(limit, self.ox - InfoPanel.scrollMove)
+			self.scrollTarget = math.max(limit, (self.scrollTarget or self.ox) - InfoPanel.scrollMove)
+			local easing = InfoPanel.scrollEase
 			if self.scroll then
 				Timer.cancel(self.scroll)
+				easing = InfoPanel.scrollEaseCatchup
 			end
-			self.scroll = Timer.tween(InfoPanel.scrollTime * math.abs(target - self.ox),
-			                          self, {ox = target}, InfoPanel.scrollEase, function()
+			self.scroll = Timer.tween(InfoPanel.scrollTime * math.abs(self.scrollTarget - self.ox),
+			                          self, {ox = self.scrollTarget}, easing, function()
 				if math.floor(self.ox) <= limit then
 					self.ox = limit
 					self.rightButton:setDisabled(true)
@@ -153,6 +159,7 @@ function InfoPanel:initialize(engine, eventManager, width)
 				end
 				self.leftButton:setDisabled(false)
 				self.leftButton:setPressed(false)
+				self.scrollTarget = nil
 			end)
 		end)
 
