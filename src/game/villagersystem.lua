@@ -932,7 +932,7 @@ function VillagerSystem:assignedEvent(event)
 			-- Check whether the villager is living with their parents.
 			-- (This event is only sent if the villager was not previously assigned.)
 			if oldHome == site then
-				site:get("DwellingComponent"):removeChild(villager)
+				site:get("DwellingComponent"):removeChild(entity)
 			else
 				self:unassignedEvent(UnassignedEvent(oldHome, entity))
 			end
