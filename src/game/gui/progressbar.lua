@@ -31,7 +31,7 @@ function ProgressBar:initialize(x, y, w, h, icon)
 	self.oy = (icon:getHeight() - self.h) / 2
 end
 
-function ProgressBar:draw(progress, max, ox, oy)
+function ProgressBar:draw(progress, max, ox, oy, colorOverlay)
 	max = max or 1.0
 	ox, oy = ox or 0.0, oy or 0.0
 
@@ -52,7 +52,16 @@ function ProgressBar:draw(progress, max, ox, oy)
 	end
 
 	-- Draw the bar "progress"
-	love.graphics.setColor(spriteSheet:getWoodPalette().bright)
+	local progressColor = spriteSheet:getWoodPalette().bright
+	if colorOverlay then
+		progressColor = {
+			progressColor[1] * (colorOverlay[1] * 2),
+			progressColor[2] * (colorOverlay[2] * 2),
+			progressColor[3] * (colorOverlay[3] * 2),
+			1.0
+		}
+	end
+	love.graphics.setColor(progressColor)
 	love.graphics.rectangle("fill", self.x + ox, self.y + self.oy + oy, progress, self.h)
 
 	-- Draw the bar outline

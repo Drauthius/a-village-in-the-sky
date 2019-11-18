@@ -58,8 +58,12 @@ function VillagerItem:initialize(x, y, h, fontNormal, fontBold, entity)
 	self.fontBold = fontBold
 	self.entity = entity
 
-	self.strengthBar = ProgressBar(0, 0, 100, 10, spriteSheet:getSprite("headers", "strength-icon"))
-	self.craftsmanshipBar = ProgressBar(0, 0, 100, 10, spriteSheet:getSprite("headers", "craftsmanship-icon"))
+	self.bars = {
+		Hunger = ProgressBar(0, 0, 100, 10, spriteSheet:getSprite("headers", "hungry-icon")),
+		Sleepiness = ProgressBar(0, 0, 100, 10, spriteSheet:getSprite("headers", "sleepy-icon")),
+		Strength = ProgressBar(0, 0, 100, 10, spriteSheet:getSprite("headers", "strength-icon")),
+		Craftsmanship = ProgressBar(0, 0, 100, 10, spriteSheet:getSprite("headers", "craftsmanship-icon"))
+	}
 	self:setPosition(self.x, self.y)
 end
 
@@ -91,52 +95,23 @@ function VillagerItem:drawOverride(offset)
 	local adult = self.entity:has("AdultComponent") and self.entity:get("AdultComponent")
 	for _,details in ipairs(VillagerItem.DETAILS) do
 		local key, value, adultComp = details[1], details[2], details[3]
-		if key == "Hunger" or key == "Sleepiness" then
-			-- TODO: Experimental
-			local icon = key == "Sleepiness" and spriteSheet:getSprite("headers", "sleepy-icon") or
-			                                     spriteSheet:getSprite("headers", "hungry-icon")
-			local w = 100
-			local dh = -6
-			value = villager[value](villager)
-			local limit = math.floor(w * value)
-
-			local bx = sx + self.w - w - 4
-			local by = sy + oy - dh / 2
-
-			-- Draw the bar background
-			local background = spriteSheet:getWoodPalette().dark
-			love.graphics.setColor(background[1], background[2], background[3], 0.5)
-			love.graphics.rectangle("fill", bx, by, w, icon:getHeight() + dh)
-
-			-- Draw the bar "progress"
-			love.graphics.setColor(value, 1 - value, 0, 1)
-			love.graphics.rectangle("fill", bx, by, limit, icon:getHeight() + dh)
-
-			-- Draw the bar outline
-			love.graphics.setColor(spriteSheet:getWoodPalette().outline)
-			love.graphics.setLineWidth(1)
-			love.graphics.setLineStyle("rough")
-			love.graphics.rectangle("line", bx, by, w + 1, icon:getHeight() + dh + 1)
-
-			-- Draw the icon
-			love.graphics.setColor(1, 1, 1, 1)
-			spriteSheet:draw(icon, math.min(sx + self.w - icon:getWidth(), bx + limit - icon:getWidth() / 2), sy + oy)
-
-			oy = oy + icon:getHeight() + 1
-		elseif not key then
+		if not key then
 			if not adult then
 				break
 			end
+		elseif self.bars[key] then
+			value = villager[value](villager)
+			local color
+			if key == "Hunger" or key == "Sleepiness" then
+				color = { value, 1 - value, 0.2 }
+			end
+
+			self.bars[key]:draw(value, 1.0, offset, oy + 4, color)
+			oy = oy + self.bars[key].icon:getHeight() + 1
 		elseif key == "Occupation" then
 			local icon = ScaledSprite:fromSprite(spriteSheet:getSprite("headers", adult:getOccupationName() .. "-icon"), 2)
 			spriteSheet:draw(icon, self.x + (self.sprite:getWidth() - icon:getWidth()) / 2 + offset + 2,
 			                 self.y + self.sprite:getHeight() + 4)
-		elseif key == "Strength" then
-			self.strengthBar:draw(villager[value](villager), 1.0, offset, oy + 4)
-			oy = oy + self.strengthBar.icon:getHeight() + 1
-		elseif key == "Craftsmanship" then
-			self.craftsmanshipBar:draw(villager[value](villager), 1.0, offset, oy + 4)
-			oy = oy + self.craftsmanshipBar.icon:getHeight() + 1
 		else
 			key = babel.translate(key) .. ":"
 			if adultComp then
@@ -214,10 +189,10 @@ end
 function VillagerItem:setPosition(x, y)
 	InfoPanelItem.setPosition(self, x, y)
 
-	self.strengthBar.x = self.x + self.w - self.strengthBar.w - 4
-	self.strengthBar.y = self.y
-	self.craftsmanshipBar.x = self.x + self.w - self.craftsmanshipBar.w - 4
-	self.craftsmanshipBar.y = self.y
+	for _,bar in pairs(self.bars) do
+		bar.x = self.x + self.w - bar.w - 4
+		bar.y = self.y
+	end
 end
 
 function VillagerItem:select()

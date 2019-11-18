@@ -28,6 +28,8 @@ local ProgressBar = require "src.game.gui.progressbar"
 local BuildingComponent = require "src.game.buildingcomponent"
 local ConstructionComponent = require "src.game.constructioncomponent"
 local ResourceComponent = require "src.game.resourcecomponent"
+local ScaledSprite = require "src.game.scaledsprite"
+local WorkComponent = require "src.game.workcomponent"
 
 local BuildingRazedEvent = require "src.game.buildingrazedevent"
 local ConstructionCancelledEvent = require "src.game.constructioncancelledevent"
@@ -80,6 +82,18 @@ function DetailsPanel:initialize(eventManager, y)
 	                     self.y + background:getHeight() - buttonSprite:getHeight() - self.font:getHeight() - 6,
 	                     1, 5, "details-button", self.fontBold)
 	self.buttonState = DetailsPanel.BUTTON.HIDDEN
+
+	local pw, ph = self.w - 5, 12
+	self.bars = {
+		Hunger = ProgressBar(0, 0, pw, ph,
+			ScaledSprite:fromSprite(spriteSheet:getSprite("headers", "hungry-icon"), 2)),
+		Sleepiness = ProgressBar(0, 0, pw, ph,
+			ScaledSprite:fromSprite(spriteSheet:getSprite("headers", "sleepy-icon"), 2)),
+		Strength = ProgressBar(0, 0, pw, ph,
+			ScaledSprite:fromSprite(spriteSheet:getSprite("headers", "strength-icon"), 2)),
+		Craftsmanship = ProgressBar(0, 0, pw, ph,
+			ScaledSprite:fromSprite(spriteSheet:getSprite("headers", "craftsmanship-icon"), 2))
+	}
 end
 
 function DetailsPanel:update(dt)
@@ -121,6 +135,18 @@ function DetailsPanel:draw()
 				if not adult then
 					break
 				end
+			elseif self.bars[key] then
+				value = villager[value](villager)
+				local color
+				if key == "Hunger" or key == "Sleepiness" then
+					color = { value, 1 - value, 0.2 }
+				end
+
+				self.bars[key]:draw(value, 1.0, x, y, color)
+				y = y + self.bars[key].icon:getHeight() - 2
+			elseif key == "Occupation" then
+				local icon = ScaledSprite:fromSprite(spriteSheet:getSprite("headers", adult:getOccupationName() .. "-icon"), 3)
+				spriteSheet:draw(icon, x + w - icon:getWidth(), self.y + 13)
 			else
 				key = babel.translate(key) .. ": "
 				if adultComp then
@@ -137,6 +163,52 @@ function DetailsPanel:draw()
 				love.graphics.setFont(self.font)
 				love.graphics.print(value, x + self.fontBold:getWidth(key), y)
 				y = y + math.floor(self.fontBold:getHeight() * 1.25)
+			end
+		end
+
+		local icons = {}
+		-- TODO: Definite duplications from RenderSystem:_drawHeader() and VillagerItem.
+		-- Homeless icon.
+		if not villager:getHome() then
+			table.insert(icons, (spriteSheet:getSprite("headers", "no-home-icon")))
+		end
+		if villager:getSleepiness() > require("src.game.villagersystem").SLEEP.SLEEPINESS_THRESHOLD then -- XXX
+			table.insert(icons, (spriteSheet:getSprite("headers", "sleepy-icon")))
+		end
+		if villager:getStarvation() > 0.0 then
+			table.insert(icons, (spriteSheet:getSprite("headers", "hungry-icon")))
+		end
+		-- Out-of-resources icon
+		if villager:getHome() and adult and not adult:getWorkArea() then
+			local occupation = adult:getOccupation()
+			if occupation == WorkComponent.WOODCUTTER then
+				table.insert(icons, (spriteSheet:getSprite("headers", "missing-woodcutter-icon")))
+			elseif occupation == WorkComponent.MINER then
+				table.insert(icons, (spriteSheet:getSprite("headers", "missing-miner-icon")))
+			end
+		end
+		-- Living with parents
+		if villager:getHome() and adult and not villager:getHome():get("AssignmentComponent"):isAssigned(selection) then
+			table.insert(icons, (spriteSheet:getSprite("headers", "living-with-parents-icon")))
+		end
+		-- Infertility
+		if adult and not selection:has("FertilityComponent") then
+			table.insert(icons, (spriteSheet:getSprite("headers", "infertility-icon")))
+		end
+
+		-- Scale up
+		for k,icon in ipairs(icons) do
+			icons[k] = ScaledSprite:fromSprite(icon, 2)
+		end
+
+		local numIcons = #icons
+		if numIcons > 0 then
+			local margin = -1
+			local sx = self.x + self.w - 1
+			local sy = self.y + self.h - 1
+			for _,icon in ipairs(icons) do
+				spriteSheet:draw(icon, sx - icon:getWidth(), sy - icon:getHeight())
+				sx = sx - icon:getWidth() - margin
 			end
 		end
 	elseif selection:has("BuildingComponent") then
