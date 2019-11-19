@@ -109,7 +109,7 @@ VillagerSystem.static.ADULTHOOD = 14
 -- When the adults reach seniorhood, and work/walk slower.
 VillagerSystem.static.SENIORHOOD = 55
 -- The chance to die of old age, accumulated per year after reaching seniorhood.
-VillagerSystem.static.DEATH_CHANCE = 0.005
+VillagerSystem.static.DEATH_CHANCE = 0.0033
 
 -- How far away, in grids, to try and move when standing on a reserved grid.
 VillagerSystem.static.RESERVE_GRID_DISTANCE = 3

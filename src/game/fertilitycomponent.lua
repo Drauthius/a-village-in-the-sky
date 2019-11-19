@@ -37,7 +37,7 @@ end
 
 function FertilityComponent:initialize()
 	-- This is the chance to produce a baby per intercourse.
-	self.fertility = love.math.random(55, 95) / 100.0
+	self.fertility = love.math.random(85, 99) / 100.0
 end
 
 function FertilityComponent:getFertility()

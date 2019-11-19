@@ -29,17 +29,17 @@ local VillagerComponent = require "src.game.villagercomponent"
 local PregnancySystem = lovetoys.System:subclass("PregnancySystem")
 
 -- The age when fertility starts to decrease.
-PregnancySystem.static.FERTILITY_DECREASE_AGE = 35
+PregnancySystem.static.FERTILITY_DECREASE_AGE = 45
 -- The amount it decreases per year.
-PregnancySystem.static.FERTILITY_DECREASE_AMOUNT = 0.0333 -- Fertile up to 65 years of age.
+PregnancySystem.static.FERTILITY_DECREASE_AMOUNT = 0.025
 
 -- The age when menopause can affect a woman.
-PregnancySystem.static.MENOPAUSE_AGE = 40
+PregnancySystem.static.MENOPAUSE_AGE = 45
 -- The accumulated chance per year to reach menopause.
-PregnancySystem.static.MENOPAUSE_CHANCE = 0.05
+PregnancySystem.static.MENOPAUSE_CHANCE = 0.025
 
 -- Chance of intercourse when both adults are home.
-PregnancySystem.static.INTERCOURSE_CHANCE = 0.33
+PregnancySystem.static.INTERCOURSE_CHANCE = 0.95
 -- Decrease for each child.
 PregnancySystem.static.INTERCOURSE_CHILD_DECREASE = 0.05
 -- Maximum number of children.
@@ -53,9 +53,9 @@ PregnancySystem.static.PREGNANCY_START = 2 / 12
 PregnancySystem.static.PREGNANCY_FINAL = 1 / 12
 
 -- The chance that the mother dies during child birth.
-PregnancySystem.static.MORTALITY_MOTHER = 0.05
+PregnancySystem.static.MORTALITY_MOTHER = 0.0125
 -- The chance that the child dies during child birth.
-PregnancySystem.static.MORTALITY_CHILD = 0.15
+PregnancySystem.static.MORTALITY_CHILD = 0.025
 
 function PregnancySystem.requires()
 	return {"PregnancyComponent"}
