@@ -47,7 +47,7 @@ end
 
 function DwellingComponent:initialize()
 	self.food = 0
-	self.gettingFood = false
+	self.gettingFood = nil
 	self.numBoys = 0
 	self.numGirls = 0
 	self.children = {}
@@ -62,7 +62,7 @@ function DwellingComponent:getFood()
 	return self.food
 end
 
-function DwellingComponent:isGettingFood()
+function DwellingComponent:getGettingFood()
 	return self.gettingFood
 end
 

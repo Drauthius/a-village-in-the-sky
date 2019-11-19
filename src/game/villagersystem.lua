@@ -376,11 +376,11 @@ function VillagerSystem:_takeAction(entity)
 		end
 
 		-- Get some food if necessary and available.
-		if not dwelling:isGettingFood() and
+		if not dwelling:getGettingFood() and
 		   dwelling:getFood() <= VillagerSystem.FOOD.GATHER_WHEN_BELOW and
 		   state:getNumAvailableResources(ResourceComponent.BREAD) >= 1 and
 		   (starving or self:_isGettingFood(home, entity)) then
-			dwelling:setGettingFood(true)
+			dwelling:setGettingFood(entity)
 
 			self:_prepare(entity)
 			self:_goToBuilding(entity, home, WalkingComponent.INSTRUCTIONS.GET_FOOD)
@@ -795,8 +795,6 @@ end
 
 function VillagerSystem:_stopAll(entity)
 	local villager = entity:get("VillagerComponent")
-	local adult = entity:has("AdultComponent") and entity:get("AdultComponent")
-	local workPlace = adult and adult:getWorkPlace()
 
 	-- Unreserve any reserved resource.
 	local type, amount
@@ -812,6 +810,8 @@ function VillagerSystem:_stopAll(entity)
 
 	-- Unassign any resources that might have been reserved.
 	-- TODO: Maybe send it off as an event?
+	local adult = entity:has("AdultComponent") and entity:get("AdultComponent")
+	local workPlace = adult and adult:getWorkPlace()
 	if workPlace then
 		if workPlace:has("ConstructionComponent") then
 			workPlace:get("ConstructionComponent"):unreserveGrid(entity)
@@ -838,8 +838,9 @@ function VillagerSystem:_stopAll(entity)
 	end
 
 	-- Clear the getting-food flag.
-	if villager:getGoal() == VillagerComponent.GOALS.FOOD_DROPOFF then
-		villager:getHome():get("DwellingComponent"):setGettingFood(false)
+	local home = villager:getHome()
+	if home and home:get("DwellingComponent"):getGettingFood() == entity then
+		home:get("DwellingComponent"):setGettingFood(nil)
 	end
 
 	-- Clear any delay.
@@ -1389,7 +1390,7 @@ function VillagerSystem:targetReachedEvent(event)
 
 		assert(resource == ResourceComponent.BREAD, "Is this even edible?")
 		dwelling:setFood(dwelling:getFood() + amount)
-		dwelling:setGettingFood(false)
+		dwelling:setGettingFood(nil)
 
 		entity:remove("CarryingComponent")
 
