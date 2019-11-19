@@ -195,10 +195,10 @@ function MainMenu:draw()
 	x = x + self.offsetX * self.authorOffset
 	color = spriteSheet:getWoodPalette().dark
 	love.graphics.setColor(color[1], color[2], color[3], self.authorAlpha)
-	love.graphics.print("Created by @Drauthius", x, y)
+	love.graphics.print('Created by Albert "Drauthius" Diserholt', x, y)
 	color = spriteSheet:getWoodPalette().bright
 	love.graphics.setColor(color[1], color[2], color[3], self.authorAlpha)
-	love.graphics.print("Created by @Drauthius", x - 1, y - 1)
+	love.graphics.print('Created by Albert "Drauthius" Diserholt', x - 1, y - 1)
 
 	for _,button in ipairs(self.buttons) do
 		love.graphics.setColor(1, 1, 1, self.buttonAlpha)
@@ -247,7 +247,7 @@ function MainMenu:resize()
 	}
 	self.imagePosition = self.imagePosition or table.clone(self.originalPositions)
 	self.textPosition = { dw / 20, dh / 6 }
-	self.authorPosition = { dw - self.authorFont:getWidth("Created by @Drauthius  "),
+	self.authorPosition = { dw - self.authorFont:getWidth('Created by Albert "Drauthius" Diserholt  '),
 	                        dh - self.authorFont:getHeight() * 1.25 }
 	self.cloudPosition = { 0, 0 }
 
