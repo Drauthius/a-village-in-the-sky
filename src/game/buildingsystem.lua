@@ -263,18 +263,8 @@ end
 
 function BuildingSystem:_unassignChimney(entity, villager)
 	-- Check whether the child is living with a parent. In that case, they don't get a chimney.
-	if entity:has("DwellingComponent") then
-		local livingWithParents = true
-		for _,v in ipairs(entity:get("AssignmentComponent"):getAssignees()) do
-			if v == villager then
-				livingWithParents = false
-				break
-			end
-		end
-
-		if livingWithParents then
-			return
-		end
+	if entity:has("DwellingComponent") and entity:get("DwellingComponent"):isChild(villager) then
+		return
 	end
 
 	for _,chimney in ipairs(entity:get("BuildingComponent"):getChimneys()) do

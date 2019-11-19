@@ -1072,19 +1072,19 @@ function VillagerSystem:unassignedEvent(event)
 	}
 
 	if site:has("DwellingComponent") then
-		if entity:has("AdultComponent") and site:get("AssignmentComponent"):isAssigned(entity) then
-			site:get("AssignmentComponent"):unassign(entity)
-			site:get("DwellingComponent"):setRelated(false) -- Can't be related to yourself!
-		else
-			site:get("DwellingComponent"):removeChild(entity)
-		end
-
 		for _,goal in ipairs(self.homeRelatedGoals) do
 			if villager:getGoal() == goal then
 				self:_stopAll(entity)
 				self:_prepare(entity)
 				break
 			end
+		end
+
+		if entity:has("AdultComponent") and site:get("AssignmentComponent"):isAssigned(entity) then
+			site:get("AssignmentComponent"):unassign(entity)
+			site:get("DwellingComponent"):setRelated(false) -- Can't be related to yourself!
+		else
+			site:get("DwellingComponent"):removeChild(entity)
 		end
 
 		villager:setHome(nil)

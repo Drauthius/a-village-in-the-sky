@@ -100,6 +100,16 @@ function DwellingComponent:addChild(child)
 	end
 end
 
+function DwellingComponent:isChild(child)
+	for _,v in ipairs(self.children) do
+		if child == v then
+			return true
+		end
+	end
+
+	return false
+end
+
 function DwellingComponent:removeChild(child)
 	local found = false
 	for k,v in ipairs(self.children) do
