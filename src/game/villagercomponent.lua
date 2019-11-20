@@ -173,8 +173,24 @@ function VillagerComponent:getStrength()
 	return self.strength
 end
 
+function VillagerComponent:increaseStrength(str)
+	self.strength = math.min(1.0, self.strength + str)
+end
+
+function VillagerComponent:decreaseStrength(str)
+	self.strength = math.max(0.0, self.strength - str)
+end
+
 function VillagerComponent:getCraftsmanship()
 	return self.craftsmanship
+end
+
+function VillagerComponent:increaseCraftsmanship(craft)
+	self.craftsmanship = math.min(1.0, self.craftsmanship + craft)
+end
+
+function VillagerComponent:decreaseCraftsmanship(craft)
+	self.craftsmanship = math.max(0.0, self.craftsmanship - craft)
 end
 
 function VillagerComponent:getHunger()

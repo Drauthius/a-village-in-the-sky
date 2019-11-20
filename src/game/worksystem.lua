@@ -107,6 +107,7 @@ function WorkSystem:update(dt)
 				local increase = WorkSystem.COMPLETION.PRODUCING[workType] * durationModifier * state:getYearModifier() * dt
 
 				production:increaseCompletion(villagerEntity, increase)
+				villagerEntity:get("VillagerComponent"):increaseCraftsmanship(dt * 0.003)
 
 				local complete = production:isComplete(villagerEntity)
 				if not complete and workType == BuildingComponent.BAKERY then
@@ -152,6 +153,7 @@ function WorkSystem:workEvent(event)
 			committing = committing[workPlace:get("RunestoneComponent"):getLevel()]
 		end
 		construction:commitResources(committing * state:getYearModifier())
+		entity:get("VillagerComponent"):increaseCraftsmanship(0.003)
 
 		soundManager:playEffect("building", entity:get("PositionComponent"):getGrid())
 
@@ -182,6 +184,7 @@ function WorkSystem:workEvent(event)
 		       "Unhandled work done.")
 
 		work:increaseCompletion(WorkSystem.COMPLETION.RESOURCE * state:getYearModifier())
+		entity:get("VillagerComponent"):increaseStrength(0.003)
 
 		local particle
 		local position = workPlace:get("PositionComponent")

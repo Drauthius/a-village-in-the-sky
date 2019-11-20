@@ -223,10 +223,20 @@ function Blueprint:createVillager(mother, father, gender, age)
 	entity:add(SpriteComponent()) -- Filled in by the sprite system.
 	entity:add(AnimationComponent())
 
+	local strength, craftsmanship
+	if #parents > 0 then
+		strength = parents[love.math.random(1, #parents)]:get("VillagerComponent"):getStrength() +
+		           love.math.random(-15, 2) / 100
+		craftsmanship = parents[love.math.random(1, #parents)]:get("VillagerComponent"):getCraftsmanship() +
+		                love.math.random(-15, 2) / 100
+	end
+
 	entity:add(VillagerComponent({
 		hairy = love.math.random() < 0.5,
 		gender = gender,
-		age = age
+		age = age,
+		strength = strength,
+		craftsmanship = craftsmanship
 	}, mother, father))
 	if age >= 14 then -- XXX: Get value from some place.
 		entity:add(AdultComponent())

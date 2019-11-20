@@ -108,6 +108,8 @@ function FieldSystem:workEvent(event)
 
 	local field = workPlace:get("FieldComponent")
 	workPlace:get("WorkComponent"):increaseCompletion(FieldSystem.COMPLETION[1] * state:getYearModifier())
+	entity:get("VillagerComponent"):increaseStrength(0.003)
+
 	if workPlace:get("WorkComponent"):isComplete() then
 		local fieldState = field:getState()
 		if fieldState == FieldComponent.UNCULTIVATED then

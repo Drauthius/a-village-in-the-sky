@@ -149,6 +149,12 @@ function VillagerSystem:_update(entity, dt)
 			age = villager:getAge()
 		end
 
+		-- Decrease capabilities.
+		if entity:has("AdultComponent") then
+			villager:decreaseStrength(dt * (entity:has("SeniorComponent") and 0.0004 or 0.0002))
+			villager:decreaseCraftsmanship(dt * (entity:has("SeniorComponent") and 0.0004 or 0.0002))
+		end
+
 		-- Increase hunger if not eating (and not an infant).
 		if goal ~= VillagerComponent.GOALS.EATING and age >= VillagerSystem.CHILDHOOD then
 			local hunger = math.min(1.0, villager:getHunger() + VillagerSystem.FOOD.HUNGER_PER_SECOND * dt)
