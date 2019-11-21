@@ -17,10 +17,16 @@ You should have received a copy of the GNU General Public License
 along with A Village in the Sky. If not, see <http://www.gnu.org/licenses/>.
 --]]
 
+local UPDATE_TIME = 1 / 60
+
 -- Set the default filter before loading anything.
 love.graphics.setDefaultFilter("linear", "nearest")
 
+local FPSGraph = require "lib.FPSGraph"
+
 local screen = require "src.screen"
+local fpsGraph
+local memGraph
 
 function love.load()
 	local babel = require "lib.babel"
@@ -30,6 +36,9 @@ function love.load()
 	GameState.registerEvents()
 
 	screen:setUp()
+
+	fpsGraph = FPSGraph.createGraph(0, 0, 150, 60)
+	memGraph = FPSGraph.createGraph(0, 60, 150, 60)
 
 	babel.init({
 		locales_folders = { "asset/i18n" }
@@ -45,6 +54,69 @@ end
 function love.handlers.fastforward(fastforward)
 	-- Hump will expect this function to be called.
 	love.fastforward(fastforward)
+end
+
+--
+-- Fixed-update game loop
+--
+
+function love.run()
+	if love.load then love.load(love.arg.parseGameArguments(arg), arg) end
+
+	assert(love.timer, "Missing timer functionality")
+
+	-- We don't want the first frame's dt to include time taken by love.load.
+	if love.timer then love.timer.step() end
+
+	local dt = 0
+	local interpolation = 0
+
+	-- Main loop time.
+	return function()
+		-- Process events.
+		if love.event then
+			love.event.pump()
+			for name, a,b,c,d,e,f in love.event.poll() do
+				if name == "quit" then
+					if not love.quit or not love.quit() then
+						return a or 0
+					end
+				end
+				love.handlers[name](a,b,c,d,e,f)
+			end
+		end
+
+		-- Update dt, as we'll be passing it to update
+		if love.timer then dt = love.timer.step() end
+
+		FPSGraph.updateFPS(fpsGraph, dt)
+		FPSGraph.updateMem(memGraph, dt)
+
+		interpolation = interpolation + dt
+
+		-- Call update and draw
+		while interpolation >= UPDATE_TIME do
+			if love.update then love.update(UPDATE_TIME) end
+			interpolation = interpolation - UPDATE_TIME
+		end
+
+		if love.graphics and love.graphics.isActive() then
+			love.graphics.origin()
+			love.graphics.clear(love.graphics.getBackgroundColor())
+
+			if love.draw then love.draw() end
+
+			if true then
+				love.graphics.setLineWidth(1)
+				FPSGraph.drawGraphs({ fpsGraph, memGraph })
+			end
+
+			love.graphics.present()
+		end
+
+		--if love.timer then love.timer.sleep(0.001) end
+		collectgarbage("step")
+	end
 end
 
 --

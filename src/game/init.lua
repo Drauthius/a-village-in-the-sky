@@ -19,7 +19,6 @@ along with A Village in the Sky. If not, see <http://www.gnu.org/licenses/>.
 
 local Camera = require "lib.hump.camera"
 local Timer = require "lib.hump.timer"
-local fpsGraph = require "lib.FPSGraph"
 local lovetoys = require "lib.lovetoys.lovetoys"
 local table = require "lib.table"
 local math = require "lib.math"
@@ -277,8 +276,6 @@ function Game:enter(_, profile)
 	self:_updateListenerPosition()
 
 	self.debug = false
-	self.fpsGraph = fpsGraph.createGraph()
-	self.memGraph = fpsGraph.createGraph(0, 30)
 end
 
 function Game:leave()
@@ -291,9 +288,6 @@ function Game:quit()
 end
 
 function Game:update(dt)
-	fpsGraph.updateFPS(self.fpsGraph, dt)
-	fpsGraph.updateMem(self.memGraph, dt)
-
 	local mx, my = screen:getCoordinate(love.mouse.getPosition())
 	local dx, dy, dw, dh = screen:getDrawArea()
 	state:setMousePosition(self.camera:worldCoords(mx, my, dx, dy, dw, dh))
@@ -386,11 +380,6 @@ function Game:draw()
 	self.gui:draw(self.camera)
 	if not hint:isInWorld() then
 		hint:draw()
-	end
-
-	if self.debug then
-		love.graphics.setLineWidth(1)
-		fpsGraph.drawGraphs({ self.fpsGraph, self.memGraph })
 	end
 end
 
