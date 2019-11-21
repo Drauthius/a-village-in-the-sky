@@ -256,7 +256,8 @@ function Game:enter(_, profile)
 		self.level:initial()
 		self:_save()
 	end
-	Timer.every(Game.AUTOSAVE_TIME, function()
+	self.saveGameTimer = Timer.new()
+	self.saveGameHandle = self.saveGameTimer:every(Game.AUTOSAVE_TIME, function()
 		self:_save()
 	end)
 
@@ -316,6 +317,8 @@ function Game:update(dt)
 		1, 1, 1,
 		math.max(0.0, math.min(0.9, (Game.FOREGROUND_VISIBLE_ZOOM - self.camera.scale) / Game.FOREGROUND_VISIBLE_FACTOR))
 	})
+
+	self.saveGameTimer:update(dt)
 
 	-- Game behaves weirdly when the speed is too great, so better to loop the relevant parts.
 	local loops = self.speed
@@ -572,9 +575,10 @@ function Game:resize()
 end
 
 function Game:focus(focused)
-	-- Focus is lost on mobile when switching out of the app.
-	if not focused then
-		self:_save()
+	local os = love.system.getOS()
+	-- Focus is lost on mobile when switching out of the app, so best to save now.
+	if not focused and (os == "Android" or os == "iOS") then
+		self.saveGameTimer:update(self.saveGameHandle.limit - self.saveGameHandle.time)
 	end
 end
 
