@@ -138,7 +138,7 @@ function BuildingSystem:buildingEnteredEvent(event)
 
 		-- Propeller!
 		local propeller = building:getChildEntities()[1]
-		if building:getType() == BuildingComponent.BAKERY and not propeller:has("AnimationComponent") then
+		if building:getType() == BuildingComponent.BAKERY and #building:getInside() == 1 then
 			local animation = AnimationComponent()
 			local frames = {}
 			for i=0,2 do
@@ -174,7 +174,7 @@ function BuildingSystem:buildingEnteredEvent(event)
 				ent:remove("TimerComponent")
 			end))
 
-			propeller:add(animation)
+			propeller:set(animation)
 		end
 	end
 end
