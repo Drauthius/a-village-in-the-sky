@@ -96,7 +96,6 @@ function Map:addTile(type, ti, tj)
 			self.grid[gi][gj] = {
 				gi = gi,
 				gj = gj,
-				tile = self.tile[ti][tj],
 				collision = Map.COLL_NONE,
 				occupied = nil,
 				owner = nil

@@ -29,6 +29,7 @@ local Cassette = class("Cassette")
 
 function Cassette:initialize(index)
 	self.index = index
+	self.debug = true
 end
 
 function Cassette:isValid()
@@ -36,7 +37,8 @@ function Cassette:isValid()
 end
 
 function Cassette:save(engine, map, level)
-	--local start = os.time()
+	-- The time it takes to save shouldn't influence the frame rate.
+	love.timer.step()
 
 	local data = {
 		version = 1,
@@ -72,7 +74,6 @@ function Cassette:save(engine, map, level)
 			data.map.grid[gi][gj] = {
 				gi = grid.gi,
 				gj = grid.gj,
-				tile = grid.tile,
 				collision = grid.collision,
 				occupied = grid.occupied and self:saveEntity(grid.occupied) or nil,
 				owner = grid.owner and self:saveEntity(grid.owner) or nil
@@ -124,11 +125,19 @@ function Cassette:save(engine, map, level)
 	-- Sixth pass: Anything the level feels worth saving.
 	data.level = level:save(self)
 
-	love.filesystem.write("save"..self.index, serpent.dump(data))
-	--print("Saving done. Took "..os.difftime(os.time(), start).." seconds.")
+	local dump = serpent.dump(data)
+	love.filesystem.write("save"..self.index, dump)
+	-- Don't include the time it took to save in the next frame update.
+	local dt = love.timer.step()
+	if self.debug then
+		print("Saving done. Took "..dt.." seconds and "..#dump.." bytes.")
+	end
 end
 
 function Cassette:load(engine, map, gui)
+	-- The time it takes to load shouldn't influence the frame rate.
+	love.timer.step()
+
 	local data
 	local content, err = love.filesystem.read("save"..self.index)
 	if not content then
@@ -169,7 +178,6 @@ function Cassette:load(engine, map, gui)
 			map.grid[gi][gj] = {
 				gi = grid.gi,
 				gj = grid.gj,
-				tile = grid.tile,
 				collision = grid.collision,
 				occupied = grid.occupied and self:loadEntity(grid.occupied) or nil,
 				owner = grid.owner and self:loadEntity(grid.owner) or nil
@@ -218,6 +226,11 @@ function Cassette:load(engine, map, gui)
 	-- Remove the caches
 	self.entities = nil
 	self.map = nil
+
+	local dt = love.timer.step()
+	if self.debug then
+		print("Loading done. Took "..dt.." seconds for "..#content.." bytes.")
+	end
 
 	return level
 end
