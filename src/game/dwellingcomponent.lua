@@ -24,7 +24,7 @@ local DwellingComponent = class("DwellingComponent")
 function DwellingComponent.static:save(cassette)
 	return {
 		food = self.food,
-		gettingFood = self.gettingFood,
+		gettingFood = self.gettingFood and cassette:saveEntity(self.gettingFood),
 		numBoys = self.numBoys,
 		numGirls = self.numGirls,
 		children = cassette:saveEntityList(self.children),
@@ -36,7 +36,7 @@ function DwellingComponent.static.load(cassette, data)
 	local component = DwellingComponent()
 
 	component.food = data.food
-	component.gettingFood = data.gettingFood
+	component.gettingFood = data.gettingFood and cassette:loadEntity(data.gettingFood) or nil
 	component.numBoys = data.numBoys
 	component.numGirls = data.numGirls
 	component.children = cassette:loadEntityList(data.children)
