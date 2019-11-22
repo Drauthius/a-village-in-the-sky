@@ -23,16 +23,15 @@ local UPDATE_TIME = 1 / 60
 love.graphics.setDefaultFilter("linear", "nearest")
 
 local FPSGraph = require "lib.FPSGraph"
+local babel = require "lib.babel"
+local GameState = require "lib.hump.gamestate"
+local MainMenu = require "src.mainmenu"
 
 local screen = require "src.screen"
 local fpsGraph
 local memGraph
 
 function love.load()
-	local babel = require "lib.babel"
-	local GameState = require "lib.hump.gamestate"
-	local MainMenu = require "src.mainmenu"
-
 	GameState.registerEvents()
 
 	screen:setUp()
@@ -49,6 +48,13 @@ end
 
 function love.resize(width, height)
 	screen:resize(width, height)
+end
+
+function love.keyreleased(key, scancode)
+	if scancode == "f" then
+		screen:toggleFullscreen()
+		GameState.current():resize(screen:getDrawDimensions())
+	end
 end
 
 function love.handlers.fastforward(fastforward)

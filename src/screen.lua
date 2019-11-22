@@ -93,4 +93,9 @@ function screen:getDrawDimensions()
 	return love.window.fromPixels(self.canvas:getDimensions())
 end
 
+function screen:toggleFullscreen()
+	screen.fullscreen = not screen.fullscreen
+	self:setUp()
+end
+
 return screen
