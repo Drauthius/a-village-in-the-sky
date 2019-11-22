@@ -486,24 +486,6 @@ function RenderSystem:_drawHeader(entity)
 				sx = sx + icon:getWidth() + ox
 			end
 		end
-
-		--[[
-		local header = spriteSheet:getSprite("headers", "person-header")
-		local x, y = sprite:getDrawPosition()
-		x = x - 5
-		if entity:has("AdultComponent") then
-			y = y - 10
-		else
-			y = y - 8
-		end
-		--self.font = love.graphics.newFont("asset/font/Norse-Bold.otf", 16)
-		local font = love.graphics.newFont("asset/font/Norse.otf", 14)
-		font:setFilter("linear", "linear", 1)
-		--print(font:getFilter())
-		love.graphics.setFont(font)
-		spriteSheet:draw(header, x, y)
-		love.graphics.print("Lars Larsson", x, y)
-		--]]
 	elseif entity:has("DwellingComponent") then
 		local dwelling = entity:get("DwellingComponent")
 

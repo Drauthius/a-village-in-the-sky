@@ -175,9 +175,9 @@ function WalkingSystem:_walkTheWalk(entity, dt)
 
 			local wait, delay = self:_shouldWait(entity, nextGrid)
 			if not wait then
-				print(entity, "Recalculating ("..retries.."/"..WalkingSystem.MAX_RETRIES..")")
+				--print(entity, "Recalculating ("..retries.."/"..WalkingSystem.MAX_RETRIES..")")
 				if not next(path) then
-					print(entity, "Next is target")
+					--print(entity, "Next is target")
 					-- The next grid is our destination.
 					wait, delay = true, _rand(WalkingSystem.WAIT_GRID_DELAY)
 				else
@@ -203,7 +203,7 @@ function WalkingSystem:_walkTheWalk(entity, dt)
 			end
 
 			if wait then
-				print(entity, "Waiting "..delay.."s ("..retries.."/"..WalkingSystem.MAX_RETRIES..")")
+				--print(entity, "Waiting "..delay.."s ("..retries.."/"..WalkingSystem.MAX_RETRIES..")")
 				walking:setDelay((assert(delay)))
 				-- Put back the next grid into the path, so that the same thing can be retried later on!
 				table.insert(path, nextGrid)
@@ -585,7 +585,7 @@ function WalkingSystem:_shouldWait(entity, nextGrid)
 	local blocker = self.map:getOccupyingVillager(nextGrid)
 	if not blocker or not blocker:has("VillagerComponent") then
 		-- Blocked by a non-villager. Recalculate a new path.
-		print(entity, "Blocked by non-villager")
+		--print(entity, "Blocked by non-villager")
 		return false
 	end
 
@@ -595,9 +595,9 @@ function WalkingSystem:_shouldWait(entity, nextGrid)
 	if blockingGoal == VillagerComponent.GOALS.NONE and not blocker:has("WalkingComponent") then
 		-- Blocked by an idle/wandering villager. If so, randomize whether we try to get a new path or send
 		-- them away to another grid that is preferably not in our way.
-		print(entity, "Blocked by idle villager")
+		--print(entity, "Blocked by idle villager")
 		if love.math.random() < WalkingSystem.RAND.PUSH_CHANCE then
-			print(entity, "Push")
+			--print(entity, "Push")
 			blockingVillager:setGoal(VillagerComponent.GOALS.MOVING)
 
 			-- Three levels of priority for which grids to go to.
@@ -656,10 +656,10 @@ function WalkingSystem:_shouldWait(entity, nextGrid)
 		end
 	elseif blocker:has("WorkingComponent") and blocker:get("WorkingComponent"):getWorking() then
 		-- Villager is extremely focused and busy.
-		print(entity, "Blocked by busy villager")
+		--print(entity, "Blocked by busy villager")
 		return false
 	elseif blockingGoal == VillagerComponent.GOALS.MOVING then
-		print(entity, "Blocked by moving villager")
+		--print(entity, "Blocked by moving villager")
 		-- Villager is already moving away, probably. Wait a bit, probably.
 		if love.math.random() < WalkingSystem.RAND.WAIT_MOVING_CHANCE then
 			return true, _rand(WalkingSystem.WAIT_MOVE_DELAY)
@@ -667,7 +667,7 @@ function WalkingSystem:_shouldWait(entity, nextGrid)
 			return false
 		end
 	else
-		print(entity, "Blocked by temporarily busy villager")
+		--print(entity, "Blocked by temporarily busy villager")
 		-- Villager is probably preoccupied with something temporary. Randomize whether we try to get a new
 		-- path or wait for them to move.
 		if love.math.random() < WalkingSystem.RAND.WAIT_BUSY_CHANCE then

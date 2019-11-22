@@ -414,7 +414,6 @@ function Game:keyreleased(key, scancode)
 	elseif scancode == "5" then
 		self.speed = 50
 	elseif scancode == "s" then
-		print("Saving game...")
 		self:_save()
 	end
 end
@@ -591,8 +590,6 @@ end
 --
 
 function Game:_handleClick(x, y)
-	--print(self.map:worldToGridCoords(x, y))
-
 	local clicked, clickedIndex = nil, 0
 	for _,entity in pairs(self.engine:getEntitiesWithComponent("InteractiveComponent")) do
 		local index = assert(entity:get("SpriteComponent"):getDrawIndex(),
@@ -713,8 +710,6 @@ function Game:_placeTile(placing)
 	self.map:addTile(placing:get("TileComponent"):getType(), ti, tj)
 
 	local trees, iron = self.level:getResources(placing:get("TileComponent"):getType())
-
-	--print("Will spawn "..tostring(trees).." trees and "..tostring(iron).." iron")
 
 	local sgi, sgj = ti * self.map.gridsPerTile, tj * self.map.gridsPerTile
 	local egi, egj = sgi + self.map.gridsPerTile, sgj + self.map.gridsPerTile
@@ -1034,7 +1029,6 @@ end
 --
 
 function Game:childbirthStartedEvent(event)
-	print("Childbirth started")
 end
 
 function Game:childbirthEndedEvent(event)

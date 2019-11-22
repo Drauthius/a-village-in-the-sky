@@ -126,7 +126,7 @@ function SoundManager:playEffect(effect, gi, gj)
 
 	local source = self:_getFreeSource()
 	if not source then
-		print("Sound effect '"..tostring(effect).."' dropped.")
+		--print("Sound effect '"..tostring(effect).."' dropped.")
 		return
 	end
 

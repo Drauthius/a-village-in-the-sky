@@ -320,7 +320,6 @@ function VillagerSystem:_takeAction(entity)
 	-- Check for breakfast.
 	if villager:isHome() and villager:getHunger() >= VillagerSystem.FOOD.BREAKFAST_WHEN_ABOVE then
 		if self:_eat(entity) then
-			print(entity, "is getting breakfast")
 			return
 		end
 	end
@@ -397,7 +396,6 @@ function VillagerSystem:_takeAction(entity)
 		-- Eat if necessary and possible.
 		if villager:getHunger() >= VillagerSystem.FOOD.EAT_WHEN_ABOVE and
 		   dwelling:getFood() >= 0.5 then -- TODO: Move the check?
-			print(entity, "is hungry")
 			self:_prepare(entity, true)
 
 			if villager:isHome() then
@@ -1460,8 +1458,6 @@ function VillagerSystem:targetUnreachableEvent(event)
 		return
 	end
 
-	print(entity, "Unreachable!")
-
 	-- Start by stopping everything
 	self:_stopAll(entity)
 
@@ -1474,7 +1470,6 @@ function VillagerSystem:villagerAgedEvent(event)
 	local villager = entity:get("VillagerComponent")
 	local ageDiff = villager:getAge() - VillagerSystem.SENIORHOOD
 
-	--print(villager:getAge(), ageDiff * VillagerSystem.DEATH_CHANCE)
 	if ageDiff > 0 and
 	   love.math.random() < ageDiff * VillagerSystem.DEATH_CHANCE then
 		self.eventManager:fireEvent(VillagerDeathEvent(entity, VillagerDeathEvent.REASONS.AGE))
