@@ -58,8 +58,7 @@ function love.keyreleased(key, scancode)
 end
 
 function love.handlers.fastforward(fastforward)
-	-- Hump will expect this function to be called.
-	love.fastforward(fastforward)
+	GameState.current():fastforward(fastforward)
 end
 
 --
