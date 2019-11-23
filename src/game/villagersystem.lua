@@ -1269,30 +1269,38 @@ function VillagerSystem:onRemoveEntity(entity)
 
 	entity.alive = false -- Set by the engine, but too late for our needs.
 
-	self:_stopAll(entity)
-	self:_prepare(entity)
-	self:_dropCarrying(entity)
-
-	state:decreaseNumVillagers(villager:getGender(), entity:has("AdultComponent"))
-
 	-- Create a particle showing that a villager died.
-	local grid, ti, tj
+	local particle = blueprint:createDeathParticle(entity)
+	local sprite = particle:get("SpriteComponent")
+	local grid
 	if villager:getInside() then
 		-- Create a sprite emanating from the building.
 		local site = villager:getInside()
 		local from, to = site:get("PositionComponent"):getFromGrid(), site:get("PositionComponent"):getToGrid()
 		grid = self.map:getGrid(from.gi + math.floor((to.gi - from.gi) / 2),
 		                        from.gj + math.floor((to.gj - from.gj) / 2))
-		ti, tj = site:get("PositionComponent"):getTile()
+		local ti, tj = site:get("PositionComponent"):getTile()
+
+		particle:set(PositionComponent(grid, nil, ti, tj))
+
+		-- Make sure the sprite appears from the ground, not under it.
+		local dx, dy = self.map:gridToWorldCoords(grid.gi, grid.gj)
+		sprite:setDrawPosition(dx + sprite:getSprite():getWidth() / 2, dy - sprite:getSprite():getHeight() / 2)
 	else
 		-- Villager is outside.
 		grid = entity:get("PositionComponent"):getGrid()
-		ti, tj = entity:get("PositionComponent"):getTile()
+		particle:set(PositionComponent(grid, nil, entity:get("PositionComponent"):getTile()))
+
+		local dx, dy = entity:get("SpriteComponent"):getDrawPosition()
+		sprite:setDrawPosition(dx + sprite:getSprite():getWidth() / 2, dy + sprite:getSprite():getHeight() / 2)
 	end
-	local particle = blueprint:createDeathParticle(entity)
-	particle:set(PositionComponent(grid, nil, ti, tj))
-	particle:get("SpriteComponent"):setDrawPosition(self.map:gridToWorldCoords(grid.gi, grid.gj))
 	self.engine:addEntity(particle)
+
+	self:_stopAll(entity)
+	self:_prepare(entity)
+	self:_dropCarrying(entity)
+
+	state:decreaseNumVillagers(villager:getGender(), entity:has("AdultComponent"))
 
 	soundManager:playEffect("villager_death", grid)
 

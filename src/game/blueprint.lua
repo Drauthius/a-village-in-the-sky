@@ -408,7 +408,7 @@ function Blueprint:createDeathParticle(villager)
 		emitterLifetime = 0.1,
 		linearAcceleration = { -0.5, -3, 0.5, -3 },
 		radialAcceleration = 10,
-		particleLifetime = 3
+		particleLifetime = 4
 	}
 
 	entity:add(ParticleComponent(def, 1, true))
