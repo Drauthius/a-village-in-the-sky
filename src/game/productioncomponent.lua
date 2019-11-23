@@ -54,10 +54,10 @@ function ProductionComponent.static:save(cassette)
 		reserved = {}
 	}
 
-	for villager,completion in ipairs(self.completion) do
+	for villager,completion in pairs(self.completion) do
 		table.insert(data.completion, { cassette:saveEntity(villager), completion })
 	end
-	for villager,reserved in ipairs(self.reserved) do
+	for villager,reserved in pairs(self.reserved) do
 		table.insert(data.reserved, { cassette:saveEntity(villager), reserved })
 	end
 
