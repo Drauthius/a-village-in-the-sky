@@ -41,8 +41,8 @@ local state = require "src.game.state"
 local InfoPanel = class("InfoPanel")
 
 InfoPanel.static.panelWidth = 32 -- The width of each panel sprite.
-InfoPanel.static.scrollTime = 0.0030 -- Seconds per pixel??
-InfoPanel.static.scrollMove = 150
+InfoPanel.static.scrollTime = 0.0020 -- Seconds per pixel??
+InfoPanel.static.scrollMove = 300
 InfoPanel.static.scrollEase = "in-out-sine"
 InfoPanel.static.scrollEaseCatchup = "out-sine"
 
