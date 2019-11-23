@@ -328,7 +328,8 @@ function DetailsPanel:draw()
 			if underConstruction then
 				ox = ox + self.font:getWidth(runestone:getLevel())
 				love.graphics.print(" >> "..tostring(runestone:getLevel() + 1), x + ox, y)
-			elseif ConstructionComponent.MATERIALS[BuildingComponent.RUNESTONE][runestone:getLevel() + 1] then
+			elseif ConstructionComponent.MATERIALS[BuildingComponent.RUNESTONE][runestone:getLevel() + 1] and
+			       not state:isTimeStopped() then
 				self.buttonState = DetailsPanel.BUTTON.UPGRADE
 			end
 		elseif self.buttonState == DetailsPanel.BUTTON.HIDDEN then
