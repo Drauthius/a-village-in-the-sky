@@ -280,6 +280,37 @@ function DetailsPanel:draw()
 				love.graphics.setFont(self.fontBold)
 				love.graphics.printf(babel.translate("Adults are related!"), x, y * 1.035, w, "center")
 			end
+		elseif selection:has("ProductionComponent") then
+			local production = selection:get("ProductionComponent")
+
+			-- Draw required input and expected output
+			local _, ox = self:_drawMaterialList(nil, production:getInput(), x, y)
+			love.graphics.setColor(spriteSheet:getOutlineColor())
+			love.graphics.print(" >>", x + ox, y)
+			ox = ox + self.font:getWidth(" >> ")
+			y = y + self:_drawMaterialList(nil, production:getOutput(), x + ox, y)
+
+			-- Show how far each worker has gotten.
+			local workers = selection:get("AssignmentComponent"):getAssignees()
+			local occupiedIcon = ScaledSprite:fromSprite(spriteSheet:getSprite("headers", "occupied-icon"), 2)
+			local vacantIcon = ScaledSprite:fromSprite(spriteSheet:getSprite("headers", "vacant-icon"), 2)
+			ox = occupiedIcon:getWidth() + self.font:getWidth(" ")
+			local progressBar = ProgressBar(x + ox,
+			                                math.floor(occupiedIcon:getHeight() / 4),
+			                                w - ox,
+			                                math.floor(occupiedIcon:getHeight() / 2))
+			for i=1,production:getMaxWorkers() do
+				local icon = workers[i] and occupiedIcon or vacantIcon
+				love.graphics.setColor(1, 1, 1, 1)
+				spriteSheet:draw(icon, x, y)
+				progressBar:setIcon(workers[i] and
+				                    spriteSheet:getSprite("headers", workers[i]:get("AdultComponent"):getOccupationName().."-icon")
+				                    or nil)
+				progressBar:draw(production:getCompletion(workers[i]) / 100.0, 1.0, 0, y)
+				y = y + icon:getHeight() - 5
+			end
+		elseif selection:has("FieldEnclosureComponent") then
+			y = y + self:_drawMaterialList("Yield per plot", { [ResourceComponent.GRAIN] = 3 }, x, y)
 		end
 
 		if selection:has("RunestoneComponent") then
@@ -390,13 +421,17 @@ function DetailsPanel:handlePress(x, y, released)
 end
 
 function DetailsPanel:_drawMaterialList(label, materials, x, y)
-	label = babel.translate(label) .. ": "
+	local ox = 0
+	if label then
+		label = babel.translate(label) .. ": "
 
-	love.graphics.setFont(self.fontBold)
-	love.graphics.setColor(spriteSheet:getOutlineColor())
-	love.graphics.print(label, x, y)
+		love.graphics.setFont(self.fontBold)
+		love.graphics.setColor(spriteSheet:getOutlineColor())
+		love.graphics.print(label, x, y)
 
-	local ox = self.fontBold:getWidth(label)
+		ox = self.fontBold:getWidth(label)
+	end
+
 	local hasResources = false
 
 	love.graphics.setFont(self.font)
@@ -413,7 +448,7 @@ function DetailsPanel:_drawMaterialList(label, materials, x, y)
 
 			local icon = spriteSheet:getSprite("headers", ResourceComponent.RESOURCE_NAME[resource].."-icon")
 			love.graphics.setColor(1, 1, 1)
-			spriteSheet:draw(icon, x + ox, math.floor(y - (self.font:getHeight() - icon:getHeight()) / 2) + 1)
+			spriteSheet:draw(icon, x + ox, math.floor(y - (icon:getHeight() - self.font:getHeight()) / 2) + 1)
 			ox = ox + icon:getWidth() + spacing
 		end
 	end
@@ -422,7 +457,7 @@ function DetailsPanel:_drawMaterialList(label, materials, x, y)
 		love.graphics.print("--", x + ox, y)
 	end
 
-	return self.fontBold:getHeight()
+	return self.fontBold:getHeight(), ox
 end
 
 return DetailsPanel

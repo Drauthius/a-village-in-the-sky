@@ -26,9 +26,7 @@ local ProgressBar = class("ProgressBar")
 function ProgressBar:initialize(x, y, w, h, icon)
 	self.x, self.y = x, y
 	self.w, self.h = w, h
-	self.icon = icon
-
-	self.oy = (icon:getHeight() - self.h) / 2
+	self:setIcon(icon)
 end
 
 function ProgressBar:draw(progress, max, ox, oy, colorOverlay)
@@ -70,13 +68,21 @@ function ProgressBar:draw(progress, max, ox, oy, colorOverlay)
 	love.graphics.setLineStyle("rough")
 	love.graphics.rectangle("line", self.x + ox, self.y + self.oy + oy, self.w, self.h)
 
-	-- Draw the icon
-	love.graphics.setColor(1, 1, 1, 1)
-	spriteSheet:draw(self.icon,
-	                 ox + math.max(self.x - 4,
-	                          math.min(self.x + self.w - self.icon:getWidth() + 4,
-	                                   self.x + progress - self.icon:getWidth() / 2)),
-	                 self.y + oy)
+	if self.icon then
+		-- Draw the icon
+		love.graphics.setColor(1, 1, 1, 1)
+		spriteSheet:draw(self.icon,
+		                 ox + math.max(self.x - 4,
+		                          math.min(self.x + self.w - self.icon:getWidth() + 4,
+		                                   self.x + progress - self.icon:getWidth() / 2)),
+		                 self.y + oy)
+	end
+end
+
+function ProgressBar:setIcon(icon)
+	self.icon = icon
+
+	self.oy = icon and (icon:getHeight() - self.h) / 2 or 0.0
 end
 
 function ProgressBar:isWithin(x, y)

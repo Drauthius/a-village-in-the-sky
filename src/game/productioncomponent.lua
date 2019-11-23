@@ -122,6 +122,10 @@ function ProductionComponent:getNeededResources(villager, blacklist)
 	return resourcesNeeded[index][1], resourcesNeeded[index][2]
 end
 
+function ProductionComponent:getInput()
+	return ProductionComponent.SPECS[self.type].input
+end
+
 function ProductionComponent:getOutput()
 	return ProductionComponent.SPECS[self.type].output
 end
@@ -162,7 +166,7 @@ function ProductionComponent:getCompletion(villager)
 end
 
 function ProductionComponent:increaseCompletion(villager, value)
-	self.completion[villager] = (self.completion[villager] or 0.0) + value
+	self.completion[villager] = math.min(100.0, self:getCompletion(villager) + value)
 end
 
 function ProductionComponent:isComplete(villager)
