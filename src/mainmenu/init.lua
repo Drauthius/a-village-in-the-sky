@@ -308,7 +308,8 @@ function MainMenu:reevaluate()
 	self.buttons = {}
 	if self.latest then
 		table.insert(self.buttons, self.resumeButton)
-	elseif self.nextFreeProfile then
+	end
+	if self.nextFreeProfile then
 		table.insert(self.buttons, self.newGameButton)
 	end
 	if self.hasProfiles then
