@@ -155,7 +155,7 @@ function DetailsPanel:draw()
 					value = villager[value](villager)
 				end
 				if type(value) == "number" then
-					value = string.format("%.2f", value)
+					value = string.format("%d", value)
 				end
 				love.graphics.setFont(self.fontBold)
 				love.graphics.print(key, x, y)
