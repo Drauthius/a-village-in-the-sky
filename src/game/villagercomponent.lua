@@ -217,6 +217,10 @@ function VillagerComponent:setSleepiness(sleepiness)
 	self.sleepiness = sleepiness
 end
 
+function VillagerComponent:increaseSleepiness(sleepiness)
+	self.sleepiness = math.min(1.0, self.sleepiness + sleepiness)
+end
+
 function VillagerComponent:getDirection()
 	return self.direction
 end

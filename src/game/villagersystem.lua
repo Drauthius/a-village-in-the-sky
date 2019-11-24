@@ -1507,12 +1507,12 @@ function VillagerSystem:workCompletedEvent(event)
 		if completed then
 			-- Find all villagers and increase their sleepiness.
 			for _,assignee in ipairs(fieldEnclosure:get("AssignmentComponent"):getAssignees()) do
-				assignee:get("VillagerComponent"):setSleepiness(1.0)
+				assignee:get("VillagerComponent"):increaseSleepiness(0.5)
 			end
 		end
 		adult:setWorkPlace(nil)
 	elseif not event:isTemporary() then
-		villager:setSleepiness(1.0)
+		villager:increaseSleepiness(0.5)
 		adult:setWorkPlace(nil)
 
 		-- Clear the work area for the builder, since there isn't anything else to do there.
@@ -1520,7 +1520,7 @@ function VillagerSystem:workCompletedEvent(event)
 			adult:setWorkArea(nil)
 		end
 	elseif event:getWorkSite():has("ProductionComponent") then
-		villager:setSleepiness(1.0)
+		villager:increaseSleepiness(0.5)
 	end
 
 	if entity:has("WorkingComponent") then -- Might not be actively working on the site (e.g. resource already covered)
