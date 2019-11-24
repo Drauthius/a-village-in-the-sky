@@ -29,7 +29,6 @@ local BuildingComponent = require "src.game.buildingcomponent"
 local ConstructionComponent = require "src.game.constructioncomponent"
 local ResourceComponent = require "src.game.resourcecomponent"
 local ScaledSprite = require "src.game.scaledsprite"
-local WorkComponent = require "src.game.workcomponent"
 
 local BuildingRazedEvent = require "src.game.buildingrazedevent"
 local ConstructionCancelledEvent = require "src.game.constructioncancelledevent"
@@ -166,35 +165,7 @@ function DetailsPanel:draw()
 			end
 		end
 
-		local icons = {}
-		-- TODO: Definite duplications from RenderSystem:_drawHeader() and VillagerItem.
-		-- Homeless icon.
-		if not villager:getHome() then
-			table.insert(icons, (spriteSheet:getSprite("headers", "no-home-icon")))
-		end
-		if villager:getSleepiness() > require("src.game.villagersystem").SLEEP.SLEEPINESS_THRESHOLD then -- XXX
-			table.insert(icons, (spriteSheet:getSprite("headers", "sleepy-icon")))
-		end
-		if villager:getStarvation() > 0.0 then
-			table.insert(icons, (spriteSheet:getSprite("headers", "hungry-icon")))
-		end
-		-- Out-of-resources icon
-		if villager:getHome() and adult and not adult:getWorkArea() then
-			local occupation = adult:getOccupation()
-			if occupation == WorkComponent.WOODCUTTER then
-				table.insert(icons, (spriteSheet:getSprite("headers", "missing-woodcutter-icon")))
-			elseif occupation == WorkComponent.MINER then
-				table.insert(icons, (spriteSheet:getSprite("headers", "missing-miner-icon")))
-			end
-		end
-		-- Living with parents
-		if villager:getHome() and adult and not villager:getHome():get("AssignmentComponent"):isAssigned(selection) then
-			table.insert(icons, (spriteSheet:getSprite("headers", "living-with-parents-icon")))
-		end
-		-- Infertility
-		if adult and not selection:has("FertilityComponent") then
-			table.insert(icons, (spriteSheet:getSprite("headers", "infertility-icon")))
-		end
+		local icons = require("src.game.villagersystem"):getIcons(selection, true, true)
 
 		-- Scale up
 		for k,icon in ipairs(icons) do

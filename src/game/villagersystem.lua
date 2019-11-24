@@ -48,6 +48,7 @@ local WorkingComponent = require "src.game.workingcomponent"
 
 local blueprint = require "src.game.blueprint"
 local soundManager = require "src.soundmanager"
+local spriteSheet = require "src.game.spritesheet"
 local state = require "src.game.state"
 
 local VillagerSystem = lovetoys.System:subclass("VillagerSystem")
@@ -113,6 +114,61 @@ VillagerSystem.static.DEATH_CHANCE = 0.0033
 
 -- How far away, in grids, to try and move when standing on a reserved grid.
 VillagerSystem.static.RESERVE_GRID_DISTANCE = 3
+
+function VillagerSystem.static:getIcons(entity, detailed, skipEmployement)
+	local villager = entity:get("VillagerComponent")
+	local adult = entity:has("AdultComponent") and entity:get("AdultComponent") or nil
+
+	local icons = {}
+
+	-- Homeless or unemployed icon.
+	if not villager:getHome() then
+		table.insert(icons, (spriteSheet:getSprite("headers", "no-home-icon")))
+	elseif not skipEmployement and adult and adult:getOccupation() == WorkComponent.UNEMPLOYED then
+		table.insert(icons, (spriteSheet:getSprite("headers", "unemployed-icon")))
+	end
+	if villager:getSleepiness() > VillagerSystem.SLEEP.SLEEPINESS_THRESHOLD then
+		table.insert(icons, (spriteSheet:getSprite("headers", "sleepy-icon")))
+	end
+	if villager:getStarvation() > 0.0 then
+		table.insert(icons, (spriteSheet:getSprite("headers", "hungry-icon")))
+	end
+	-- Out-of-resources icon
+	if villager:getHome() and adult and not adult:getWorkArea() then
+		local occupation = adult:getOccupation()
+		if occupation == WorkComponent.WOODCUTTER then
+			table.insert(icons, (spriteSheet:getSprite("headers", "missing-woodcutter-icon")))
+		elseif occupation == WorkComponent.MINER then
+			table.insert(icons, (spriteSheet:getSprite("headers", "missing-miner-icon")))
+		end
+	end
+
+	local problem = villager:getProblem()
+	if problem == VillagerComponent.PROBLEMS.MISSING_WOOD then
+		table.insert(icons, (spriteSheet:getSprite("headers", "missing-wood-icon")))
+	elseif problem == VillagerComponent.PROBLEMS.MISSING_IRON then
+		table.insert(icons, (spriteSheet:getSprite("headers", "missing-iron-icon")))
+	elseif problem == VillagerComponent.PROBLEMS.MISSING_TOOL then
+		table.insert(icons, (spriteSheet:getSprite("headers", "missing-tool-icon")))
+	elseif problem == VillagerComponent.PROBLEMS.MISSING_GRAIN then
+		table.insert(icons, (spriteSheet:getSprite("headers", "missing-grain-icon")))
+	elseif problem == VillagerComponent.PROBLEMS.WAITING then
+		table.insert(icons, (spriteSheet:getSprite("headers", "waiting-icon")))
+	end
+
+	if detailed then
+		-- Living with parents
+		if villager:getHome() and adult and not villager:getHome():get("AssignmentComponent"):isAssigned(entity) then
+			table.insert(icons, (spriteSheet:getSprite("headers", "living-with-parents-icon")))
+		end
+		-- Infertility
+		if adult and not entity:has("FertilityComponent") then
+			table.insert(icons, (spriteSheet:getSprite("headers", "infertility-icon")))
+		end
+	end
+
+	return icons
+end
 
 function VillagerSystem.requires()
 	return {"VillagerComponent"}
@@ -419,9 +475,10 @@ function VillagerSystem:_takeAction(entity)
 			local construction = workPlace:get("ConstructionComponent")
 
 			-- Make a first pass to determine if any work can be carried out.
-			local getMaterials, blacklist, resource = true, {}
+			local getMaterials, blacklist, resource, firstResource = true, {}
 			repeat
 				resource = construction:getRandomUnreservedResource(blacklist)
+				firstResource = firstResource or resource
 				if not resource then
 					-- Determine whether the construction needs any materials.
 					if not construction:getRandomUnreservedResource() and construction:canBuild() then
@@ -430,6 +487,17 @@ function VillagerSystem:_takeAction(entity)
 					else
 						-- Needs materials, but either blacklisted (not available) or in transit to the work site.
 						villager:setDelay(VillagerSystem.TIMERS.NO_RESOURCE_DELAY)
+						if firstResource == ResourceComponent.WOOD then
+							villager:setProblem(VillagerComponent.PROBLEMS.MISSING_WOOD)
+						elseif firstResource == ResourceComponent.IRON then
+							villager:setProblem(VillagerComponent.PROBLEMS.MISSING_IRON)
+						elseif firstResource == ResourceComponent.TOOL then
+							villager:setProblem(VillagerComponent.PROBLEMS.MISSING_TOOL)
+						elseif firstResource == ResourceComponent.GRAIN then
+							villager:setProblem(VillagerComponent.PROBLEMS.MISSING_GRAIN)
+						else
+							villager:setProblem(VillagerComponent.PROBLEMS.WAITING)
+						end
 						return
 					end
 				end
@@ -457,11 +525,23 @@ function VillagerSystem:_takeAction(entity)
 			-- First check if any resources are needed.
 			if production:getNeededResources(entity) then
 				-- Make a first pass to determine if any work can be carried out.
-				local blacklist, resource = {}
+				local blacklist, resource, firstResource = {}
 				repeat
 					resource = production:getNeededResources(entity, blacklist)
+					firstResource = firstResource or resource
 					if not resource then
 						villager:setDelay(VillagerSystem.TIMERS.NO_RESOURCE_DELAY)
+						if firstResource == ResourceComponent.WOOD then
+							villager:setProblem(VillagerComponent.PROBLEMS.MISSING_WOOD)
+						elseif firstResource == ResourceComponent.IRON then
+							villager:setProblem(VillagerComponent.PROBLEMS.MISSING_IRON)
+						elseif firstResource == ResourceComponent.TOOL then
+							villager:setProblem(VillagerComponent.PROBLEMS.MISSING_TOOL)
+						elseif firstResource == ResourceComponent.GRAIN then
+							villager:setProblem(VillagerComponent.PROBLEMS.MISSING_GRAIN)
+						else
+							print("No idea what they're waiting for")
+						end
 						return
 					end
 
@@ -795,6 +875,9 @@ function VillagerSystem:_prepare(entity, okInside)
 		-- Leave the building.
 		self.eventManager:fireEvent(BuildingLeftEvent(villager:getInside(), entity))
 	end
+
+	-- Probably has no problems yet.
+	villager:setProblem(VillagerComponent.PROBLEMS.NONE)
 end
 
 function VillagerSystem:_stopAll(entity)

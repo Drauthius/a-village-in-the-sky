@@ -22,7 +22,6 @@ local babel = require "lib.babel"
 local InfoPanelItem = require "src.game.gui.infopanelitem"
 
 local ScaledSprite = require "src.game.scaledsprite"
-local WorkComponent = require "src.game.workcomponent"
 local ProgressBar = require "src.game.gui.progressbar"
 
 local spriteSheet = require "src.game.spritesheet"
@@ -137,35 +136,7 @@ function VillagerItem:drawOverride(offset)
 	end
 	love.graphics.setColor(1, 1, 1, 1)
 
-	local icons = {}
-	-- TODO: Some duplications from the RenderSystem:_drawHeader()
-	-- Homeless icon.
-	if not villager:getHome() then
-		table.insert(icons, (spriteSheet:getSprite("headers", "no-home-icon")))
-	end
-	if villager:getSleepiness() > require("src.game.villagersystem").SLEEP.SLEEPINESS_THRESHOLD then -- XXX
-		table.insert(icons, (spriteSheet:getSprite("headers", "sleepy-icon")))
-	end
-	if villager:getStarvation() > 0.0 then
-		table.insert(icons, (spriteSheet:getSprite("headers", "hungry-icon")))
-	end
-	-- Out-of-resources icon
-	if villager:getHome() and adult and not adult:getWorkArea() then
-		local occupation = adult:getOccupation()
-		if occupation == WorkComponent.WOODCUTTER then
-			table.insert(icons, (spriteSheet:getSprite("headers", "missing-woodcutter-icon")))
-		elseif occupation == WorkComponent.MINER then
-			table.insert(icons, (spriteSheet:getSprite("headers", "missing-miner-icon")))
-		end
-	end
-	-- Living with parents
-	if villager:getHome() and adult and not villager:getHome():get("AssignmentComponent"):isAssigned(self.entity) then
-		table.insert(icons, (spriteSheet:getSprite("headers", "living-with-parents-icon")))
-	end
-	-- Infertility
-	if adult and not self.entity:has("FertilityComponent") then
-		table.insert(icons, (spriteSheet:getSprite("headers", "infertility-icon")))
-	end
+	local icons = require("src.game.villagersystem"):getIcons(self.entity, true, true)
 
 	-- Scale up
 	for k,icon in ipairs(icons) do

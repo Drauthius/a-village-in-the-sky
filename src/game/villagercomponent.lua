@@ -40,6 +40,15 @@ VillagerComponent.static.GOALS = {
 	CHILDBIRTH = 15
 }
 
+VillagerComponent.static.PROBLEMS = {
+	NONE = 0,
+	MISSING_WOOD = 1,
+	MISSING_IRON = 2,
+	MISSING_TOOL = 3,
+	MISSING_GRAIN = 4,
+	WAITING = 5
+}
+
 VillagerComponent.static.UNIQUE = 0
 VillagerComponent.static.FEMININE_NAMES = require "asset.misc.feminine_names"
 VillagerComponent.static.MASCULINE_NAMES = require "asset.misc.masculine_names"
@@ -58,6 +67,7 @@ function VillagerComponent.static:save(cassette)
 		sleepiness = self.sleepiness,
 		direction = self.direction,
 		goal = self.goal,
+		problem = self.problem,
 		delay = self.delay,
 		targetEntity = self.targetEntity and cassette:saveEntity(self.targetEntity) or nil,
 		targetGrid = self.targetGrid and cassette:saveGrid(self.targetGrid) or nil,
@@ -87,6 +97,7 @@ function VillagerComponent.static.load(cassette, data)
 	component.sleepiness = data.sleepiness
 	component.direction = data.direction
 	component.goal = data.goal
+	component.problem = data.problem
 	component.delay = data.delay
 	component.targetEntity = data.targetEntity and cassette:loadEntity(data.targetEntity) or nil
 	component.targetGrid = data.targetGrid and cassette:loadGrid(data.targetGrid) or nil
@@ -126,6 +137,7 @@ function VillagerComponent:initialize(stats, mother, father)
 	self.direction = love.math.random(0, 359) -- 0-359
 
 	self.goal = VillagerComponent.GOALS.NONE
+	self.problem = VillagerComponent.PROBLEMS.NONE
 	self.delay = 0.0
 	self.home = nil
 	self.inside = nil
@@ -260,6 +272,14 @@ end
 
 function VillagerComponent:setGoal(goal)
 	self.goal = goal
+end
+
+function VillagerComponent:getProblem()
+	return self.problem
+end
+
+function VillagerComponent:setProblem(problem)
+	self.problem = problem
 end
 
 function VillagerComponent:getDelay()

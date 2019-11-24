@@ -21,7 +21,6 @@ local lovetoys = require "lib.lovetoys.lovetoys"
 local table = require "lib.table"
 
 local BuildingComponent = require "src.game.buildingcomponent"
-local WorkComponent = require "src.game.workcomponent"
 
 local spriteSheet = require "src.game.spritesheet"
 local state = require "src.game.state"
@@ -439,34 +438,9 @@ function RenderSystem:_drawHeader(entity)
 			return -- Don't show any headers during a gameplay pause.
 		end
 
-		local villager = entity:get("VillagerComponent")
-		local adult = entity:has("AdultComponent") and entity:get("AdultComponent") or nil
+		local icons = require("src.game.villagersystem"):getIcons(entity)
 
 		-- Multiple icons are chained together beautifully.
-		local icons = {}
-
-		-- Homeless or unemployed icon.
-		if not villager:getHome() then
-			table.insert(icons, (spriteSheet:getSprite("headers", "no-home-icon")))
-		elseif adult and adult:getOccupation() == WorkComponent.UNEMPLOYED then
-			table.insert(icons, (spriteSheet:getSprite("headers", "unemployed-icon")))
-		end
-		if villager:getSleepiness() > require("src.game.villagersystem").SLEEP.SLEEPINESS_THRESHOLD then -- XXX
-			table.insert(icons, (spriteSheet:getSprite("headers", "sleepy-icon")))
-		end
-		if villager:getStarvation() > 0.0 then
-			table.insert(icons, (spriteSheet:getSprite("headers", "hungry-icon")))
-		end
-		-- Out-of-resources icon
-		if villager:getHome() and adult and not adult:getWorkArea() then
-			local occupation = adult:getOccupation()
-			if occupation == WorkComponent.WOODCUTTER then
-				table.insert(icons, (spriteSheet:getSprite("headers", "missing-woodcutter-icon")))
-			elseif occupation == WorkComponent.MINER then
-				table.insert(icons, (spriteSheet:getSprite("headers", "missing-miner-icon")))
-			end
-		end
-
 		love.graphics.setColor(1, 1, 1, 0.95)
 		local numIcons = #icons
 		if numIcons > 0 then
