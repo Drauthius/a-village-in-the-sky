@@ -76,10 +76,10 @@ function DetailsPanel:initialize(eventManager, y)
 	local screenWidth, _ = screen:getDrawDimensions()
 	Widget.initialize(self, screenWidth - background:getWidth(), math.max(0, y - background:getHeight()), 0, 0, background)
 
-	local buttonSprite = spriteSheet:getSprite("details-button (Up)")
+	local buttonSprite = spriteSheet:getSprite("small-details-button (Up)")
 	self.button = Button(self.x + 2 + (background:getWidth() - buttonSprite:getWidth()) / 2,
-	                     self.y + background:getHeight() - buttonSprite:getHeight() - self.font:getHeight() - 6,
-	                     1, 5, "details-button", self.fontBold)
+	                     self.y + background:getHeight() - buttonSprite:getHeight() - self.font:getHeight() - 3,
+	                     1, 5, "small-details-button", self.fontBold)
 	self.buttonState = DetailsPanel.BUTTON.HIDDEN
 
 	local pw, ph = self.w - 5, 12
@@ -308,17 +308,15 @@ function DetailsPanel:draw()
 		end
 
 		if self.buttonState ~= DetailsPanel.BUTTON.HIDDEN then
-			-- Re-purpose for additions based on the button's position.
-			x, y = self.button:getPosition()
-			w, h = self.button:getDimensions()
+			y = self.button.y + self.button:getHeight() - 1
+			h = self.font:getHeight() + 1
 			local ox = -1
-			local oy = self.font:getHeight() + 1
 
-			-- Background covering the button and the cost/refund
+			-- Box covering the cost/refund
 			love.graphics.setColor(spriteSheet:getWoodPalette().outline)
 			love.graphics.setLineWidth(1)
 			love.graphics.setLineStyle("rough")
-			love.graphics.rectangle("line", x - ox, y + 1, w + ox, h + oy)
+			love.graphics.rectangle("line", x - ox, y + 1, w + ox, h)
 
 			local buttonText, resourceText, resources
 			if self.buttonState == DetailsPanel.BUTTON.CANCEL then
@@ -338,7 +336,7 @@ function DetailsPanel:draw()
 
 			self.button:setText(buttonText)
 
-			self:_drawMaterialList(resourceText, resources, x - ox + 1, y + h + 2)
+			self:_drawMaterialList(resourceText, resources, x - ox + 1, y + 1)
 
 			love.graphics.setColor(1, 1, 1)
 			self.button:draw()

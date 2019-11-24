@@ -52,6 +52,7 @@ fastforward-button.aseprite
 info-panel-left.aseprite
 menu-button.aseprite
 minimize-button.aseprite
+small-details-button.aseprite
 trashcan.aseprite
 )
 
