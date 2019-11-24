@@ -42,20 +42,11 @@ VillagerItem.static.DETAILS = {
 function VillagerItem:initialize(x, y, h, fontNormal, fontBold, entity)
 	InfoPanelItem.initialize(self, x, y, 160, h)
 
-	local sprite
-	if entity:has("AdultComponent") then
-		local hairy = entity:get("VillagerComponent"):isHairy() and "(Hairy) " or ""
-		sprite = spriteSheet:getSprite("villagers "..hairy.."0",
-			entity:get("VillagerComponent"):getGender() .. " - S")
-	else
-		sprite = spriteSheet:getSprite("children 0",
-			(entity:get("VillagerComponent"):getGender() == "male" and "boy" or "girl") .. " - S")
-	end
-
-	self.sprite = ScaledSprite:fromSprite(sprite, 4)
 	self.fontNormal = fontNormal
 	self.fontBold = fontBold
 	self.entity = entity
+
+	self:setSprite()
 
 	self.bars = {
 		Hunger = ProgressBar(0, 0, 100, 10, spriteSheet:getSprite("headers", "hungry-icon")),
@@ -92,6 +83,11 @@ function VillagerItem:drawOverride(offset)
 	-- FIXME: Maybe DRY it up?
 	local villager = self.entity:get("VillagerComponent")
 	local adult = self.entity:has("AdultComponent") and self.entity:get("AdultComponent")
+	if adult and not self.adult then
+		-- Refresh the sprite, since the villager grew up.
+		self:setSprite()
+	end
+
 	for _,details in ipairs(VillagerItem.DETAILS) do
 		local key, value, adultComp = details[1], details[2], details[3]
 		if not key then
@@ -164,6 +160,22 @@ function VillagerItem:setPosition(x, y)
 		bar.x = self.x + self.w - bar.w - 4
 		bar.y = self.y
 	end
+end
+
+function VillagerItem:setSprite()
+	local sprite
+	if self.entity:has("AdultComponent") then
+		self.adult = true
+		local hairy = self.entity:get("VillagerComponent"):isHairy() and "(Hairy) " or ""
+		sprite = spriteSheet:getSprite("villagers "..hairy.."0",
+			self.entity:get("VillagerComponent"):getGender() .. " - S")
+	else
+		self.adult = false
+		sprite = spriteSheet:getSprite("children 0",
+			(self.entity:get("VillagerComponent"):getGender() == "male" and "boy" or "girl") .. " - S")
+	end
+
+	self.sprite = ScaledSprite:fromSprite(sprite, 4)
 end
 
 function VillagerItem:select()
