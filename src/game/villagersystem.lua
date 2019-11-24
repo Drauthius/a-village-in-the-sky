@@ -1053,7 +1053,7 @@ function VillagerSystem:assignedEvent(event)
 	end
 
 	-- Let them finish if doing something.
-	if villager:getGoal() == VillagerSystem.NONE then
+	if villager:getGoal() == VillagerComponent.GOALS.NONE or villager:getGoal() == VillagerComponent.GOALS.MOVING then
 		villager:setDelay(VillagerSystem.TIMERS.ASSIGNED_DELAY)
 	end
 end
