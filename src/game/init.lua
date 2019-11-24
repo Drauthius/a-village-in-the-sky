@@ -41,6 +41,7 @@ local TimerComponent = require "src.game.timercomponent"
 local WorkComponent = require "src.game.workcomponent"
 -- Events
 local AssignedEvent = require "src.game.assignedevent"
+local CameraMovedEvent = require "src.game.cameramovedevent"
 local GameEvent = require "src.game.gameevent"
 local SelectionChangedEvent = require "src.game.selectionchangedevent"
 local TileDroppedEvent = require "src.game.tiledroppedevent"
@@ -192,6 +193,7 @@ function Game:enter(_, profile)
 	-- Event handling for logging/the player, state handling, and stuff that didn't fit anywhere else.
 	self.eventManager:addListener("BuildingCompletedEvent", self, self.onBuildingCompleted)
 	self.eventManager:addListener("BuildingRazedEvent", self, self.onBuildingRazed)
+	self.eventManager:addListener("CameraMovedEvent", self, self.onCameraMoved)
 	self.eventManager:addListener("ChildbirthEndedEvent", self, self.childbirthEndedEvent)
 	self.eventManager:addListener("ChildbirthStartedEvent", self, self.childbirthStartedEvent)
 	self.eventManager:addListener("ConstructionCancelledEvent", self, self.onConstructionCancelled)
@@ -246,10 +248,10 @@ function Game:enter(_, profile)
 	-- Load the game, or create an initial save.
 	self.cassette = Cassette(profile)
 	if self.cassette:isValid() then
-		self.level = self.cassette:load(self.engine, self.map, self.gui)
+		self.level = self.cassette:load(self.engine, self.eventManager, self.map, self.gui)
 	else
 		-- Set up the level.
-		self.level = DefaultLevel(self.engine, self.map, self.gui)
+		self.level = DefaultLevel(self.engine, self.eventManager, self.map, self.gui)
 		--self.level = require("src.game.level.hallway")(self.engine, self.map, self.gui)
 		--self.level = require("src.game.level.runestone")(self.engine, self.map, self.gui)
 
@@ -413,8 +415,6 @@ function Game:keyreleased(key, scancode)
 		self.speed = 10
 	elseif scancode == "5" then
 		self.speed = 50
-	elseif scancode == "s" then
-		self:_save()
 	end
 end
 
@@ -1100,42 +1100,59 @@ function Game:onRunestoneUpgrading(event)
 	runestone:get("SpriteComponent"):setNeedsRefresh(true)
 end
 
+function Game:onCameraMoved(event)
+	local x, y
+
+	if event:isOnEntity() then
+		local entity = event:getEntity()
+
+		local position
+		if entity:has("PositionComponent") then
+			position = entity:get("PositionComponent")
+		elseif entity:has("VillagerComponent") then
+			position = entity:get("VillagerComponent"):getInside():get("PositionComponent")
+		else
+			print("Don't know how to find "..tostring(entity))
+			return
+		end
+
+		local fromGrid = position:getFromGrid()
+		local toGrid = position:getToGrid()
+		x, y = self.map:gridToWorldCoords(fromGrid.gi + (toGrid.gi - fromGrid.gi) / 2,
+		                                  fromGrid.gj + (toGrid.gj - fromGrid.gj) / 2)
+	else
+		x, y = event:getPosition()
+	end
+
+	if not x or not y then
+		return
+	end
+
+	-- Mimic a drag event, so that the camera moves to the desired position smoothly.
+	self.dragging = {
+		cx = x,
+		cy = y,
+		released = true,
+		dragged = true
+	}
+end
+
 function Game:onSelectionChanged(event)
 	local selection = event:getSelection()
 	local isPlacing = event:isPlacing()
 
 	-- If selecting an event, or reselecting something, move the camera there.
 	if selection and (state:getSelection() == selection or selection:isInstanceOf(GameEvent)) then
-		local x, y
 		if selection:isInstanceOf(GameEvent) then
 			local ti, tj = selection:getTile()
 			if ti and tj then
-				x, y = self.map:tileToWorldCoords(ti + 0.5, tj + 0.5)
+				return self:onCameraMoved(CameraMovedEvent(self.map:tileToWorldCoords(ti + 0.5, tj + 0.5)))
 			else
 				return -- When can this happen??
 			end
 		else
-			if selection:has("PositionComponent") then
-				local fromGrid = selection:get("PositionComponent"):getFromGrid()
-				local toGrid = selection:get("PositionComponent"):getToGrid()
-				x, y = self.map:gridToWorldCoords(
-					fromGrid.gi + (toGrid.gi - fromGrid.gi) / 2,
-					fromGrid.gj + (toGrid.gj - fromGrid.gj) / 2)
-			elseif selection:has("GroundComponent") then
-				x, y = selection:get("GroundComponent"):getIsometricPosition()
-			else
-				print("Don't know how to find "..tostring(selection))
-			end
+			return self:onCameraMoved(CameraMovedEvent(selection))
 		end
-
-		-- Mimic a drag event, so that the camera moves to the desired position smoothly.
-		self.dragging = {
-			cx = x,
-			cy = y,
-			released = true,
-			dragged = true
-		}
-		return
 	end
 
 	-- Make sure that to clear any potential placing piece before adding another one, or selecting something else.

@@ -32,11 +32,35 @@ local WorkComponent = require "src.game.workcomponent"
 
 local InfoPanel = require "src.game.gui.infopanel"
 
+local CameraMovedEvent = require "src.game.cameramovedevent"
+
 local blueprint = require "src.game.blueprint"
+local hint = require "src.game.hint"
 local state = require "src.game.state"
 local spriteSheet = require "src.game.spritesheet"
 
 local DefaultLevel = Level:subclass("DefaultLevel")
+
+local function _isEligable(entity)
+	return entity and entity:has("AdultComponent") and entity:get("VillagerComponent"):getHome()
+end
+
+local function _firstEligableVillager(engine)
+	local eligable
+
+	for _,entity in pairs(engine:getEntitiesWithComponent("AdultComponent")) do
+		if _isEligable(entity) then
+			eligable = entity
+			local occupation = entity:get("AdultComponent"):getOccupation()
+			if occupation == WorkComponent.UNEMPLOYED or
+			   occupation == WorkComponent.BUILDER then
+				break
+			end
+		end
+	end
+
+	return eligable
+end
 
 function DefaultLevel:initialize(...)
 	Level.initialize(self, ...)
@@ -44,7 +68,7 @@ function DefaultLevel:initialize(...)
 	self.objectives = {
 		{
 			text = "Place a grass tile",
-			pre = function()
+			pre = function(objective)
 				state:setTimeStopped(true)
 
 				state:setAvailableTerrain({ TileComponent.GRASS })
@@ -53,7 +77,7 @@ function DefaultLevel:initialize(...)
 				self.gui:changeAvailibility(InfoPanel.CONTENT.PLACE_BUILDING)
 
 				self.gui:hideYearPanel(true)
-				self.gui:setHint(InfoPanel.CONTENT.PLACE_TERRAIN, TileComponent.GRASS)
+				self.gui:setHint(objective, InfoPanel.CONTENT.PLACE_TERRAIN, TileComponent.GRASS)
 			end,
 			cond = function()
 				for ti,tj,type in self.map:eachTile() do
@@ -66,9 +90,9 @@ function DefaultLevel:initialize(...)
 
 		{
 			text = "Place a dwelling",
-			pre = function()
+			pre = function(objective)
 				self.gui:hideYearPanel(true)
-				self.gui:setHint(InfoPanel.CONTENT.PLACE_BUILDING, BuildingComponent.DWELLING)
+				self.gui:setHint(objective, InfoPanel.CONTENT.PLACE_BUILDING, BuildingComponent.DWELLING)
 			end,
 			cond = function()
 				for _,entity in pairs(self.engine:getEntitiesWithComponent("ConstructionComponent")) do
@@ -81,10 +105,10 @@ function DefaultLevel:initialize(...)
 
 		{
 			text = "Assign a villager to build the dwelling",
-			pre = function()
+			pre = function(objective)
 				self.gui:hideYearPanel(true)
-				self.gui:setHint(function()
-					if state:getSelection() and state:getSelection():has("AdultComponent") then
+				self.gui:setHint(objective, function()
+					if state:hasSelection() and state:getSelection():has("AdultComponent") then
 						for _,entity in pairs(self.engine:getEntitiesWithComponent("ConstructionComponent")) do
 							if entity:get("ConstructionComponent"):getType() == BuildingComponent.DWELLING then
 								return entity
@@ -102,14 +126,17 @@ function DefaultLevel:initialize(...)
 						return true
 					end
 				end
+			end,
+			onClick = function()
+				self.eventManager:fireEvent(CameraMovedEvent(hint:getOrigin()))
 			end
 		},
 
 		{
 			text = "Once done, assign a villager to the house",
-			pre = function()
+			pre = function(objective)
 				self.gui:hideYearPanel(true)
-				self.gui:setHint(function()
+				self.gui:setHint(objective, function()
 					local dwelling = select(2, next(self.engine:getEntitiesWithComponent("DwellingComponent")))
 					if not dwelling then
 						return nil
@@ -130,7 +157,9 @@ function DefaultLevel:initialize(...)
 			post = function()
 				state:setTimeStopped(false)
 				self.gui:showYearPanel()
-				self.gui:setHint(nil)
+			end,
+			onClick = function()
+				self.eventManager:fireEvent(CameraMovedEvent(hint:getOrigin()))
 			end
 		},
 
@@ -144,6 +173,9 @@ function DefaultLevel:initialize(...)
 					end
 				end
 			end,
+			onClick = function()
+				self.gui:setHint(nil)
+			end
 		},
 		{ withPrevious = true,
 			text = "Build a blacksmith",
@@ -156,6 +188,19 @@ function DefaultLevel:initialize(...)
 					if entity:get("BuildingComponent"):getType() == BuildingComponent.BLACKSMITH then
 						return true
 					end
+				end
+			end,
+			onClick = function(objective)
+				self.gui:setHint(objective, function()
+					for _,entity in pairs(self.engine:getEntitiesWithComponent("ConstructionComponent")) do
+						if entity:get("BuildingComponent"):getType() == BuildingComponent.BLACKSMITH then
+							return entity
+						end
+					end
+					return InfoPanel.CONTENT.PLACE_BUILDING, BuildingComponent.BLACKSMITH
+				end)
+				if hint:isInWorld() then
+					self.eventManager:fireEvent(CameraMovedEvent(hint:getOrigin()))
 				end
 			end
 		},
@@ -171,6 +216,10 @@ function DefaultLevel:initialize(...)
 			post = function()
 				state:setAvailableTerrain({ TileComponent.GRASS, TileComponent.FOREST, TileComponent.MOUNTAIN })
 				self.gui:changeAvailibility(InfoPanel.CONTENT.PLACE_TERRAIN)
+			end,
+			onClick = function(objective)
+				self.gui:setHint(objective, select(2, next(self.engine:getEntitiesWithComponent("RunestoneComponent"))))
+				self.eventManager:fireEvent(CameraMovedEvent(hint:getOrigin()))
 			end
 		},
 
@@ -182,16 +231,60 @@ function DefaultLevel:initialize(...)
 						return true
 					end
 				end
+			end,
+			onClick = function(objective)
+				self.gui:setHint(objective, function()
+					for _,entity in pairs(self.engine:getEntitiesWithComponent("TileComponent")) do
+						if entity:get("TileComponent"):getType() == TileComponent.FOREST and
+						   not entity:has("PlacingComponent") then
+							if state:hasSelection() and _isEligable(state:getSelection()) then
+								return entity
+							else
+								return _firstEligableVillager(self.engine)
+							end
+						end
+					end
+					return InfoPanel.CONTENT.PLACE_TERRAIN, TileComponent.FOREST
+				end)
+				if hint:isInWorld() then
+					self.eventManager:fireEvent(CameraMovedEvent(hint:getOrigin()))
+				end
 			end
 		},
 		{ withPrevious = true,
-			text = "Build a field",
+			text = "Build a field, and assign a farmer",
 			pre = function()
 				state:setAvailableBuildings({ BuildingComponent.DWELLING, BuildingComponent.BLACKSMITH, BuildingComponent.FIELD })
 				self.gui:changeAvailibility(InfoPanel.CONTENT.PLACE_BUILDING)
 			end,
 			cond = function()
-				return next(self.engine:getEntitiesWithComponent("FieldEnclosureComponent")) ~= nil
+				for _,entity in pairs(self.engine:getEntitiesWithComponent("AdultComponent")) do
+					if entity:get("AdultComponent"):getOccupation() == WorkComponent.FARMER then
+						return true
+					end
+				end
+			end,
+			onClick = function(objective)
+				self.gui:setHint(objective, function()
+					local field = select(2, next(self.engine:getEntitiesWithComponent("FieldEnclosureComponent")))
+					if field then
+						if state:hasSelection() and _isEligable(state:getSelection()) then
+							return field
+						else
+							return _firstEligableVillager(self.engine)
+						end
+					end
+
+					for _,entity in pairs(self.engine:getEntitiesWithComponent("ConstructionComponent")) do
+						if entity:get("BuildingComponent"):getType() == BuildingComponent.FIELD then
+							return entity
+						end
+					end
+					return InfoPanel.CONTENT.PLACE_BUILDING, BuildingComponent.FIELD
+				end)
+				if hint:isInWorld() then
+					self.eventManager:fireEvent(CameraMovedEvent(hint:getOrigin()))
+				end
 			end
 		},
 
@@ -202,6 +295,24 @@ function DefaultLevel:initialize(...)
 					if entity:get("AdultComponent"):getOccupation() == WorkComponent.MINER then
 						return true
 					end
+				end
+			end,
+			onClick = function(objective)
+				self.gui:setHint(objective, function()
+					for _,entity in pairs(self.engine:getEntitiesWithComponent("TileComponent")) do
+						if entity:get("TileComponent"):getType() == TileComponent.MOUNTAIN and
+						   not entity:has("PlacingComponent") then
+							if state:hasSelection() and _isEligable(state:getSelection()) then
+								return entity
+							else
+								return _firstEligableVillager(self.engine)
+							end
+						end
+					end
+					return InfoPanel.CONTENT.PLACE_TERRAIN, TileComponent.MOUNTAIN
+				end)
+				if hint:isInWorld() then
+					self.eventManager:fireEvent(CameraMovedEvent(hint:getOrigin()))
 				end
 			end
 		},
@@ -221,6 +332,19 @@ function DefaultLevel:initialize(...)
 					if entity:get("BuildingComponent"):getType() == BuildingComponent.BAKERY then
 						return true
 					end
+				end
+			end,
+			onClick = function(objective)
+				self.gui:setHint(objective, function()
+					for _,entity in pairs(self.engine:getEntitiesWithComponent("ConstructionComponent")) do
+						if entity:get("BuildingComponent"):getType() == BuildingComponent.BAKERY then
+							return entity
+						end
+					end
+					return InfoPanel.CONTENT.PLACE_BUILDING, BuildingComponent.BAKERY
+				end)
+				if hint:isInWorld() then
+					self.eventManager:fireEvent(CameraMovedEvent(hint:getOrigin()))
 				end
 			end
 		},

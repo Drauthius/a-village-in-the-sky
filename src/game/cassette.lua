@@ -134,7 +134,7 @@ function Cassette:save(engine, map, level)
 	end
 end
 
-function Cassette:load(engine, map, gui)
+function Cassette:load(engine, eventManager, map, gui)
 	-- The time it takes to load shouldn't influence the frame rate.
 	love.timer.step()
 
@@ -206,7 +206,7 @@ function Cassette:load(engine, map, gui)
 	end
 
 	-- Fourth pass: The level and anything it felt worth saving.
-	local level = require("src.game.level." .. data.level.source)(engine, map, gui)
+	local level = require("src.game.level." .. data.level.source)(engine, eventManager, map, gui)
 	level:load(self, data.level)
 
 	-- Last pass: Restore the state.

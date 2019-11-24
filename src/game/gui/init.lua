@@ -472,7 +472,7 @@ function GUI:handlePress(x, y, released)
 		self.detailsPanel:handlePress(x, y, released)
 		return true
 	elseif self.objectivesPanel:isWithin(x, y) then
-		self.objectivesPanel:handlePress(released)
+		self.objectivesPanel:handlePress(x, y, released)
 		return true
 	end
 
@@ -504,8 +504,8 @@ function GUI:removeObjective(...)
 	return self.objectivesPanel:removeObjective(...)
 end
 
-function GUI:setHint(place, subplace)
-	if not place then
+function GUI:setHint(objective, place, subplace)
+	if not objective then
 		hint:hide()
 		self.hint = nil
 	else
@@ -514,6 +514,7 @@ function GUI:setHint(place, subplace)
 		else
 			self.hint = { place, subplace }
 		end
+		hint:setObjective(objective)
 	end
 
 	self:updateHint()
@@ -536,7 +537,13 @@ function GUI:updateHint()
 
 	if not place then
 		return
-	elseif type(place) == "number" then
+	end
+
+	if type(place) == "table" and place:has("VillagerComponent") and not place:has("SpriteComponent") then
+		place, subplace = InfoPanel.CONTENT.LIST_VILLAGERS, place
+	end
+
+	if type(place) == "number" then
 		if self.infoPanel:isShown() and self.infoPanel:getContentType() == place then
 			self.infoPanel:setHint(subplace)
 		else

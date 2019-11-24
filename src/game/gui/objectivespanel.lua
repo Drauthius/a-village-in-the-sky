@@ -55,21 +55,22 @@ function ObjectivesPanel:draw()
 	end
 end
 
-function ObjectivesPanel:addObjective(text, skipTween)
+function ObjectivesPanel:addObjective(objective, skipTween)
 	local numPanels = #self.panels
 
 	local panel
-	if self.font:getWidth(text) > self.panelData1.bounds.w then
+	if self.font:getWidth(objective.text) > self.panelData1.bounds.w then
 		self.font:setLineHeight(1.2)
 		panel = Widget(self.x, self.y + self.h - 1, 0, 0, self.panelSprite2)
-		panel:addText(text, self.font, spriteSheet:getOutlineColor(),
+		panel:addText(objective.text, self.font, spriteSheet:getOutlineColor(),
 		              self.panelData2.bounds.x, self.panelData2.bounds.y, self.panelData2.bounds.w)
 	else
 		panel = Widget(self.x, self.y + self.h - 1, 0, 0, self.panelSprite1)
-		panel:addText(text, self.font, spriteSheet:getOutlineColor(),
+		panel:addText(objective.text, self.font, spriteSheet:getOutlineColor(),
 		              self.panelData1.bounds.x, self.panelData1.bounds.y, self.panelData1.bounds.w)
 	end
 
+	panel.objective = objective
 	self.h = self.h + panel:getHeight()
 	table.insert(self.panels, panel)
 	panel.uniqueID = ObjectivesPanel.uniqueID
@@ -139,12 +140,19 @@ function ObjectivesPanel:isWithin(x, y)
 	end
 end
 
-function ObjectivesPanel:handlePress(released)
+function ObjectivesPanel:handlePress(x, y, released)
 	if not released then
 		return
 	end
 
-	self:removeObjective(self.panels[1].uniqueID)
+	for _,panel in ipairs(self.panels) do
+		if panel:isWithin(x, y) then
+			if not panel.objective.completed and panel.objective.onClick then
+				panel.objective:onClick()
+			end
+			return
+		end
+	end
 end
 
 return ObjectivesPanel

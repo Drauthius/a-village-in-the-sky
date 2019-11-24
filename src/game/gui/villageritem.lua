@@ -206,11 +206,7 @@ function VillagerItem:getEntity()
 end
 
 function VillagerItem:getType()
-	if self.entity:has("AdultComponent") then
-		return "Adult"
-	else
-		return "Child"
-	end
+	return self.entity
 end
 
 return VillagerItem

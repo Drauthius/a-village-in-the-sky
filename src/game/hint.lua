@@ -85,7 +85,20 @@ function Hint:rotateAround(x, y, radius, inWorld, preventDraw)
 	end
 end
 
+function Hint:getObjective()
+	return self.objective
+end
+
+function Hint:setObjective(objective)
+	self.objective = objective
+end
+
+function Hint:getOrigin()
+	return self.x, self.y
+end
+
 function Hint:hide()
+	self.objective = nil
 	self.shown = false
 end
 

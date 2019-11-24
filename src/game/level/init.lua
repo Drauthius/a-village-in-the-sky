@@ -19,10 +19,13 @@ along with A Village in the Sky. If not, see <http://www.gnu.org/licenses/>.
 
 local class = require "lib.middleclass"
 
+local hint = require "src.game.hint"
+
 local Level = class("Level")
 
-function Level:initialize(engine, map, gui)
+function Level:initialize(engine, eventManager, map, gui)
 	self.engine = engine
+	self.eventManager = eventManager
 	self.map = map
 	self.gui = gui
 
@@ -50,21 +53,24 @@ function Level:update(dt)
 		end
 
 		if not objective.completed then
-			if objective.cond() then
+			if objective:cond() then
 				if i == self.currentObjective then
 					self.currentObjective = i + 1
 				end
 				if objective.id then
 					self.gui:removeObjective(objective.id)
 				end
+				if hint:getObjective() == objective then
+					self.gui:setHint(nil)
+				end
 				objective.completed = true
 				if objective.post then
-					objective.post()
+					objective:post()
 				end
 			elseif not objective.id then
-				objective.id = self.gui:addObjective(objective.text)
+				objective.id = self.gui:addObjective(objective)
 				if objective.pre then
-					objective.pre()
+					objective:pre()
 				end
 			end
 		elseif i == self.currentObjective then
