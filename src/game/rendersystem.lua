@@ -467,6 +467,7 @@ function RenderSystem:_drawHeader(entity)
 			end
 		end
 
+		love.graphics.setColor(1, 1, 1, 0.95)
 		local numIcons = #icons
 		if numIcons > 0 then
 			local ox = -5
@@ -502,8 +503,9 @@ function RenderSystem:_drawHeader(entity)
 		local w, h = header:getDimensions()
 		local tw = sprite:getSprite():getWidth()
 
+		love.graphics.setColor(1, 1, 1, 0.95)
 		x = x + (tw - w) / 2
-		y = y - h / 2
+		y = y - h / 3
 		spriteSheet:draw(header, x, y)
 
 		do -- Adult icons
@@ -585,8 +587,9 @@ function RenderSystem:_drawHeader(entity)
 		local w, h = header:getDimensions()
 		local tw = sprite:getSprite():getWidth()
 
+		love.graphics.setColor(1, 1, 1, 0.95)
 		x = x + (tw - w) / 2
-		y = y - h / 2
+		y = y + header:getHeight() / 2
 		spriteSheet:draw(header, x, y)
 
 		-- For constructions, use the header as a progress bar.
@@ -610,19 +613,23 @@ function RenderSystem:_drawHeader(entity)
 		end
 
 		local typeSlice
-		local type = entity:get("BuildingComponent"):getType()
-		if type == BuildingComponent.DWELLING then
-			typeSlice = "house-icon"
-		elseif type == BuildingComponent.BLACKSMITH then
-			typeSlice = "blacksmith-icon"
-		elseif type == BuildingComponent.FIELD then
-			typeSlice = "farmer-icon"
-		elseif type == BuildingComponent.BAKERY then
-			typeSlice = "baker-icon"
-		elseif type == BuildingComponent.RUNESTONE then
-			typeSlice = "runestone-icon"
+		if entity:has("ConstructionComponent") then
+			typeSlice = "builder-icon"
 		else
-			error("Unknown building type '" .. tostring(type) .. "'")
+			local type = entity:get("BuildingComponent"):getType()
+			if type == BuildingComponent.DWELLING then
+				typeSlice = "house-icon"
+			elseif type == BuildingComponent.BLACKSMITH then
+				typeSlice = "blacksmith-icon"
+			elseif type == BuildingComponent.FIELD then
+				typeSlice = "farmer-icon"
+			elseif type == BuildingComponent.BAKERY then
+				typeSlice = "baker-icon"
+			elseif type == BuildingComponent.RUNESTONE then
+				typeSlice = "runestone-icon"
+			else
+				error("Unknown building type '" .. tostring(type) .. "'")
+			end
 		end
 		local typeIcon = spriteSheet:getSprite("headers", typeSlice)
 		spriteSheet:draw(typeIcon, x - typeIcon:getWidth() / 2 - 1, y + (h - typeIcon:getHeight()) / 2)
@@ -652,6 +659,7 @@ function RenderSystem:_drawHeader(entity)
 
 		x = x + (tw - w) / 2
 		y = y - h / 2
+		love.graphics.setColor(1, 1, 1, 0.95)
 		spriteSheet:draw(header, x, y)
 
 		local icon = spriteSheet:getSprite("headers", "runestone-icon")
@@ -667,8 +675,8 @@ function RenderSystem:_drawHeader(entity)
 
 		love.graphics.setColor(0.565, 0.827, 0.871, 1) -- (90d3de) XXX: Should get it from sprite.
 		love.graphics.printf(runestone:getLevel(), x, y, header:getWidth() - ox - 2, "center")
-		love.graphics.setColor(1, 1, 1, 1)
 	end
+	love.graphics.setColor(1, 1, 1, 1)
 end
 
 return RenderSystem
