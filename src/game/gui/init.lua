@@ -484,10 +484,12 @@ function GUI:handlePress(x, y, released)
 		return true
 	end
 
-	if self.fastforwardButton:isWithin(x, y) and not released then
-		-- FIXME: The fast-forward button behaves a bit inconsistently with other buttons.
-		self.fastforwardButton:setPressed(not self.fastforwardButton:isPressed())
-		love.event.push("fastforward", self.fastforwardButton:isPressed())
+	if self.fastforwardButton:isWithin(x, y) then
+		if not released then
+			-- FIXME: The fast-forward button behaves a bit inconsistently with other buttons.
+			self.fastforwardButton:setPressed(not self.fastforwardButton:isPressed())
+			love.event.push("fastforward", self.fastforwardButton:isPressed())
+		end
 		return true
 	end
 
