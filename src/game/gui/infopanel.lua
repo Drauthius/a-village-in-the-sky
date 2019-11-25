@@ -328,13 +328,7 @@ function InfoPanel:setContent(type, refresh)
 		margin = 5 -- ?
 		for _,entity in pairs(self.engine:getEntitiesWithComponent("BuildingComponent")) do
 			local item = BuildingItem(0, self.contentBounds.y, self.contentBounds.h, self.itemFont, self.itemFontBold, entity)
-
 			table.insert(content, item)
-
-			if state:getSelection() == entity then
-				self.selected = #content
-				item:select()
-			end
 		end
 
 		table.sort(content, function(a, b)
@@ -348,17 +342,22 @@ function InfoPanel:setContent(type, refresh)
 				return a:getEntity().id > b:getEntity().id
 			end
 		end)
+
+		if state:hasSelection() then
+			local selection = state:getSelection()
+			for i,item in ipairs(content) do
+				if item:getEntity() == selection then
+					self.selected = i
+					item:select()
+					break
+				end
+			end
+		end
 	elseif type == InfoPanel.CONTENT.LIST_VILLAGERS then
 		margin = 5 -- ?
 		for _,entity in pairs(self.engine:getEntitiesWithComponent("VillagerComponent")) do
 			local item = VillagerItem(0, self.contentBounds.y, self.contentBounds.h, self.itemFont, self.itemFontBold, entity)
-
 			table.insert(content, item)
-
-			if state:getSelection() == entity then
-				self.selected = #content
-				item:select()
-			end
 		end
 
 		table.sort(content, function(a, b)
@@ -371,6 +370,17 @@ function InfoPanel:setContent(type, refresh)
 				return a:getEntity().id > b:getEntity().id
 			end
 		end)
+
+		if state:hasSelection() then
+			local selection = state:getSelection()
+			for i,item in ipairs(content) do
+				if item:getEntity() == selection then
+					self.selected = i
+					item:select()
+					break
+				end
+			end
+		end
 	elseif type == InfoPanel.CONTENT.LIST_EVENTS then
 		margin = 5 -- ?
 		local events = state:getEvents()
