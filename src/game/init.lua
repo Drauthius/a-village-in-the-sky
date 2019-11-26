@@ -58,6 +58,7 @@ local PositionSystem
 local PregnancySystem
 local RenderSystem
 local ResourceSystem
+local SoundSystem
 local SpriteSystem
 local TimerSystem
 local VillagerSystem
@@ -114,6 +115,7 @@ function Game:init()
 	PregnancySystem = require "src.game.pregnancysystem"
 	RenderSystem = require "src.game.rendersystem"
 	ResourceSystem = require "src.game.resourcesystem"
+	SoundSystem = require "src.game.soundsystem"
 	SpriteSystem = require "src.game.spritesystem"
 	TimerSystem = require "src.game.timersystem"
 	VillagerSystem = require "src.game.villagersystem"
@@ -190,9 +192,11 @@ function Game:enter(_, profile)
 	self.engine:addSystem(buildingSystem, "update")
 	self.engine:addSystem(PositionSystem(self.map), "update")
 	self.engine:addSystem(ResourceSystem(self.map), "update")
+	self.engine:addSystem(SoundSystem(), "update")
 	self.engine:stopSystem("BuildingSystem")
 	self.engine:stopSystem("PositionSystem")
 	self.engine:stopSystem("ResourceSystem")
+	self.engine:stopSystem("SoundSystem")
 
 	-- Event handling for logging/the player, state handling, and stuff that didn't fit anywhere else.
 	self.eventManager:addListener("BuildingCompletedEvent", self, self.onBuildingCompleted)

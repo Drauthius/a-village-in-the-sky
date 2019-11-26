@@ -42,6 +42,9 @@ Downloaded from https://freesound.org/people/TravisNeedham/sounds/135121/
 "negative.wav" by bolkmar licensed under CC0 1.0
 Downloaded from https://freesound.org/people/bolkmar/sounds/469602/
 
+"propeller.wav" by Lightnessko licensed under CC0 1.0
+Downloaded from https://freesound.org/people/Lightnessko/sounds/390323/
+
 "small_thud.wav" by kyles licensed under CC0 1.0
 Downloaded from https://freesound.org/people/kyles/sounds/451327/
 

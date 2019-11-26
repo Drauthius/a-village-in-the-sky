@@ -38,6 +38,7 @@ SoundManager.static.SFX = {
 	-- In-world things
 	door_opened = "door_open.wav",
 	door_closed = "door_close.wav",
+	propeller = "propeller.wav",
 	selecting = "select.wav",
 	clear_selection = "deselect.wav",
 	successful_assignment = "affirmative.wav",
@@ -157,9 +158,6 @@ function SoundManager:playEffect(effect, gi, gj)
 		source:setRelative(true)
 	end
 	source:play()
-end
-
-function SoundManager:playMusic(section)
 end
 
 function SoundManager:_getFreeSource()

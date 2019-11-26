@@ -29,6 +29,7 @@ local EntranceComponent = require "src.game.entrancecomponent"
 local FieldEnclosureComponent = require "src.game.fieldenclosurecomponent"
 local PositionComponent = require "src.game.positioncomponent"
 local ProductionComponent = require "src.game.productioncomponent"
+local SoundComponent = require "src.game.soundcomponent"
 local SpriteComponent = require "src.game.spritecomponent"
 local TimerComponent = require "src.game.timercomponent"
 
@@ -155,6 +156,8 @@ function BuildingSystem:buildingEnteredEvent(event)
 			end
 			animation:setCurrentFrame(assert(currentFrame, "Uh-oh"))
 
+			propeller:set(SoundComponent("propeller", true, propeller:get("PositionComponent"):getGrid()))
+			propeller:get("SoundComponent"):setPitch(0.5)
 			-- Wind up.
 			local frame1, frame2 = math.max(1, (currentFrame + 1) % (#frames + 1)),
 			                       math.max(1, (currentFrame + 2) % (#frames + 1))
@@ -172,6 +175,7 @@ function BuildingSystem:buildingEnteredEvent(event)
 				animFrames[data.frame1][2] = data.oldDur1
 				animFrames[data.frame2][2] = data.oldDur2
 				ent:remove("TimerComponent")
+				ent:get("SoundComponent"):setPitch(1)
 			end))
 
 			propeller:set(animation)
@@ -199,6 +203,7 @@ function BuildingSystem:buildingLeftEvent(event)
 		local currentFrame = propeller:get("AnimationComponent"):getCurrentFrame()
 
 		-- Wind down.
+		propeller:get("SoundComponent"):setPitch(0.5)
 		local frame1, frame2 = math.max(1, (currentFrame + 1) % (#frames + 1)),
 							   math.max(1, (currentFrame + 2) % (#frames + 1))
 		local oldDur, oldDur1, oldDur2 = frames[currentFrame][2], frames[frame1][2], frames[frame2][2]
@@ -215,6 +220,7 @@ function BuildingSystem:buildingLeftEvent(event)
 			animFrames[data.frame2][2] = data.oldDur2
 			ent:remove("TimerComponent")
 			ent:remove("AnimationComponent")
+			ent:remove("SoundComponent")
 		end))
 	end
 end
