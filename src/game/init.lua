@@ -382,9 +382,11 @@ function Game:draw()
 
 	self.foreground:draw()
 
-	self.gui:draw(self.camera)
-	if not hint:isInWorld() then
-		hint:draw()
+	if not self.gui.hidden then
+		self.gui:draw(self.camera)
+		if not hint:isInWorld() then
+			hint:draw()
+		end
 	end
 end
 
@@ -415,6 +417,8 @@ function Game:keyreleased(key, scancode)
 		self.speed = 10
 	elseif scancode == "5" then
 		self.speed = 50
+	elseif scancode == "z" and love.keyboard.isDown("lalt") then
+		self.gui.hidden = not self.gui.hidden
 	end
 end
 
@@ -429,7 +433,7 @@ function Game:mousepressed(x, y, _, istouch)
 	local sx, sy = screen:getCoordinate(x, y)
 
 	-- Don't allow dragging the camera when it starts on a GUI element.
-	if self.gui:handlePress(sx, sy, false) then
+	if not self.gui.hidden and self.gui:handlePress(sx, sy, false) then
 		return
 	end
 
@@ -499,7 +503,7 @@ function Game:mousereleased(x, y, _, istouch)
 	x, y = screen:getCoordinate(x, y)
 
 	if not self.dragging or not self.dragging.dragged or self.dragging.released then
-		if not self.gui:handlePress(x, y, true) then
+		if not self.gui.hidden and not self.gui:handlePress(x, y, true) then
 			if state:isPlacing() then
 				local placing = state:getPlacing()
 				if placing:has("TileComponent") then
