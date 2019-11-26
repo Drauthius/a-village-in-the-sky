@@ -27,8 +27,7 @@ local Background = class("Background")
 
 Background.static.SCALE_DIFF = 5
 
-local function _createParticleSystem(variant, scale)
-	local dw, dh = screen:getDrawDimensions()
+local function _createParticleSystem(variant, scale, dw, dh)
 	local particleSystem = love.graphics.newParticleSystem(spriteSheet:getImage(), 1000)
 
 	local sprite = spriteSheet:getSprite("clouds "..variant)
@@ -39,29 +38,32 @@ local function _createParticleSystem(variant, scale)
 	particleSystem:setSpeed(-0.2, 0)
 	particleSystem:setEmitterLifetime(-1)
 	particleSystem:setEmissionRate(0.002)
-	particleSystem:setEmissionArea("uniform", dw / 1.5, dh / 1.5)
-	particleSystem:setParticleLifetime(100000)
+	particleSystem:setEmissionArea("uniform", dw, dh)
+	particleSystem:setParticleLifetime(500000)
 	particleSystem:setSizeVariation(0.8)
 	particleSystem:setSizes(unpack(scale))
 
 	return particleSystem
 end
 
-function Background:initialize(worldCamera, parallaxLevel, scale)
+function Background:initialize(worldCamera, opts)
 	self.worldCamera = worldCamera
 	self.backgroundCamera = Camera()
 	self.backgroundCamera:lookAt(0, 0)
-	self.parallaxLevel = parallaxLevel
+	self.parallaxLevel = opts.parallax or 1
 	self.color = { 1.0, 1.0, 1.0, 1.0 }
 
+	local dw, dh = screen:getDrawDimensions()
+	dw, dh = dw * (opts.widthModifier or 1), dh * (opts.heightModifier or 1)
+	local scale = opts.scale or 1
 	local scaleDiff = scale / Background.SCALE_DIFF
 	local scaleRange = { scale - scaleDiff, scale + scaleDiff }
 	self.clouds = {
-		_createParticleSystem("0", scaleRange),
-		_createParticleSystem("1", scaleRange)
+		_createParticleSystem("0", scaleRange, dw, dh),
+		_createParticleSystem("1", scaleRange, dw, dh)
 	}
 
-	for _=1,10000 do
+	for _=1,opts.spawn or 10000 do
 		self:update(0.5)
 	end
 end

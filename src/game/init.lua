@@ -140,12 +140,16 @@ function Game:enter(_, profile)
 
 	-- Set up cloud layers.
 	self.backgrounds = {
-		Background(self.camera, 0.05, 2),
-		Background(self.camera, 0.2, 3)
+		Background(self.camera, { parallax = 0.05, scale = 2, widthModifier = 0.75, heightModifier = 0.75 }),
+		Background(self.camera, { parallax = 0.2, scale = 3, widthModifier = 0.75, heightModifier = 0.75 })
 	}
 	self.backgrounds[1]:setColor({ 0.8, 0.8, 0.95, 1 })
 	self.backgrounds[2]:setColor({ 0.9, 0.9, 1, 1 })
-	self.foreground = Background(self.camera, 2, 2)
+	self.foreground = Background(self.camera, {
+		parallax = 2, scale = 2,
+		widthModifier = 4, heightModifier = 4,
+		spawn = 85000
+	})
 
 	self.engine = lovetoys.Engine()
 	self.eventManager = lovetoys.EventManager()
