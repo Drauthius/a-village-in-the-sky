@@ -207,8 +207,8 @@ function VillagerSystem:_update(entity, dt)
 
 		-- Decrease capabilities.
 		if entity:has("AdultComponent") then
-			villager:decreaseStrength(dt * (entity:has("SeniorComponent") and 0.0004 or 0.0002))
-			villager:decreaseCraftsmanship(dt * (entity:has("SeniorComponent") and 0.0004 or 0.0002))
+			villager:decreaseStrength(dt * (entity:has("SeniorComponent") and 0.0002 or 0.00005))
+			villager:decreaseCraftsmanship(dt * (entity:has("SeniorComponent") and 0.0002 or 0.00005))
 		end
 
 		-- Increase hunger if not eating (and not an infant).
@@ -1375,7 +1375,12 @@ function VillagerSystem:onRemoveEntity(entity)
 		particle:set(PositionComponent(grid, nil, entity:get("PositionComponent"):getTile()))
 
 		local dx, dy = entity:get("SpriteComponent"):getDrawPosition()
-		sprite:setDrawPosition(dx + sprite:getSprite():getWidth() / 2, dy + sprite:getSprite():getHeight() / 2)
+		if dx and dy then
+			sprite:setDrawPosition(dx + sprite:getSprite():getWidth() / 2, dy + sprite:getSprite():getHeight() / 2)
+		else
+			-- The villager died before having a chance to get a sprite, so just calculate something.
+			sprite:setDrawPosition(self.map:gridToWorldCoords(grid.gi - 0.5, grid.gj - 0.5))
+		end
 	end
 	self.engine:addEntity(particle)
 
