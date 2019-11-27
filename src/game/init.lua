@@ -292,6 +292,15 @@ end
 function Game:leave()
 	self:_save()
 	Timer.clear()
+	self.engine.systemRegistry["SoundSystem"]:stopAll()
+end
+
+function Game:pause()
+	self.engine.systemRegistry["SoundSystem"]:pauseAll()
+end
+
+function Game:resume()
+	self.engine.systemRegistry["SoundSystem"]:playAll()
 end
 
 function Game:quit()

@@ -61,14 +61,24 @@ function SoundComponent:initialize(effect, loop, gi, gj)
 		self.source = soundManager:playEffect(self.effect, gi, gj)
 	end
 
-	if self.source then
-		self.source:play()
-	end
+	self:play()
 end
 
 function SoundComponent:setPitch(pitch)
 	if self.source then
 		self.source:setPitch(pitch)
+	end
+end
+
+function SoundComponent:play()
+	if self.source then
+		self.source:play()
+	end
+end
+
+function SoundComponent:pause()
+	if self.source then
+		self.source:pause()
 	end
 end
 

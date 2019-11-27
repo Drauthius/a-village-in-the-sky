@@ -25,6 +25,24 @@ function SoundSystem.requires()
 	return {"SoundComponent"}
 end
 
+function SoundSystem:playAll()
+	for _,entity in pairs(self.targets) do
+		entity:get("SoundComponent"):play()
+	end
+end
+
+function SoundSystem:pauseAll()
+	for _,entity in pairs(self.targets) do
+		entity:get("SoundComponent"):pause()
+	end
+end
+
+function SoundSystem:stopAll()
+	for _,entity in pairs(self.targets) do
+		entity:get("SoundComponent"):stop()
+	end
+end
+
 function SoundSystem:onRemoveEntity(entity)
 	entity:get("SoundComponent"):stop()
 end

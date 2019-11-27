@@ -68,6 +68,7 @@ end
 
 function InGameMenu:enter(from)
 	self.oldState = from
+	self.oldState:pause()
 	soundManager:playEffect("main_menu_opened")
 end
 
