@@ -156,7 +156,11 @@ function BuildingSystem:buildingEnteredEvent(event)
 			end
 			animation:setCurrentFrame(assert(currentFrame, "Uh-oh"))
 
-			propeller:set(SoundComponent("propeller", true, propeller:get("PositionComponent"):getGrid()))
+			if propeller:has("SoundComponent") then
+				-- Make sure to stop and remove the old sound.
+				propeller:remove("SoundComponent")
+			end
+			propeller:add(SoundComponent("propeller", true, propeller:get("PositionComponent"):getGrid()))
 			propeller:get("SoundComponent"):setPitch(0.5)
 			-- Wind up.
 			local frame1, frame2 = math.max(1, (currentFrame + 1) % (#frames + 1)),
