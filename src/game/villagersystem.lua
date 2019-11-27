@@ -656,7 +656,7 @@ function VillagerSystem:_takeAction(entity)
 	end
 
 	-- Leave the house, if inside.
-	self:_prepare(entity, false)
+	self:_prepare(entity)
 	-- Move away from any reserved grid, or fidget a bit.
 	self:_fidget(entity)
 end
@@ -1183,7 +1183,7 @@ function VillagerSystem:unassignedEvent(event)
 		for _,goal in ipairs(self.workRelatedGoals) do
 			if villager:getGoal() == goal then
 				self:_stopAll(entity)
-				self:_prepare(entity)
+				self:_prepare(entity, villager:isHome())
 				break
 			end
 		end
@@ -1273,7 +1273,7 @@ function VillagerSystem:childbirthStartedEvent(event)
 	local villager = entity:get("VillagerComponent")
 
 	self:_stopAll(entity)
-	self:_prepare(entity, true)
+	self:_prepare(entity, villager:isHome())
 
 	self:_dropCarrying(entity)
 
@@ -1297,7 +1297,7 @@ function VillagerSystem:childbirthEndedEvent(event)
 
 	-- Make sure the mother isn't sleeping or doing anything else.
 	self:_stopAll(entity)
-	self:_prepare(entity, true)
+	self:_prepare(entity, villager:isHome())
 
 	local father, fatherUnique = event:getFather()
 	-- The child is created even if she didn't make it, so that the death animation can be played correctly.
