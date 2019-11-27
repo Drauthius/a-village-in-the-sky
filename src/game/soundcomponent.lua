@@ -27,7 +27,7 @@ function SoundComponent.static:save(cassette)
 	return {
 		effect = self.effect,
 		loop = self.loop,
-		gi = self.gi,
+		gi = type(self.gi) == "table" and cassette:saveGrid(self.gi) or self.gi,
 		gj = self.gj
 	}
 end
@@ -75,6 +75,8 @@ end
 function SoundComponent:stop()
 	if self.source then
 		self.source:stop()
+		self.source:release()
+		self.source = nil
 	end
 end
 
