@@ -427,6 +427,7 @@ function Game:keyreleased(key, scancode)
 		self.speed = 50
 	elseif scancode == "z" and love.keyboard.isDown("lalt") then
 		self.gui.hidden = not self.gui.hidden
+		self.engine.systemRegistry["RenderSystem"]:setHideGUI(self.gui.hidden)
 	end
 end
 

@@ -109,6 +109,9 @@ function RenderSystem:initialize()
 	-- Object stuff
 	self.objects = { {}, {} } -- Divided up into two passes
 	self.recalculateObjects = false
+
+	-- Misc
+	self.hideGUI = false
 end
 
 function RenderSystem:update(dt)
@@ -167,14 +170,20 @@ function RenderSystem:draw()
 	end
 	love.graphics.setColor(1, 1, 1, 1)
 
-	-- Headers for things connected to the ground.
-	for _,entity in ipairs(self.objects[1]) do
-		self:_drawHeader(entity)
+	if not self.hideGUI then
+		-- Headers for things connected to the ground.
+		for _,entity in ipairs(self.objects[1]) do
+			self:_drawHeader(entity)
+		end
+		-- Headers for things above ground.
+		for _,entity in ipairs(self.objects[2]) do
+			self:_drawHeader(entity)
+		end
 	end
-	-- Headers for things above ground.
-	for _,entity in ipairs(self.objects[2]) do
-		self:_drawHeader(entity)
-	end
+end
+
+function RenderSystem:setHideGUI(hide)
+	self.hideGUI = hide
 end
 
 function RenderSystem:onAddEntity(entity)
@@ -405,7 +414,7 @@ function RenderSystem:_drawEntity(i, entity)
 	end
 
 	-- Text overlay
-	if entity:has("ConstructionComponent") then
+	if entity:has("ConstructionComponent") and not self.hideGUI then
 		local percent = entity:get("ConstructionComponent"):getPercentDone()
 		love.graphics.setFont(self.constructionFont)
 		percent = percent .. "%"
