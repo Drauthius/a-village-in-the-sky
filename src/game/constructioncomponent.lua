@@ -69,11 +69,12 @@ ConstructionComponent.static.MATERIALS = {
 			[ResourceComponent.IRON] = 14,
 			[ResourceComponent.TOOL] = 5
 		},
-		[5] = {
-			[ResourceComponent.WOOD] = 14,
-			[ResourceComponent.IRON] = 18,
-			[ResourceComponent.TOOL] = 6
-		}
+		-- Disabled for now.
+		--[5] = {
+		--	[ResourceComponent.WOOD] = 14,
+		--	[ResourceComponent.IRON] = 18,
+		--	[ResourceComponent.TOOL] = 6
+		--}
 	}
 }
 
