@@ -152,8 +152,8 @@ function PregnancySystem:buildingEnteredEvent(event)
 	                          (dwelling:getNumBoys() + dwelling:getNumGirls()) * PregnancySystem.INTERCOURSE_CHILD_DECREASE
 
 	local pregnancyChance = intercourseChance *
-	                        villagers[1]:get("FertilityComponent"):getFertility() *
-	                        villagers[2]:get("FertilityComponent"):getFertility()
+	                        math.min(villagers[1]:get("FertilityComponent"):getFertility(),
+	                                 villagers[2]:get("FertilityComponent"):getFertility())
 	if love.math.random() < pregnancyChance then
 		local mother = villagers[1]:get("VillagerComponent"):getGender() == "female" and villagers[1] or villagers[2]
 		local father = mother == villagers[1] and villagers[2] or villagers[1]
