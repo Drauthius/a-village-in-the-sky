@@ -30,6 +30,9 @@ declare -ra masculine=(
 )
 declare -r masculine_output="$dir/../asset/misc/masculine_names.lua"
 
+# Characters that just won't show up in the game.
+declare -r unsupported_characters='Ǫ'
+
 get_names() {
 	declare url=${1:?Missing URL}
 
@@ -43,7 +46,10 @@ for gender in feminine masculine; do
 		for url in "${!array}"; do
 			[[ $url != "${!gender}" ]] && printf ','
 
-			xmllint --html --xpath '//div/span[@class="listname"]/a/text()' <(curl -s "$url" --output -) 2>/dev/null | sed -nr 's/\w{1,15}/"&"/p' | paste -s -d ','
+			xmllint --html --xpath '//div/span[@class="listname"]/a/text()' <(curl -s "$url" --output -) 2>/dev/null \
+				| sed -nr 's/\w{1,15}/"&"/p' \
+				| grep -iv "[$unsupported_characters]" \
+				| paste -s -d ','
 		done
 		printf '}'
 	} > "${!output}"
