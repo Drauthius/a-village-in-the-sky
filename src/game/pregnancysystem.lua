@@ -181,7 +181,7 @@ function PregnancySystem:villagerAgedEvent(event)
 		local fertility = entity:get("FertilityComponent"):getFertility()
 		fertility = fertility - PregnancySystem.FERTILITY_DECREASE_AMOUNT
 		if fertility <= 0 then
-			print(entity, "has become infertile at the age of "..villager:getAge()..".")
+			--print(entity, "has become infertile at the age of "..villager:getAge()..".")
 			entity:remove("FertilityComponent")
 			return
 		end
@@ -194,7 +194,7 @@ function PregnancySystem:villagerAgedEvent(event)
 		local ageDiff = villager:getAge() - PregnancySystem.MENOPAUSE_AGE
 		if ageDiff > 0 and
 		   love.math.random() < ageDiff * PregnancySystem.MENOPAUSE_CHANCE then
-			print(entity, "has reached menopause at the age of "..villager:getAge().. ".")
+			--print(entity, "has reached menopause at the age of "..villager:getAge().. ".")
 			entity:remove("FertilityComponent")
 		end
 	end

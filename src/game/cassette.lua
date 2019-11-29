@@ -29,7 +29,7 @@ local Cassette = class("Cassette")
 
 function Cassette:initialize(index)
 	self.index = index
-	self.debug = true
+	self.debug = false
 end
 
 function Cassette:isValid()
@@ -241,16 +241,17 @@ end
 
 function Cassette:saveEntity(entity)
 	if not entity.alive then
+		local err = "Entity not alive"
 		if entity.id then
-			print("Entity id: " .. entity.id, entity)
+			err = err .. "\nEntity ID: " .. entity.id
 		else
-			print("Entity has not been added to any engine yet. (No entity.id)")
+			err = err .. "\nEntity has not been added to any engine yet. (No entity.id)"
 		end
-		print("Entity's components:")
-		for index, component in pairs(entity.components) do
-			print(index, component)
+		err = err .. "\nEntity's components:"
+		for name in pairs(entity.components) do
+			err = err .. "\n  " .. name
 		end
-		error("Entity not alive")
+		error(err)
 	end
 	return { type = "entity", id = entity.id }
 end

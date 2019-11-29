@@ -111,7 +111,7 @@ function love.run()
 
 			if love.draw then love.draw() end
 
-			if true then
+			if false then
 				love.graphics.setLineWidth(1)
 				FPSGraph.drawGraphs({ fpsGraph, memGraph })
 			end
