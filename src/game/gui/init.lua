@@ -158,6 +158,10 @@ function GUI:resize(width, height)
 	self.eventPanel.y = select(2, self.listEventButton:getPosition()) + ox
 end
 
+function GUI:setUp()
+	self:_updateWorkerList()
+end
+
 function GUI:back()
 	if self.infoPanel:isShown() then
 		self:_closeInfoPanel()
@@ -603,29 +607,13 @@ end
 --
 
 function GUI:onAssigned(event)
-	-- To avoid caching problems and other oddities, we simply update the resource panel every time.
-	local workers = {}
-
-	for resource in pairs(WorkComponent.RESOURCE_TO_WORK) do
-		workers[resource] = 0
-	end
-
-	for _,entity in pairs(self.engine:getEntitiesWithComponent("AdultComponent")) do
-		local resource = WorkComponent.WORK_TO_RESOURCE[entity:get("AdultComponent"):getOccupation()]
-		if resource then
-			workers[resource] = workers[resource] + 1
-		end
-	end
-
-	for resource,numWorkers in pairs(workers) do
-		self.resourcePanel:setWorkers(resource, numWorkers)
-	end
+	self:_updateWorkerList()
 
 	self:updateHint()
 end
 
 function GUI:onUnassigned(event)
-	self:onAssigned(event)
+	self:_updateWorkerList()
 
 	self:updateHint()
 end
@@ -678,6 +666,26 @@ function GUI:_closeInfoPanel()
 
 	state:showBuildingHeaders(false)
 	state:showVillagerHeaders(false)
+end
+
+function GUI:_updateWorkerList()
+	-- To avoid caching problems and other oddities, we simply update the resource panel every time.
+	local workers = {}
+
+	for resource in pairs(WorkComponent.RESOURCE_TO_WORK) do
+		workers[resource] = 0
+	end
+
+	for _,entity in pairs(self.engine:getEntitiesWithComponent("AdultComponent")) do
+		local resource = WorkComponent.WORK_TO_RESOURCE[entity:get("AdultComponent"):getOccupation()]
+		if resource then
+			workers[resource] = workers[resource] + 1
+		end
+	end
+
+	for resource,numWorkers in pairs(workers) do
+		self.resourcePanel:setWorkers(resource, numWorkers)
+	end
 end
 
 return GUI

@@ -287,6 +287,7 @@ function Game:enter(_, profile)
 	self:_updateListenerPosition()
 
 	self.debug = false
+	self.gui:setUp()
 end
 
 function Game:leave()
