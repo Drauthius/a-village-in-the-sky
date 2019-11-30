@@ -30,6 +30,7 @@ local Button = require "src.game.gui.button"
 local ScaledSprite = require "src.game.scaledsprite"
 
 local screen = require "src.screen"
+local soundManager = require "src.soundmanager"
 local spriteSheet = require "src.game.spritesheet"
 
 local MainMenu = {}
@@ -114,6 +115,8 @@ end
 
 function MainMenu:enter(previous, init)
 	self:reevaluate()
+
+	soundManager:playMusic()
 
 	if init and self.latest then
 		return GameState.switch(Game, self.latest)

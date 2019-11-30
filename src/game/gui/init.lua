@@ -170,6 +170,13 @@ function GUI:back()
 	end
 end
 
+function GUI:showMenu()
+	if self.infoPanel:isShown() then
+		self:_closeInfoPanel()
+	end
+	GameState.push(InGameMenu)
+end
+
 function GUI:update(dt)
 	if self.menuButton:isPressed() then
 		local x, y = screen:getCoordinate(love.mouse.getPosition())

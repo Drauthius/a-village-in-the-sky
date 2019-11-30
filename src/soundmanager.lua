@@ -90,7 +90,6 @@ function SoundManager:initialize()
 
 	self.music = love.audio.newSource("asset/sfx/"..SoundManager.MUSIC, "stream")
 	self.music:setLooping(true)
-	self.music:play()
 
 	self:setEffectVolume(self:getEffectVolume())
 	self:setMusicVolume(self:getMusicVolume())
@@ -158,6 +157,38 @@ function SoundManager:playEffect(effect, gi, gj)
 		source:setRelative(true)
 	end
 	source:play()
+end
+
+function SoundManager:playMusic()
+	self.music:play()
+end
+
+function SoundManager:pauseMusic()
+	self.music:pause()
+end
+
+function SoundManager:pauseAll()
+	for _,source in ipairs(self.sources) do
+		if source:isPlaying() then
+			source:pause()
+		end
+	end
+end
+
+function SoundManager:resumeAll()
+	for _,source in ipairs(self.sources) do
+		if source:isPlaying() then
+			source:play()
+		end
+	end
+end
+
+function SoundManager:stopAll()
+	for _,source in ipairs(self.sources) do
+		if source:isPlaying() then
+			source:stop()
+		end
+	end
 end
 
 function SoundManager:_getFreeSource()

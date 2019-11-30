@@ -76,6 +76,10 @@ function InGameMenu:leave()
 	soundManager:playEffect("main_menu_closed")
 end
 
+function InGameMenu:focus(f)
+	self.oldState:focus(f)
+end
+
 function InGameMenu:update(dt)
 	for _,button in ipairs(self.buttons) do
 		if button:isPressed() then

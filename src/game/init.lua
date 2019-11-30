@@ -294,14 +294,17 @@ function Game:leave()
 	self:_save()
 	Timer.clear()
 	self.engine.systemRegistry["SoundSystem"]:stopAll()
+	soundManager:stopAll()
 end
 
 function Game:pause()
 	self.engine.systemRegistry["SoundSystem"]:pauseAll()
+	soundManager:pauseAll()
 end
 
 function Game:resume()
 	self.engine.systemRegistry["SoundSystem"]:playAll()
+	soundManager:resumeAll()
 end
 
 function Game:quit()
@@ -598,9 +601,15 @@ end
 
 function Game:focus(focused)
 	local os = love.system.getOS()
-	-- Focus is lost on mobile when switching out of the app, so best to save now.
-	if not focused and (os == "Android" or os == "iOS") then
-		self.saveGameTimer:update(self.saveGameHandle.limit - self.saveGameHandle.time)
+	if os == "Android" or os == "iOS" then
+		if focused then
+			soundManager:playMusic()
+		else
+			-- Focus is lost on mobile when switching out of the app, so best to save now.
+			self.saveGameTimer:update(self.saveGameHandle.limit - self.saveGameHandle.time)
+			self.gui:showMenu()
+			soundManager:pauseMusic()
+		end
 	end
 end
 
