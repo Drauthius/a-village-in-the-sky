@@ -285,7 +285,10 @@ function BuildingSystem:_unassignChimney(entity, villager)
 		end
 	end
 
-	error("No chimney removed?")
+	-- This can happen if a child becomes the owner of a dwelling when the parent dies, while inside the dwelling.
+	-- TODO: Might be a better way to solve it, like sending an event so that the chimney is allocated, but a lot of
+	--       work for little payoff.
+	--print("No chimney removed?")
 end
 
 return BuildingSystem
