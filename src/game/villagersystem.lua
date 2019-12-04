@@ -990,7 +990,9 @@ function VillagerSystem:_isGettingFood(dwelling, entity)
 
 	if not hasUnoccupied then
 		for _,villager in ipairs(dwelling:get("AssignmentComponent"):getAssignees()) do
-			if not villager:get("AdultComponent"):getWorkArea() then
+			if not villager:has("AdultComponent") then -- Child living alone. The horror.
+				return true
+			elseif not villager:get("AdultComponent"):getWorkArea() then
 				if villager == entity then
 					return true
 				else
@@ -1030,13 +1032,14 @@ function VillagerSystem:assignedEvent(event)
 
 		-- Check if we there are any kids we need to bring with us.
 		-- Divide up the children randomly (cause why not).
-		for _,child in ipairs(villager:getChildren()) do
+		for _,child in ipairs(table.join(villager:getChildren(),
+		                                 (oldHome and oldHome:get("DwellingComponent"):getChildren() or {}))) do
 			-- Don't move children that don't live with this parent.
 			if child:get("VillagerComponent"):getHome() == oldHome then
 				local moveIn = false
 				if oldHome then
 					-- First, check to see if there is a parent left in the old home.
-					if site:get("AssignmentComponent"):getNumAssignees() == 0 then
+					if oldHome:get("AssignmentComponent"):getNumAssignees() == 0 then
 						moveIn = true
 					else
 						local villagerLeft = site:get("AssignmentComponent"):getAssignees()[1]
@@ -1053,7 +1056,7 @@ function VillagerSystem:assignedEvent(event)
 					end
 
 					if moveIn then
-						oldHome:get("DwellingComponent"):removeChild(child)
+						self:unassignedEvent(UnassignedEvent(oldHome, child))
 					end
 				else
 					-- Take the chance to actually LIVE.
@@ -1393,17 +1396,14 @@ function VillagerSystem:onRemoveEntity(entity)
 	soundManager:playEffect("villager_death", grid)
 
 	-- Free home assignments.
-	if villager:getHome() then
-		local assignment = villager:getHome():get("AssignmentComponent")
+	local home = villager:getHome()
+	if home then
+		local assignment = home:get("AssignmentComponent")
 		if assignment:isAssigned(entity) then
 			assignment:unassign(entity)
-			if assignment:getNumAssignees() < 1 and #villager:getChildren() > 0 then
+			local _, child = next(home:get("DwellingComponent"):getChildren())
+			if assignment:getNumAssignees() < 1 and child then
 				-- Assign the oldest child as the one responsible for the household.
-				-- TODO: We should check that this doesn't cause any weird behaviour.
-				-- TODO: Probably a bit weird if there is one adult living with the children that isn't related to them.
-				-- TODO: Probably a bit weird when moving the child that was made responsible, since they won't bring
-				--       their brothers and sisters with them.
-				local child = villager:getChildren()[1]
 				assignment:assign(child)
 				-- Fake an event, since everything should be handled there.
 				self:assignedEvent(AssignedEvent(villager:getHome(), child))
