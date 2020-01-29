@@ -554,7 +554,7 @@ function WalkingSystem:_getRotation(last, target)
 	-- convert the direction from orthogonal to isometric, we
 	-- simply add 45 degrees to the angle (and make sure it is
 	-- between 0-359).
-	return (math.deg(r) + 360 + 45) % 360
+	return math.floor(math.deg(r) + 360 + 45) % 360
 end
 
 function WalkingSystem:_updateWalkingSpeed(entity)

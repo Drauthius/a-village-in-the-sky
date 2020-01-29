@@ -404,8 +404,8 @@ function GUI:draw(camera)
 						local offset = ((arrow.icon:getHeight() + arrowIcon:getHeight())/2) * camera.scale
 
 						-- Uses trigonometry to calculate where to put the arrow (in screen space).
-						local degrees = (math.deg(angle) + 360) % 360 -- For ease of use.
-						if degrees >= 300 or degrees <= 60 then -- Top
+						local degrees = math.floor(math.deg(angle) + 360) % 360 -- For ease of use.
+						if degrees >= 300 or degrees < 60 then -- Top
 							local top = offset
 							local w = (top - halfHeight) * math.tan(angle)
 							x = halfWidth + w
@@ -420,7 +420,7 @@ function GUI:draw(camera)
 							local w = (bottom - halfHeight) * math.tan(angle + math.pi)
 							x = halfWidth + w
 							y = bottom
-						elseif degrees > 60 then -- Left
+						elseif degrees >= 60 then -- Left
 							local left = offset
 							local h = (left - halfWidth) * math.tan(angle + math.pi/2)
 							x = left
