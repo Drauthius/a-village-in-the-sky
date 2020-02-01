@@ -1421,7 +1421,7 @@ function VillagerSystem:onRemoveEntity(entity)
 	end
 
 	-- Drop what's being carried.
-	if entity:has("CarryigComponent") then
+	if entity:has("CarryingComponent") then
 		self:_dropCarrying(entity)
 	end
 
