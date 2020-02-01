@@ -18,6 +18,7 @@ along with A Village in the Sky. If not, see <http://www.gnu.org/licenses/>.
 --]]
 
 local Camera = require "lib.hump.camera"
+local Gamestate = require "lib.hump.gamestate"
 local Timer = require "lib.hump.timer"
 local lovetoys = require "lib.lovetoys.lovetoys"
 local table = require "lib.table"
@@ -605,7 +606,7 @@ function Game:focus(focused)
 	if os == "Android" or os == "iOS" then
 		if focused then
 			soundManager:playMusic()
-		else
+		elseif Gamestate.current() == Game then
 			-- Focus is lost on mobile when switching out of the app, so best to save now.
 			self.saveGameTimer:update(self.saveGameHandle.limit - self.saveGameHandle.time)
 			self.gui:showMenu()
