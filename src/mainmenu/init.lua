@@ -35,6 +35,8 @@ local spriteSheet = require "src.game.spritesheet"
 
 local MainMenu = {}
 
+MainMenu.VERSION = "v0.1.2"
+
 local function _createClouds(variant)
 	local particleSystem = love.graphics.newParticleSystem(spriteSheet:getImage(), 1000)
 	local sprite = spriteSheet:getSprite("thumbnail-clouds", "cloud-"..variant)
@@ -67,7 +69,7 @@ function MainMenu:init()
 	self.offsetX = 0.0
 	self.cloudOffset = 0.1
 	self.textOffset = 1.0
-	self.authorOffset = 3.0
+	self.authorOffset = 1.8
 	self.buttonOffset = 1.5
 
 	self.newGameButton = Button(0, 0, 0, 0, "details-button", self.buttonFont)
@@ -205,6 +207,15 @@ function MainMenu:draw()
 	love.graphics.setColor(color[1], color[2], color[3], self.authorAlpha)
 	love.graphics.print('Created by Albert "Drauthius" Diserholt', x - 1, y - 1)
 
+	x, y = unpack(self.versionPosition)
+	x = x + self.offsetX * self.authorOffset
+	color = spriteSheet:getWoodPalette().dark
+	love.graphics.setColor(color[1], color[2], color[3], self.authorAlpha)
+	love.graphics.print(MainMenu.VERSION, x, y)
+	color = spriteSheet:getWoodPalette().bright
+	love.graphics.setColor(color[1], color[2], color[3], self.authorAlpha)
+	love.graphics.print(MainMenu.VERSION, x - 1, y - 1)
+
 	for _,button in ipairs(self.buttons) do
 		love.graphics.setColor(1, 1, 1, self.buttonAlpha)
 		button.text.color[4] = self.buttonAlpha
@@ -254,6 +265,7 @@ function MainMenu:resize()
 	self.textPosition = { dw / 20, dh / 6 }
 	self.authorPosition = { dw - self.authorFont:getWidth('Created by Albert "Drauthius" Diserholt  '),
 	                        dh - self.authorFont:getHeight() * 1.25 }
+	self.versionPosition = { self.authorFont:getWidth("  "), dh - self.authorFont:getHeight() * 1.25 }
 	self.cloudPosition = { 0, 0 }
 
 	local x = dw / 8
