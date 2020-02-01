@@ -248,7 +248,7 @@ end
 
 function ConstructionComponent:unreserveResource(resource, amount)
 	self.unreservedResources[resource] = self.unreservedResources[resource] + amount
-	--assert(self.unreservedResources[resource] <= ConstructionComponent.MATERIALS[self.buildingType][resource])
+	assert(self.unreservedResources[resource] <= ConstructionComponent.MATERIALS[self.buildingType][resource])
 end
 
 function ConstructionComponent:reserveGrid(villager, workGrid)

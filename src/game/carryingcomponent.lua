@@ -21,20 +21,22 @@ local class = require "lib.middleclass"
 
 local CarryingComponent = class("CarryingComponent")
 
-function CarryingComponent.static:save()
+function CarryingComponent.static:save(cassette)
 	return {
 		resource = self.resource,
-		amount = self.amount
+		amount = self.amount,
+		allocation = self.allocation and cassette:saveEntity(self.allocation)
 	}
 end
 
 function CarryingComponent.static.load(_, data)
-	return CarryingComponent(data.resource, data.amount)
+	return CarryingComponent(data.resource, data.amount, data.allocation)
 end
 
-function CarryingComponent:initialize(resource, amount)
+function CarryingComponent:initialize(resource, amount, allocation)
 	self.resource = resource
 	self.amount = amount
+	self.allocation = allocation
 end
 
 function CarryingComponent:getResource()
@@ -47,6 +49,10 @@ end
 
 function CarryingComponent:setAmount(amount)
 	self.amount = amount
+end
+
+function CarryingComponent:getAllocation()
+	return self.allocation
 end
 
 return CarryingComponent

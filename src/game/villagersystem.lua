@@ -292,7 +292,10 @@ function VillagerSystem:_update(entity, dt)
 			local resourceEntity = villager:getTargetEntity()
 			local resource = resourceEntity:get("ResourceComponent")
 			local res, amount = resource:getResource(), resource:getReservedAmount()
-			entity:add(CarryingComponent(res, amount))
+			local allocation = goal == VillagerComponent.GOALS.FOOD_PICKING_UP and
+			                   villager:getHome() or
+			                   entity:get("AdultComponent"):getWorkPlace()
+			entity:add(CarryingComponent(res, amount, allocation))
 			resource:decreaseAmount(amount)
 
 			if resource:getResourceAmount() < 1 then
@@ -903,7 +906,7 @@ function VillagerSystem:_stopAll(entity)
 		if workPlace:has("ConstructionComponent") then
 			workPlace:get("ConstructionComponent"):unreserveGrid(entity)
 
-			if not type and entity:has("CarryingComponent") then
+			if not type and entity:has("CarryingComponent") and entity:get("CarryingComponent"):getAllocation() == workPlace then
 				type, amount = entity:get("CarryingComponent"):getResource(), entity:get("CarryingComponent"):getAmount()
 			end
 
