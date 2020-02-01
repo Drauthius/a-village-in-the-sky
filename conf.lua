@@ -18,7 +18,7 @@ along with A Village in the Sky. If not, see <http://www.gnu.org/licenses/>.
 --]]
 
 function love.conf(t)
-	--t.identity = "village-in-the-sky"
+	t.identity = "a-village-in-the-sky"
 	t.version = "11.0"
 	t.console = false
 
