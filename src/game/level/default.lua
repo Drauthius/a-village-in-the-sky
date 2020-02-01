@@ -480,7 +480,7 @@ function DefaultLevel:shouldPlaceRunestone(ti, tj)
 		local tti, ttj = entity:get("PositionComponent"):getTile()
 		-- Manhattan distance.
 		local distance = math.abs(tti - ti) + math.abs(ttj - tj)
-		if distance < 3 then
+		if distance < 4 then
 			return false
 		end
 	end
