@@ -136,7 +136,7 @@ end
 
 function love.errorhandler(msg)
 	-- Make sure to not load into the game the next time, since it might be bugged.
-	love.filesystem.remove("latest")
+	love.filesystem.remove("autostart")
 
 	msg = tostring(msg)
 

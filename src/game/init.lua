@@ -126,6 +126,7 @@ end
 function Game:enter(_, profile)
 	love.graphics.setBackgroundColor(0.457, 0.675, 0.969)
 	love.filesystem.write("latest", profile)
+	love.filesystem.write("autostart", "")
 
 	self.speed = 1
 

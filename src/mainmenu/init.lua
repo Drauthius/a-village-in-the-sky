@@ -118,8 +118,10 @@ function MainMenu:enter(previous, init)
 
 	soundManager:playMusic()
 
-	if init and self.latest then
+	if init and self.latest and love.filesystem.getInfo("autostart", "file") then
 		return GameState.switch(Game, self.latest)
+	else
+		love.filesystem.remove("autostart")
 	end
 
 	self:resize()
