@@ -358,17 +358,6 @@ function DefaultLevel:initialize(...)
 				end
 				return num >= 25
 			end
-		},
-
-		{
-			text = "Reach 100 villagers",
-			cond = function()
-				local num = 0
-				for _ in pairs(self.engine:getEntitiesWithComponent("VillagerComponent")) do
-					num = num + 1
-				end
-				return num >= 100
-			end
 		}
 	}
 end
