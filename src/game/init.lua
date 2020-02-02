@@ -1079,20 +1079,23 @@ function Game:childbirthEndedEvent(event)
 		ti, tj = event:getMother():get("PositionComponent"):getTile()
 	end
 
-	if event:didChildSurvive() then
-		state:addEvent(GameEvent(GameEvent.TYPES.CHILD_BORN, ti, tj, ("%s%s has had a child."):format(
-			father and (father.." and ") or "", mother)))
+	for i=1,event:getNumBabies() do
+		if event:didChildSurvive(i) then
+			state:addEvent(GameEvent(GameEvent.TYPES.CHILD_BORN, ti, tj, ("%s%s has had a child."):format(
+				father and (father.." and ") or "", mother)))
 
-		local numVillagers = state:getNumMaleVillagers() + state:getNumFemaleVillagers() +
-		                     state:getNumMaleChildren() + state:getNumFemaleChildren()
-		if numVillagers % 50 == 0 and state:getLastPopulationEvent() < numVillagers then
-			state:setLastPopulationEvent(numVillagers)
-			state:addEvent(GameEvent(GameEvent.TYPES.POPULATION, 0, 0, ("%d villagers now call your village their home."):format(
-				numVillagers)))
+			local numVillagers = state:getNumMaleVillagers() + state:getNumFemaleVillagers() +
+								 state:getNumMaleChildren() + state:getNumFemaleChildren()
+			if numVillagers % 10 == 0 and state:getLastPopulationEvent() < numVillagers then
+				state:setLastPopulationEvent(numVillagers)
+				state:addEvent(GameEvent(GameEvent.TYPES.POPULATION,
+				                         0, 0, ("%d villagers now call your village their home."):format(
+				                                numVillagers)))
+			end
+		else
+			state:addEvent(GameEvent(GameEvent.TYPES.CHILD_DEATH, ti, tj, ("%s%s's baby died in childbirth."):format(
+				father and (father.."'s and ") or "", mother)))
 		end
-	else
-		state:addEvent(GameEvent(GameEvent.TYPES.CHILD_DEATH, ti, tj, ("%s%s's baby died in childbirth."):format(
-			father and (father.."'s and ") or "", mother)))
 	end
 
 	-- Mother death is handled elsewhere.

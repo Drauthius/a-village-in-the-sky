@@ -18,6 +18,7 @@ along with A Village in the Sky. If not, see <http://www.gnu.org/licenses/>.
 --]]
 
 local lovetoys = require "lib.lovetoys.lovetoys"
+local Timer = require "lib.hump.timer"
 
 local ChildbirthStartedEvent = require "src.game.childbirthstartedevent"
 local ChildbirthEndedEvent = require "src.game.childbirthendedevent"
@@ -79,15 +80,17 @@ function PregnancySystem:update(dt)
 		elseif left <= 0 then
 			local indoors = entity:get("VillagerComponent"):isHome()
 			if indoors or left <= -PregnancySystem.PREGNANCY_FINAL then
-				local motherDied, childDied
-				if not indoors then
-					-- The villager has no home or didn't make it back in time.
-					childDied = true
-				else
-					childDied = love.math.random() < PregnancySystem.MORTALITY_CHILD
+				local childDied = {}
+				for i=1,pregnancy:getNumBabies() do
+					if not indoors then
+						-- The villager has no home or didn't make it back in time.
+						childDied[i] = true
+					else
+						childDied[i] = love.math.random() < PregnancySystem.MORTALITY_CHILD
+					end
 				end
 
-				motherDied = love.math.random() < PregnancySystem.MORTALITY_MOTHER
+				local motherDied = love.math.random() < PregnancySystem.MORTALITY_MOTHER
 				entity:remove("PregnancyComponent")
 
 				local father, fatherUnique = pregnancy:getFather()
@@ -164,7 +167,11 @@ function PregnancySystem:buildingEnteredEvent(event)
 		local expected = 9 / 12 -- 9 months
 		expected = expected +
 		           love.math.random(-PregnancySystem.PREGNANCY_VARIATION, PregnancySystem.PREGNANCY_VARIATION)
-		mother:add(PregnancyComponent(expected, father))
+
+		-- Twins, triplets, and more.
+		local numBabies = math.max(1, math.floor(Timer.tween.quart(love.math.random()) * 5))
+
+		mother:add(PregnancyComponent(expected, numBabies, father))
 	end
 end
 

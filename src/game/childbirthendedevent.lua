@@ -42,8 +42,12 @@ function ChildbirthEndedEvent:didMotherSurvive()
 	return not self.motherDied
 end
 
-function ChildbirthEndedEvent:didChildSurvive()
-	return not self.childDied
+function ChildbirthEndedEvent:getNumBabies()
+	return #self.childDied
+end
+
+function ChildbirthEndedEvent:didChildSurvive(i)
+	return not self.childDied[i]
 end
 
 function ChildbirthEndedEvent:wasIndoors()

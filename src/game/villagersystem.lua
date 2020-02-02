@@ -34,6 +34,7 @@ local VillagerMaturedEvent = require "src.game.villagermaturedevent"
 local AdultComponent = require "src.game.adultcomponent"
 local BuildingComponent = require "src.game.buildingcomponent"
 local CarryingComponent = require "src.game.carryingcomponent"
+local DwellingComponent = require "src.game.dwellingcomponent"
 local FertilityComponent = require "src.game.fertilitycomponent"
 local GroundComponent = require "src.game.groundcomponent"
 local PositionComponent = require "src.game.positioncomponent"
@@ -1300,43 +1301,51 @@ end
 function VillagerSystem:childbirthEndedEvent(event)
 	local entity = event:getMother()
 	local villager = entity:get("VillagerComponent")
+	local home = villager:getHome()
 
 	-- Make sure the mother isn't sleeping or doing anything else.
 	self:_stopAll(entity)
 	self:_prepare(entity, villager:isHome())
 
 	local father, fatherUnique = event:getFather()
-	-- The child is created even if she didn't make it, so that the death animation can be played correctly.
-	local child = blueprint:createVillager(entity, father)
 
-	-- Father might have died already.
-	child:get("VillagerComponent").fatherUnique = fatherUnique
-	if father and not father.alive then
-		child:get("VillagerComponent"):clearFather()
-	end
+	local maxChildren = home and (DwellingComponent.MAX_CHILDREN -
+	                              home:get("DwellingComponent"):getNumChildren()) or
+	                    0
 
-	if event:wasIndoors() then
-		local home = villager:getHome()
+	for i=1,event:getNumBabies() do
+		-- The child is created even if she didn't make it, so that the death animation can be played correctly.
+		local child = blueprint:createVillager(entity, father)
 
-		child:remove("SpriteComponent") -- Don't need that.
-		child:get("VillagerComponent"):setHome(home)
-		child:get("VillagerComponent"):setInside(home)
+		-- Father might have died already.
+		child:get("VillagerComponent").fatherUnique = fatherUnique
+		if father and not father.alive then
+			child:get("VillagerComponent"):clearFather()
+		end
 
-		home:get("DwellingComponent"):addChild(child)
-		home:get("BuildingComponent"):addInside(child)
+		if event:wasIndoors() then
+			child:remove("SpriteComponent") -- Don't need that.
+			child:get("VillagerComponent"):setHome(home)
+			child:get("VillagerComponent"):setInside(home)
 
-		local entranceGrid = self.map:getGrid(home:get("EntranceComponent"):getAbsoluteGridCoordinate(home))
-		child:set(GroundComponent(self.map:gridToGroundCoords(entranceGrid.gi + 0.5, entranceGrid.gj + 0.5)))
-	else
-		assert(not event:didChildSurvive(), "Don't know where to place the child.")
-		local position = entity:get("PositionComponent")
-		child:add(PositionComponent(position:getGrid(), nil, position:getTile()))
-	end
-	self.engine:addEntity(child)
+			home:get("DwellingComponent"):addChild(child)
+			home:get("BuildingComponent"):addInside(child)
 
-	if not event:didChildSurvive() then
-		-- No need to fire a death event here, since the child never technically became a villager.
-		self.engine:removeEntity(child, true)
+			local entranceGrid = self.map:getGrid(home:get("EntranceComponent"):getAbsoluteGridCoordinate(home))
+			child:set(GroundComponent(self.map:gridToGroundCoords(entranceGrid.gi + 0.5, entranceGrid.gj + 0.5)))
+		else
+			assert(not event:didChildSurvive(i), "Don't know where to place the child.")
+			local position = entity:get("PositionComponent")
+			child:add(PositionComponent(position:getGrid(), nil, position:getTile()))
+		end
+		self.engine:addEntity(child)
+
+		if maxChildren > 0 and event:didChildSurvive(i) then
+			maxChildren = maxChildren - 1
+		else
+			-- No need to fire a death event here, since the child never technically became a villager.
+			self.engine:removeEntity(child, true)
+		end
 	end
 
 	if event:didMotherSurvive() then

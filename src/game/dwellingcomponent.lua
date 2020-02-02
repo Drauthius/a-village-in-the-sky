@@ -21,6 +21,8 @@ local class = require "lib.middleclass"
 
 local DwellingComponent = class("DwellingComponent")
 
+DwellingComponent.static.MAX_CHILDREN = 6
+
 function DwellingComponent.static:save(cassette)
 	return {
 		food = self.food,
