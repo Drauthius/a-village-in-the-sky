@@ -475,7 +475,7 @@ function Game:mousepressed(x, y, _, istouch)
 	}
 end
 
-function Game:mousemoved(x, y, _, istouch)
+function Game:mousemoved(x, y, _, _, istouch)
 	if istouch then
 		-- Two fingers down does not count as a drag/move, but as a zoom.
 		if self.numTouches > 1 then
@@ -579,6 +579,8 @@ function Game:touchreleased()
 		else
 			self.dragging.released = true
 		end
+	else
+		self.dragging.released = true
 	end
 
 	-- Update the pinch distance.
