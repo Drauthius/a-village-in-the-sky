@@ -248,7 +248,11 @@ end
 
 function ConstructionComponent:unreserveResource(resource, amount)
 	self.unreservedResources[resource] = self.unreservedResources[resource] + amount
-	assert(self.unreservedResources[resource] <= ConstructionComponent.MATERIALS[self.buildingType][resource])
+	local blueprint = ConstructionComponent.MATERIALS[self.buildingType]
+	if self.level then
+		blueprint = blueprint[self.level]
+	end
+	assert(self.unreservedResources[resource] <= blueprint[resource])
 end
 
 function ConstructionComponent:reserveGrid(villager, workGrid)
