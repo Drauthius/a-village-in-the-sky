@@ -83,7 +83,8 @@ function ResourcePanel:initialize()
 	}
 
 	self.spriteBatch:add(villagerIcon:getQuad(), villagerData.bounds.x, villagerData.bounds.y)
-	self.spriteBatch:add(villagerIcon:getQuad(), childrenData.bounds.x, childrenData.bounds.y)
+	self.spriteBatch:add(spriteSheet:getSprite("headers", "child-icon"):getQuad(),
+	                     childrenData.bounds.x, childrenData.bounds.y)
 end
 
 function ResourcePanel:draw()
