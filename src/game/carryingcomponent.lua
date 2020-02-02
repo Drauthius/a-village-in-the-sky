@@ -25,12 +25,15 @@ function CarryingComponent.static:save(cassette)
 	return {
 		resource = self.resource,
 		amount = self.amount,
-		allocation = self.allocation and cassette:saveEntity(self.allocation)
+		allocation = self.allocation and cassette:saveEntity(self.allocation) or nil
 	}
 end
 
-function CarryingComponent.static.load(_, data)
-	return CarryingComponent(data.resource, data.amount, data.allocation)
+function CarryingComponent.static.load(cassette, data)
+	return CarryingComponent(
+		data.resource,
+		data.amount,
+		data.allocation and cassette:loadEntity(data.allocation))
 end
 
 function CarryingComponent:initialize(resource, amount, allocation)

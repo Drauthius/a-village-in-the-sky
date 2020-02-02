@@ -248,7 +248,7 @@ function Cassette:saveEntity(entity)
 			err = err .. "\nEntity has not been added to any engine yet. (No entity.id)"
 		end
 		err = err .. "\nEntity's components:"
-		for name in pairs(entity.components) do
+		for name in pairs(entity.components or {}) do
 			err = err .. "\n  " .. name
 		end
 		error(err)
