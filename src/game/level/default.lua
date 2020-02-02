@@ -460,13 +460,6 @@ end
 
 function DefaultLevel:getResources(tileType)
 	if tileType == TileComponent.GRASS then
-		local numTiles = 0
-		for _ in pairs(self.engine:getEntitiesWithComponent("TileComponent")) do
-			numTiles = numTiles + 1
-			if numTiles >= 8 then
-				return math.max(0, math.floor((love.math.random(9) - 5) / 2)), 0
-			end
-		end
 		return 0, 0
 	elseif tileType == TileComponent.FOREST then
 		return love.math.random(3, 7), 0
