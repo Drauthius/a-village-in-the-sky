@@ -579,7 +579,7 @@ function Game:touchreleased()
 		else
 			self.dragging.released = true
 		end
-	else
+	elseif self.dragging then
 		self.dragging.released = true
 	end
 
