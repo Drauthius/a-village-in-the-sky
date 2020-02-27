@@ -203,6 +203,9 @@ function VillagerSystem:_update(entity, dt)
 		if math.floor(age) ~= math.floor(villager:getAge()) then
 			-- Happy birthday!
 			self.eventManager:fireEvent(VillagerAgedEvent(entity))
+			if not entity.alive then
+				return
+			end
 			age = villager:getAge()
 		end
 
