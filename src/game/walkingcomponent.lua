@@ -40,7 +40,7 @@ function WalkingComponent.static:save(cassette)
 		nextGrid = self.nextGrid and cassette:saveGrid(self.nextGrid),
 		ti = self.ti,
 		tj = self.tj,
-		grids = self.targetGrids and cassette:saveGridList(self.grids),
+		grids = self.grids and cassette:saveGridList(self.grids),
 		rotation = self.rotation,
 		instructions = self.instructions,
 		speedModifier = self.speedModifier,
