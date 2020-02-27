@@ -231,6 +231,8 @@ function VillagerSystem:_update(entity, dt)
 
 				if villager:getHome() and
 				   goal ~= VillagerComponent.GOALS.NONE and
+				   goal ~= VillagerComponent.GOALS.DROPOFF and
+				   goal ~= VillagerComponent.GOALS.DROPPING_OFF and
 				   goal ~= VillagerComponent.GOALS.FOOD_PICKUP and
 				   goal ~= VillagerComponent.GOALS.FOOD_PICKING_UP and
 				   goal ~= VillagerComponent.GOALS.FOOD_DROPOFF and
@@ -241,6 +243,7 @@ function VillagerSystem:_update(entity, dt)
 					-- Villager needs to eat. Drop what yer doing.
 					self:_stopAll(entity)
 					self:_prepare(entity, true)
+					goal = villager:getGoal() -- Goal has changed, make sure to update the reference.
 				end
 			end
 		end
