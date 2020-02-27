@@ -1571,6 +1571,7 @@ function VillagerSystem:targetUnreachableEvent(event)
 
 	-- Start by stopping everything
 	self:_stopAll(entity)
+	self:_prepare(entity, true)
 
 	villager:setDelay(VillagerSystem.TIMERS.PATH_FAILED_DELAY)
 	villager:setGoal(VillagerComponent.GOALS.NONE)

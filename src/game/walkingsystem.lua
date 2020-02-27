@@ -125,7 +125,6 @@ function WalkingSystem:_walkTheWalk(entity, dt)
 		if not self:_initiatePath(entity) then
 			--print("No path to thing")
 			self.eventManager:fireEvent(TargetUnreachableEvent(entity))
-			entity:remove("WalkingComponent")
 			return
 		end
 
@@ -168,7 +167,6 @@ function WalkingSystem:_walkTheWalk(entity, dt)
 			   -- No sense in doing anything if just wandering about.
 			   walking:getInstructions() == WalkingComponent.INSTRUCTIONS.WANDER then
 				self.eventManager:fireEvent(TargetUnreachableEvent(entity))
-				entity:remove("WalkingComponent")
 				return
 			end
 			walking:setNumRetries(retries + 1)
