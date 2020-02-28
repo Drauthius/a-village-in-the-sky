@@ -197,6 +197,8 @@ function ConstructionComponent:updateWorkGrids(adjacent)
 end
 
 function ConstructionComponent:getFreeWorkGrids()
+	assert(self.workGrids, "updateWorkGrids() not called before trying to get a free work grid")
+
 	local workGrids = {}
 	for _,workGrid in ipairs(self.workGrids) do
 		if not workGrid[3] then
@@ -260,6 +262,12 @@ function ConstructionComponent:reserveGrid(villager, workGrid)
 end
 
 function ConstructionComponent:unreserveGrid(villager)
+	-- Work grids might not have been set when trying to unreserve,
+	-- in which case there is nothing to unreserve anyway.
+	if not self.workGrids then
+		return
+	end
+
 	for _,workGrid in ipairs(self.workGrids) do
 		if workGrid[3] == villager then
 			workGrid[3] = nil
