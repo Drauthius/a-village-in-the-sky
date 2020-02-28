@@ -35,7 +35,7 @@ local spriteSheet = require "src.game.spritesheet"
 
 local MainMenu = {}
 
-MainMenu.VERSION = "v0.1.2"
+MainMenu.VERSION = "v0.1.3"
 
 local function _createClouds(variant)
 	local particleSystem = love.graphics.newParticleSystem(spriteSheet:getImage(), 1000)
