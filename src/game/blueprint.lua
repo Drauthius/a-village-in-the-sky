@@ -50,7 +50,7 @@ function Blueprint:createPlacingTile(type)
 
 	local name = TileComponent.TILE_NAME[type]
 	tile:add(PlacingComponent(true, type))
-	tile:add(SpriteComponent(spriteSheet:getSprite(name .. "-tile")))
+	tile:add(SpriteComponent(spriteSheet:getSprite(name .. "-tile"), 0, 0))
 
 	return tile
 end
@@ -65,7 +65,7 @@ function Blueprint:createPlacingBuilding(type)
 
 	building:add(PlacingComponent(false, type))
 	building:add(CollisionComponent(collision))
-	building:add(SpriteComponent(sprite))
+	building:add(SpriteComponent(sprite, 0, 0))
 
 	return building
 end
