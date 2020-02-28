@@ -58,4 +58,8 @@ function CarryingComponent:getAllocation()
 	return self.allocation
 end
 
+function CarryingComponent:clearAllocation()
+	self.allocation = nil
+end
+
 return CarryingComponent

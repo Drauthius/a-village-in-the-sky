@@ -41,14 +41,18 @@ function ResourceComponent.static:save(cassette)
 		stack = self.stack,
 		extracted = self.extracted,
 		reserved = self.reserved and cassette:saveEntity(self.reserved) or nil,
-		reservedAmount = self.reservedAmount
+		reservedAmount = self.reservedAmount,
+		allocation = self.allocation and cassette:saveEntity(self.allocation) or nil
 	}
 end
 
 function ResourceComponent.static.load(cassette, data)
 	local component = ResourceComponent(data.resource, data.stack, data.extracted)
 
-	component:setReserved(data.reserved and cassette:loadEntity(data.reserved) or nil, data.reservedAmount)
+	component:setReserved(
+		data.reserved and cassette:loadEntity(data.reserved) or nil,
+		data.reservedAmount,
+		data.allocation and cassette:loadEntity(data.allocation) or nil)
 
 	return component
 end
@@ -58,6 +62,7 @@ function ResourceComponent:initialize(resource, num, extracted)
 	self.stack = num or 3
 	self.extracted = extracted or false
 	self.reserved = nil
+	self.allocation = nil
 	self.reservedAmount = 0
 end
 
@@ -90,9 +95,14 @@ function ResourceComponent:getReservedAmount()
 	return self.reservedAmount
 end
 
-function ResourceComponent:setReserved(target, amount)
+function ResourceComponent:setReserved(target, amount, allocation)
 	self.reserved = target
 	self.reservedAmount = amount or 0
+	self.allocation = allocation
+end
+
+function ResourceComponent:getAllocation()
+	return self.allocation
 end
 
 return ResourceComponent

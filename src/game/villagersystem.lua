@@ -894,13 +894,14 @@ function VillagerSystem:_stopAll(entity)
 	local villager = entity:get("VillagerComponent")
 
 	-- Unreserve any reserved resource.
-	local type, amount
+	local type, amount, allocation
 	for _,resourceEntity in pairs(self.engine:getEntitiesWithComponent("ResourceComponent")) do
 		local resource = resourceEntity:get("ResourceComponent")
 		if resource:getReservedBy() == entity then
-			type, amount = resource:getResource(), resource:getReservedAmount()
+			type, amount, allocation = resource:getResource(), resource:getReservedAmount(), resource:getAllocation()
 			state:removeReservedResource(type, amount)
 			resource:setReserved(nil)
+			assert(not entity:has("CarryingComponent"), "Villager has reserved resource on the ground while carrying something.")
 			break -- Should only have one
 		end
 	end
@@ -913,12 +914,20 @@ function VillagerSystem:_stopAll(entity)
 		if workPlace:has("ConstructionComponent") then
 			workPlace:get("ConstructionComponent"):unreserveGrid(entity)
 
-			if not type and entity:has("CarryingComponent") and entity:get("CarryingComponent"):getAllocation() == workPlace then
-				type, amount = entity:get("CarryingComponent"):getResource(), entity:get("CarryingComponent"):getAmount()
+			local carrying = entity:has("CarryingComponent") and entity:get("CarryingComponent") or nil
+
+			-- Assume that the villager can only have one thing reserved, which is either on the ground (handled
+			-- above), or carrying it right now.
+			if not type and carrying then
+				type, amount, allocation = carrying:getResource(), carrying:getAmount(), carrying:getAllocation()
 			end
 
-			if type and amount then
+			if type and amount and allocation == workPlace then
 				workPlace:get("ConstructionComponent"):unreserveResource(type, amount)
+				if carrying then
+					-- The carried resources are no longer meant for something.
+					carrying:clearAllocation()
+				end
 			end
 		elseif workPlace:has("ProductionComponent") then
 			workPlace:get("ProductionComponent"):releaseResources(entity)

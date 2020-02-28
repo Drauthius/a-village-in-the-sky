@@ -371,7 +371,7 @@ function WalkingSystem:_createPath(entity)
 
 		-- Reserve the resources.
 		local pickupAmount = math.min(count, resourceNearest:get("ResourceComponent"):getResourceAmount())
-		resourceNearest:get("ResourceComponent"):setReserved(entity, pickupAmount)
+		resourceNearest:get("ResourceComponent"):setReserved(entity, pickupAmount, workPlace)
 		construction:reserveResource(resource, pickupAmount)
 		state:reserveResource(resource, pickupAmount)
 
@@ -429,7 +429,7 @@ function WalkingSystem:_createPath(entity)
 
 		-- Reserve the resources.
 		local pickupAmount = math.min(count, resourceNearest:get("ResourceComponent"):getResourceAmount())
-		resourceNearest:get("ResourceComponent"):setReserved(entity, pickupAmount)
+		resourceNearest:get("ResourceComponent"):setReserved(entity, pickupAmount, workPlace)
 		state:reserveResource(resource, pickupAmount)
 
 		-- TODO: If less than 3 resources, look for more resources
@@ -469,7 +469,7 @@ function WalkingSystem:_createPath(entity)
 
 		-- Reserve the resources.
 		local pickupAmount = 1
-		resourceNearest:get("ResourceComponent"):setReserved(entity, pickupAmount)
+		resourceNearest:get("ResourceComponent"):setReserved(entity, pickupAmount, home)
 		state:reserveResource(resource, pickupAmount)
 
 		path = resourcePath
