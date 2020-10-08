@@ -66,7 +66,7 @@ function screen:resize(w, h)
 			minFilter = "linear",
 			magFilter = "nearest",
 			flags = {
-				--resizable = true, -- TODO: Set to true before release (tiling wms tiles it :()
+				resizable = true,
 				highdpi = true,
 				fullscreen = self.fullscreen,
 				borderless = true,
