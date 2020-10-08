@@ -377,10 +377,9 @@ function GUI:draw(camera)
 
 					-- Centre of the screen (in screen/camera coordinates).
 					local center = vector(camera:worldCoords(halfWidth, halfHeight, dx, dy, dw, dh))
-					local x, y, angle
 
 					-- Angle between the points, with 3 o'clock being being zero degrees.
-					angle = math.atan2(arrow.x - center.x, -(arrow.y - center.y))
+					local angle = math.atan2(arrow.x - center.x, -(arrow.y - center.y))
 					if angle < 0 then
 						angle = math.abs(angle)
 					else
@@ -388,8 +387,12 @@ function GUI:draw(camera)
 					end
 
 					love.graphics.setColor(1, 1, 1, 1)
-					-- If inside the viewport
-					if cx >= dx and cy >= dy and cx <= dw and cy <= dh then
+					if angle ~= angle or angle == math.huge or angle == -math.huge then -- If angle is invalid
+						-- This really shouldn't happen, but it must, since there have been reports of `x` being nil
+						-- below, which should only happen if no if branch is entered, which in turn should only happen
+						-- when `angle` is Inf or NaN. (Modulo on math.huge returns NaN.)
+						-- Just skip this nice, non-essential arrow.
+					elseif cx >= dx and cy >= dy and cx <= dw and cy <= dh then -- If inside the viewport
 						-- Draw the arrow (a bit away from the centre)
 						love.graphics.draw(spriteSheet:getImage(), arrowIcon:getQuad(), arrow.x, arrow.y, -angle + math.pi/4,
 						                   1, 1,
@@ -400,6 +403,7 @@ function GUI:draw(camera)
 						                 arrow.x - arrow.icon:getWidth()/2 + math.cos(-angle + math.pi/2) * offset,
 						                 arrow.y - arrow.icon:getHeight()/2 + math.sin(-angle + math.pi/2) * offset)
 					else -- Outside the viewport. Calculate which edge to put the arrow.
+						local x, y
 						-- How far from the edge the arrow should be drawn (midpoint).
 						local offset = ((arrow.icon:getHeight() + arrowIcon:getHeight())/2) * camera.scale
 
