@@ -119,7 +119,10 @@ function GUI:resize(width, height)
 	self.fastforwardButton.x = self.menuButton.x + self.menuButton:getWidth() + 2
 	self.fastforwardButton.y = self.menuButton.y
 
-	self.objectivesPanel = ObjectivesPanel(self.eventManager, 2, self.menuButton:getHeight() + 10)
+	if not self.objectivesPanel then
+		self.objectivesPanel = ObjectivesPanel(self.eventManager)
+	end
+	self.objectivesPanel:setPosition(2, self.menuButton:getHeight() + 10)
 
 	self.yearPanel.x, self.yearPanel.y = self.screenWidth - self.yearPanel:getWidth(), 0
 
