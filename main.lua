@@ -58,7 +58,9 @@ function love.keyreleased(key, scancode)
 end
 
 function love.handlers.fastforward(fastforward)
-	GameState.current():fastforward(fastforward)
+	if GameState.current().fastforward then
+		GameState.current():fastforward(fastforward)
+	end
 end
 
 --
