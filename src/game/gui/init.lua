@@ -567,9 +567,15 @@ function GUI:updateHint()
 
 			hint:rotateAround(x + button:getWidth() / 2, y + button:getHeight() / 2 + 5, button:getWidth() * 0.4)
 		end
-	else
+	elseif place.alive and place:has("SpriteComponent") then
 		self.hintTimer = Timer.new()
 		self.hintTimer:every(0.5, function()
+			if not place.alive or not place:has("SpriteComponent") then
+				-- In case the thing that's being hinted disappears, try to find something new instead.
+				self:updateHint()
+				return false
+			end
+
 			local sprite = place:get("SpriteComponent")
 			local x, y = sprite:getDrawPosition()
 			local ox, oy, w, h = sprite:getSprite():getTrimmedDimensions()
