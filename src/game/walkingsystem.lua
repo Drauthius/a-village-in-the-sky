@@ -288,6 +288,10 @@ end
 function WalkingSystem:_createPath(entity)
 	local walking = entity:get("WalkingComponent")
 
+    if entity:get("PositionComponent") == nil then
+        return nil    
+    end
+    
 	local start = entity:get("PositionComponent"):getGrid()
 	local path, targetEntity, targetRotation, nextStop
 	local instruction = walking:getInstructions()
