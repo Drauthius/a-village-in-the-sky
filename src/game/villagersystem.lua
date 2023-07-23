@@ -675,6 +675,18 @@ function VillagerSystem:_fidget(entity)
 	local villager = entity:get("VillagerComponent")
 
 	local dirConv = require("src.game.worksystem").DIR_CONV[villager:getCardinalDirection()] -- XXX
+	if entity:get("PositionComponent") == nil then
+	  print(entity, "PositionComponent is nil.")
+	  local min, max = VillagerSystem.TIMERS.IDLE_FIDGET_MIN, VillagerSystem.TIMERS.IDLE_FIDGET_MAX
+	  local delay = love.math.random() * (max - min) + min
+	  villager:setDelay(delay)
+	  -- XXX: Dummy timer component to avoid doing anything until the delay is up...
+	  entity:add(TimerComponent(delay, { entity }, function(data)
+		data[1]:remove("TimerComponent")
+	  end))
+
+	  return
+	end
 	local grid = entity:get("PositionComponent"):getGrid()
 
 	if self.map:isGridReserved(entity:get("PositionComponent"):getGrid()) then
